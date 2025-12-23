@@ -66,6 +66,25 @@ This starts:
 - Log viewer (Pail)
 - Vite dev server with HMR
 
+### Git Hooks
+
+This project uses [Husky](https://typicode.github.io/husky/) for Git hooks. After running `npm install`, a pre-commit hook is automatically set up that runs:
+
+- **Biome** - TypeScript/React linting and formatting
+- **Pint** - PHP code style (Laravel preset)
+
+To manually run linters:
+
+```bash
+# Check for issues
+npm run lint-check
+vendor/bin/pint --test
+
+# Auto-fix issues
+npm run lint
+vendor/bin/pint
+```
+
 ## Setup
 
 1. Visit `/setup` to create your admin account (only available when no users exist)
