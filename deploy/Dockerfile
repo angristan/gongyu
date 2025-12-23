@@ -107,6 +107,7 @@ USER ${USER}
 
 COPY --link --chown=${WWWUSER}:${WWWUSER} . .
 COPY --link --chown=${WWWUSER}:${WWWUSER} --from=npm_build ${ROOT}/public/build public/build
+COPY --link --chown=${WWWUSER}:${WWWUSER} --from=npm_build ${ROOT}/bootstrap/ssr bootstrap/ssr
 
 RUN mkdir -p \
     storage/framework/{sessions,views,cache,testing} \
@@ -132,3 +133,21 @@ EXPOSE 80 443
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD curl -f http://localhost/up || exit 1
+
+# SSR server image (optional - for Inertia server-side rendering)
+FROM node:${NODE_VERSION}-slim AS ssr
+
+ARG APP_DIR=/var/www/html
+
+ENV NODE_ENV=production
+
+WORKDIR ${APP_DIR}
+
+COPY --link --from=npm_build ${APP_DIR}/bootstrap/ssr bootstrap/ssr
+
+EXPOSE 13714
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD node -e "fetch('http://localhost:13714/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))" || exit 1
+
+CMD ["node", "bootstrap/ssr/ssr.js"]

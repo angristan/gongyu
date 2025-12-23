@@ -159,10 +159,56 @@ docker run -d \
   ghcr.io/your-username/gongyu:latest
 ```
 
-### Build Docker Image Locally
+### Server-Side Rendering (SSR)
+
+SSR is disabled by default. To enable it, run the SSR sidecar container alongside the main app:
 
 ```bash
-docker build -t gongyu -f deploy/Dockerfile .
+# Run SSR container
+docker run -d \
+  --name gongyu-ssr \
+  ghcr.io/your-username/gongyu:ssr
+
+# Run app with SSR enabled
+docker run -d \
+  --name gongyu \
+  -p 8080:80 \
+  --link gongyu-ssr \
+  -e INERTIA_SSR_ENABLED=true \
+  -e INERTIA_SSR_URL=http://gongyu-ssr:13714 \
+  -e APP_KEY=base64:$(openssl rand -base64 32) \
+  -e APP_URL=http://localhost:8080 \
+  ghcr.io/your-username/gongyu:latest
+```
+
+Or with Docker Compose:
+
+```yaml
+services:
+  app:
+    image: ghcr.io/your-username/gongyu:latest
+    ports:
+      - "8080:80"
+    environment:
+      - INERTIA_SSR_ENABLED=true
+      - INERTIA_SSR_URL=http://ssr:13714
+    depends_on:
+      - ssr
+
+  ssr:
+    image: ghcr.io/your-username/gongyu:ssr
+```
+
+### Build Docker Images Locally
+
+The Dockerfile contains two targets:
+
+```bash
+# Build main app image (FrankenPHP)
+docker build --target app -t gongyu:latest -f deploy/Dockerfile .
+
+# Build SSR sidecar image (Node.js)
+docker build --target ssr -t gongyu:ssr -f deploy/Dockerfile .
 ```
 
 ## API / Feeds
