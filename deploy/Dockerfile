@@ -1,7 +1,7 @@
 # Gongyu Production Dockerfile
 # Uses FrankenPHP for high-performance PHP serving
 
-ARG PHP_VERSION=8.4
+ARG PHP_VERSION=8.5
 ARG FRANKENPHP_VERSION=1.11
 ARG COMPOSER_VERSION=2.9
 ARG NODE_VERSION=24
