@@ -1,6 +1,15 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" data-mantine-color-scheme="light">
     <head>
+        <script>
+            (function() {
+                var colorScheme = localStorage.getItem('mantine-color-scheme-value');
+                if (!colorScheme || colorScheme === 'auto') {
+                    colorScheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                }
+                document.documentElement.setAttribute('data-mantine-color-scheme', colorScheme);
+            })();
+        </script>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
