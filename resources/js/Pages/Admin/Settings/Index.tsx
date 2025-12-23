@@ -284,185 +284,278 @@ export default function SettingsIndex({ settings, importResult }: Props) {
                             </Tabs.Panel>
 
                             <Tabs.Panel value="twitter" pt="md">
-                                <form onSubmit={handleSubmit}>
-                                    <Card withBorder p="xl">
-                                        <Stack gap="md">
-                                            <Title order={3}>Twitter API</Title>
+                                <Stack gap="md">
+                                    <form onSubmit={handleSubmit}>
+                                        <Card withBorder p="xl">
+                                            <Stack gap="md">
+                                                <Title order={3}>
+                                                    Twitter API
+                                                </Title>
+                                                <Text size="sm" c="dimmed">
+                                                    Configure Twitter API
+                                                    credentials to auto-share
+                                                    bookmarks to Twitter.
+                                                </Text>
+
+                                                <TextInput
+                                                    label="API Key"
+                                                    placeholder="Enter your Twitter API key"
+                                                    value={data.twitter_api_key}
+                                                    onChange={(e) =>
+                                                        setData(
+                                                            'twitter_api_key',
+                                                            e.target.value,
+                                                        )
+                                                    }
+                                                    error={
+                                                        errors.twitter_api_key
+                                                    }
+                                                />
+                                                <PasswordInput
+                                                    label="API Secret"
+                                                    placeholder="Enter your Twitter API secret"
+                                                    value={
+                                                        data.twitter_api_secret
+                                                    }
+                                                    onChange={(e) =>
+                                                        setData(
+                                                            'twitter_api_secret',
+                                                            e.target.value,
+                                                        )
+                                                    }
+                                                    error={
+                                                        errors.twitter_api_secret
+                                                    }
+                                                />
+                                                <TextInput
+                                                    label="Access Token"
+                                                    placeholder="Enter your Twitter access token"
+                                                    value={
+                                                        data.twitter_access_token
+                                                    }
+                                                    onChange={(e) =>
+                                                        setData(
+                                                            'twitter_access_token',
+                                                            e.target.value,
+                                                        )
+                                                    }
+                                                    error={
+                                                        errors.twitter_access_token
+                                                    }
+                                                />
+                                                <PasswordInput
+                                                    label="Access Token Secret"
+                                                    placeholder="Enter your Twitter access token secret"
+                                                    value={
+                                                        data.twitter_access_secret
+                                                    }
+                                                    onChange={(e) =>
+                                                        setData(
+                                                            'twitter_access_secret',
+                                                            e.target.value,
+                                                        )
+                                                    }
+                                                    error={
+                                                        errors.twitter_access_secret
+                                                    }
+                                                />
+
+                                                <Button
+                                                    type="submit"
+                                                    loading={processing}
+                                                >
+                                                    Save Twitter Settings
+                                                </Button>
+                                            </Stack>
+                                        </Card>
+                                    </form>
+
+                                    <Card withBorder p="lg">
+                                        <Stack gap="sm">
+                                            <Title order={4}>
+                                                How to get Twitter API
+                                                credentials
+                                            </Title>
                                             <Text size="sm" c="dimmed">
-                                                Configure Twitter API
-                                                credentials to auto-share
-                                                bookmarks to Twitter.
+                                                1. Go to the Twitter Developer
+                                                Portal (developer.twitter.com)
+                                                <br />
+                                                2. Create a new project and app
+                                                <br />
+                                                3. Set up User Authentication
+                                                with Read and Write permissions
+                                                <br />
+                                                4. Generate API Key, API Secret,
+                                                Access Token, and Access Token
+                                                Secret
+                                                <br />
+                                                5. Copy all four values here
                                             </Text>
-
-                                            <TextInput
-                                                label="API Key"
-                                                placeholder="Enter your Twitter API key"
-                                                value={data.twitter_api_key}
-                                                onChange={(e) =>
-                                                    setData(
-                                                        'twitter_api_key',
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                error={errors.twitter_api_key}
-                                            />
-                                            <PasswordInput
-                                                label="API Secret"
-                                                placeholder="Enter your Twitter API secret"
-                                                value={data.twitter_api_secret}
-                                                onChange={(e) =>
-                                                    setData(
-                                                        'twitter_api_secret',
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                error={
-                                                    errors.twitter_api_secret
-                                                }
-                                            />
-                                            <TextInput
-                                                label="Access Token"
-                                                placeholder="Enter your Twitter access token"
-                                                value={
-                                                    data.twitter_access_token
-                                                }
-                                                onChange={(e) =>
-                                                    setData(
-                                                        'twitter_access_token',
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                error={
-                                                    errors.twitter_access_token
-                                                }
-                                            />
-                                            <PasswordInput
-                                                label="Access Token Secret"
-                                                placeholder="Enter your Twitter access token secret"
-                                                value={
-                                                    data.twitter_access_secret
-                                                }
-                                                onChange={(e) =>
-                                                    setData(
-                                                        'twitter_access_secret',
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                error={
-                                                    errors.twitter_access_secret
-                                                }
-                                            />
-
-                                            <Button
-                                                type="submit"
-                                                loading={processing}
-                                            >
-                                                Save Twitter Settings
-                                            </Button>
                                         </Stack>
                                     </Card>
-                                </form>
+                                </Stack>
                             </Tabs.Panel>
 
                             <Tabs.Panel value="mastodon" pt="md">
-                                <form onSubmit={handleSubmit}>
-                                    <Card withBorder p="xl">
-                                        <Stack gap="md">
-                                            <Title order={3}>Mastodon</Title>
+                                <Stack gap="md">
+                                    <form onSubmit={handleSubmit}>
+                                        <Card withBorder p="xl">
+                                            <Stack gap="md">
+                                                <Title order={3}>
+                                                    Mastodon
+                                                </Title>
+                                                <Text size="sm" c="dimmed">
+                                                    Configure Mastodon
+                                                    credentials to auto-share
+                                                    bookmarks to your Mastodon
+                                                    instance.
+                                                </Text>
+
+                                                <TextInput
+                                                    label="Instance URL"
+                                                    placeholder="https://mastodon.social"
+                                                    value={
+                                                        data.mastodon_instance
+                                                    }
+                                                    onChange={(e) =>
+                                                        setData(
+                                                            'mastodon_instance',
+                                                            e.target.value,
+                                                        )
+                                                    }
+                                                    error={
+                                                        errors.mastodon_instance
+                                                    }
+                                                />
+                                                <PasswordInput
+                                                    label="Access Token"
+                                                    placeholder="Enter your Mastodon access token"
+                                                    value={
+                                                        data.mastodon_access_token
+                                                    }
+                                                    onChange={(e) =>
+                                                        setData(
+                                                            'mastodon_access_token',
+                                                            e.target.value,
+                                                        )
+                                                    }
+                                                    error={
+                                                        errors.mastodon_access_token
+                                                    }
+                                                />
+
+                                                <Button
+                                                    type="submit"
+                                                    loading={processing}
+                                                >
+                                                    Save Mastodon Settings
+                                                </Button>
+                                            </Stack>
+                                        </Card>
+                                    </form>
+
+                                    <Card withBorder p="lg">
+                                        <Stack gap="sm">
+                                            <Title order={4}>
+                                                How to get a Mastodon access
+                                                token
+                                            </Title>
                                             <Text size="sm" c="dimmed">
-                                                Configure Mastodon credentials
-                                                to auto-share bookmarks to your
-                                                Mastodon instance.
+                                                1. Log in to your Mastodon
+                                                instance
+                                                <br />
+                                                2. Go to Settings → Development
+                                                <br />
+                                                3. Click "New Application"
+                                                <br />
+                                                4. Enter a name (e.g., "Gongyu")
+                                                and select "write:statuses"
+                                                scope
+                                                <br />
+                                                5. Submit and copy the access
+                                                token
                                             </Text>
-
-                                            <TextInput
-                                                label="Instance URL"
-                                                placeholder="https://mastodon.social"
-                                                value={data.mastodon_instance}
-                                                onChange={(e) =>
-                                                    setData(
-                                                        'mastodon_instance',
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                error={errors.mastodon_instance}
-                                            />
-                                            <PasswordInput
-                                                label="Access Token"
-                                                placeholder="Enter your Mastodon access token"
-                                                value={
-                                                    data.mastodon_access_token
-                                                }
-                                                onChange={(e) =>
-                                                    setData(
-                                                        'mastodon_access_token',
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                error={
-                                                    errors.mastodon_access_token
-                                                }
-                                            />
-
-                                            <Button
-                                                type="submit"
-                                                loading={processing}
-                                            >
-                                                Save Mastodon Settings
-                                            </Button>
                                         </Stack>
                                     </Card>
-                                </form>
+                                </Stack>
                             </Tabs.Panel>
 
                             <Tabs.Panel value="bluesky" pt="md">
-                                <form onSubmit={handleSubmit}>
-                                    <Card withBorder p="xl">
-                                        <Stack gap="md">
-                                            <Title order={3}>Bluesky</Title>
+                                <Stack gap="md">
+                                    <form onSubmit={handleSubmit}>
+                                        <Card withBorder p="xl">
+                                            <Stack gap="md">
+                                                <Title order={3}>Bluesky</Title>
+                                                <Text size="sm" c="dimmed">
+                                                    Configure Bluesky
+                                                    credentials to auto-share
+                                                    bookmarks to Bluesky.
+                                                </Text>
+
+                                                <TextInput
+                                                    label="Handle"
+                                                    placeholder="yourname.bsky.social"
+                                                    value={data.bluesky_handle}
+                                                    onChange={(e) =>
+                                                        setData(
+                                                            'bluesky_handle',
+                                                            e.target.value,
+                                                        )
+                                                    }
+                                                    error={
+                                                        errors.bluesky_handle
+                                                    }
+                                                />
+                                                <PasswordInput
+                                                    label="App Password"
+                                                    placeholder="Enter your Bluesky app password"
+                                                    value={
+                                                        data.bluesky_app_password
+                                                    }
+                                                    onChange={(e) =>
+                                                        setData(
+                                                            'bluesky_app_password',
+                                                            e.target.value,
+                                                        )
+                                                    }
+                                                    error={
+                                                        errors.bluesky_app_password
+                                                    }
+                                                />
+
+                                                <Button
+                                                    type="submit"
+                                                    loading={processing}
+                                                >
+                                                    Save Bluesky Settings
+                                                </Button>
+                                            </Stack>
+                                        </Card>
+                                    </form>
+
+                                    <Card withBorder p="lg">
+                                        <Stack gap="sm">
+                                            <Title order={4}>
+                                                How to get a Bluesky app
+                                                password
+                                            </Title>
                                             <Text size="sm" c="dimmed">
-                                                Configure Bluesky credentials to
-                                                auto-share bookmarks to Bluesky.
+                                                1. Log in to Bluesky (bsky.app)
+                                                <br />
+                                                2. Go to Settings → Privacy and
+                                                Security → App Passwords
+                                                <br />
+                                                3. Click "Add App Password"
+                                                <br />
+                                                4. Enter a name (e.g., "Gongyu")
+                                                <br />
+                                                5. Copy the generated password
+                                                (you won't be able to see it
+                                                again)
                                             </Text>
-
-                                            <TextInput
-                                                label="Handle"
-                                                placeholder="yourname.bsky.social"
-                                                value={data.bluesky_handle}
-                                                onChange={(e) =>
-                                                    setData(
-                                                        'bluesky_handle',
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                error={errors.bluesky_handle}
-                                            />
-                                            <PasswordInput
-                                                label="App Password"
-                                                placeholder="Enter your Bluesky app password"
-                                                value={
-                                                    data.bluesky_app_password
-                                                }
-                                                onChange={(e) =>
-                                                    setData(
-                                                        'bluesky_app_password',
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                error={
-                                                    errors.bluesky_app_password
-                                                }
-                                            />
-
-                                            <Button
-                                                type="submit"
-                                                loading={processing}
-                                            >
-                                                Save Bluesky Settings
-                                            </Button>
                                         </Stack>
                                     </Card>
-                                </form>
+                                </Stack>
                             </Tabs.Panel>
                         </Tabs>
                     </Stack>
