@@ -16,6 +16,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             \App\Http\Middleware\HandleInertiaRequests::class,
         ]);
+
+        $middleware->trustProxies(at: [
+            '100.64.0.0/10', // For Railway
+            '10.0.0.0/8', // For k8s
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
