@@ -51,3 +51,30 @@ jobs:
           subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
+
+      - name: Extract metadata for SSR image
+        id: meta-ssr
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=ssr,enable={{is_default_branch}}
+            type=raw,value={{branch}}-ssr
+
+      - name: Build and push SSR image
+        id: push-ssr
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./deploy/Dockerfile
+          target: ssr
+          push: true
+          tags: ${{ steps.meta-ssr.outputs.tags }}
+          labels: ${{ steps.meta-ssr.outputs.labels }}
+
+      - name: Generate artifact attestation for SSR
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
+          subject-digest: ${{ steps.push-ssr.outputs.digest }}
+          push-to-registry: true
