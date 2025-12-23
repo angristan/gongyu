@@ -29,20 +29,22 @@ const theme = createTheme({
     },
 });
 
-createServer((page) =>
-    createInertiaApp({
-        page,
-        render: ReactDOMServer.renderToString,
-        title: (title) => (title ? `${title} - ${appName}` : appName),
-        resolve: (name) =>
-            resolvePageComponent(
-                `./Pages/${name}.tsx`,
-                import.meta.glob('./Pages/**/*.tsx'),
+createServer(
+    (page) =>
+        createInertiaApp({
+            page,
+            render: ReactDOMServer.renderToString,
+            title: (title) => (title ? `${title} - ${appName}` : appName),
+            resolve: (name) =>
+                resolvePageComponent(
+                    `./Pages/${name}.tsx`,
+                    import.meta.glob('./Pages/**/*.tsx'),
+                ),
+            setup: ({ App, props }) => (
+                <MantineProvider theme={theme} defaultColorScheme="auto">
+                    <App {...props} />
+                </MantineProvider>
             ),
-        setup: ({ App, props }) => (
-            <MantineProvider theme={theme} defaultColorScheme="auto">
-                <App {...props} />
-            </MantineProvider>
-        ),
-    }),
+        }),
+    { cluster: true },
 );
