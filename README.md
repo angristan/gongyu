@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="public/images/logo.png" alt="Gongyu" width="120" height="120">
+</p>
+
 # Gongyu
 
 A modern, self-hosted bookmark manager inspired by [Shaarli](https://github.com/shaarli/Shaarli). Built with Laravel 12, React, Mantine UI, and Inertia.js.

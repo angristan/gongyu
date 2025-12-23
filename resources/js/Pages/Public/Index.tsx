@@ -6,6 +6,7 @@ import {
     Card,
     Container,
     Group,
+    Image,
     Pagination,
     Stack,
     Text,
@@ -48,7 +49,19 @@ export default function Index({ bookmarks, search, auth }: Props) {
                 <Container size="md">
                     <Stack gap="lg">
                         <Group justify="space-between" align="center">
-                            <Title order={1}>Gongyu</Title>
+                            <Group gap="sm">
+                                <Image
+                                    src="/images/logo.png"
+                                    alt="Gongyu"
+                                    h={40}
+                                    w={40}
+                                    fit="contain"
+                                    style={{
+                                        filter: 'drop-shadow(0 1px 3px rgba(255, 255, 255, 0.15))',
+                                    }}
+                                />
+                                <Title order={1}>Gongyu</Title>
+                            </Group>
                             {auth.user ? (
                                 <Anchor href="/admin/dashboard">
                                     Dashboard
