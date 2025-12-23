@@ -75,13 +75,4 @@ class CreateBookmark
         return redirect()->route('admin.bookmarks.index')
             ->with('success', 'Bookmark created successfully.');
     }
-
-    public static function rules(): array
-    {
-        return [
-            'url' => 'required|url|max:2048|unique:bookmarks,url',
-            'title' => 'required|string|max:500',
-            'description' => 'nullable|string',
-        ];
-    }
 }
