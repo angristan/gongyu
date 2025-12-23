@@ -51,13 +51,17 @@ class ImportShaarliExport
         }
 
         $toInsert = [];
+        $seenUrls = [];
 
         foreach ($parsed as $item) {
-            if (isset($existingUrls[$item['url']])) {
+            // Skip if already in DB or already seen in this import
+            if (isset($existingUrls[$item['url']]) || isset($seenUrls[$item['url']])) {
                 $result['skipped']++;
 
                 continue;
             }
+
+            $seenUrls[$item['url']] = true;
 
             $createdAt = $item['timestamp']
                 ? Carbon::createFromTimestamp($item['timestamp'])
