@@ -43,18 +43,14 @@ class ImportShaarliExport
 
         // Get all existing URLs in one query
         $existingUrls = Bookmark::whereIn('url', array_column($parsed, 'url'))
-            ->pluck('shaarli_short_url', 'url')
+            ->pluck('url')
+            ->flip()
             ->toArray();
 
         $toInsert = [];
-        $toUpdateShaarliHash = [];
 
         foreach ($parsed as $item) {
             if (isset($existingUrls[$item['url']])) {
-                // Update shaarli_short_url if not set and we have it
-                if (empty($existingUrls[$item['url']]) && ! empty($item['shaarli_hash'])) {
-                    $toUpdateShaarliHash[$item['url']] = $item['shaarli_hash'];
-                }
                 $result['skipped']++;
 
                 continue;
@@ -77,14 +73,9 @@ class ImportShaarliExport
         }
 
         // Bulk insert in chunks of 500
-        DB::transaction(function () use ($toInsert, $toUpdateShaarliHash): void {
+        DB::transaction(function () use ($toInsert): void {
             foreach (array_chunk($toInsert, 500) as $chunk) {
                 Bookmark::insert($chunk);
-            }
-
-            // Bulk update shaarli hashes for existing bookmarks
-            foreach ($toUpdateShaarliHash as $url => $hash) {
-                Bookmark::where('url', $url)->update(['shaarli_short_url' => $hash]);
             }
         });
 
