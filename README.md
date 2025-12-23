@@ -68,21 +68,20 @@ This starts:
 
 ### Git Hooks
 
-This project uses [Husky](https://typicode.github.io/husky/) for Git hooks. After running `npm install`, a pre-commit hook is automatically set up that runs:
+This project uses [Husky](https://typicode.github.io/husky/) for Git hooks. After running `npm install`, a pre-commit hook is automatically set up that runs `composer check`:
 
-- **Biome** - TypeScript/React linting and formatting
 - **Pint** - PHP code style (Laravel preset)
+- **PHPStan** - PHP static analysis
+- **Biome** - TypeScript/React linting and formatting
 
-To manually run linters:
+To manually run checks:
 
 ```bash
 # Check for issues
-npm run lint-check
-vendor/bin/pint --test
+composer check
 
-# Auto-fix issues
-npm run lint
-vendor/bin/pint
+# Auto-fix formatting
+composer lint
 ```
 
 ## Setup
