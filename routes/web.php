@@ -109,6 +109,7 @@ Route::get('/bookmarklet', function (Request $request) {
             'description' => $request->input('description', ''),
         ],
         'source' => $request->input('source'),
+        'hasSocialProviders' => CreateBookmark::hasSocialProviders(),
     ]);
 })->name('bookmarklet');
 

@@ -58,7 +58,7 @@ class CreateBookmark
                     'title' => $request->input('title', ''),
                     'description' => $request->input('description', ''),
                 ],
-                'hasSocialProviders' => $this->hasSocialProviders(),
+                'hasSocialProviders' => self::hasSocialProviders(),
             ]);
         }
 
@@ -78,7 +78,7 @@ class CreateBookmark
             ->with('success', 'Bookmark created successfully.');
     }
 
-    private function hasSocialProviders(): bool
+    public static function hasSocialProviders(): bool
     {
         // Twitter requires all 4 credentials
         $hasTwitter = Setting::get('twitter_api_key')

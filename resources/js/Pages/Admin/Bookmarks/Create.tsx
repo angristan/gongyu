@@ -162,16 +162,18 @@ export default function Create({
                                         error={errors.description}
                                         minRows={3}
                                     />
-                                    <Checkbox
-                                        label="Share to social media"
-                                        checked={data.share_social}
-                                        onChange={(e) =>
-                                            setData(
-                                                'share_social',
-                                                e.currentTarget.checked,
-                                            )
-                                        }
-                                    />
+                                    {hasSocialProviders && (
+                                        <Checkbox
+                                            label="Share to social media"
+                                            checked={data.share_social}
+                                            onChange={(e) =>
+                                                setData(
+                                                    'share_social',
+                                                    e.currentTarget.checked,
+                                                )
+                                            }
+                                        />
+                                    )}
                                     <Button type="submit" loading={processing}>
                                         Save Bookmark
                                     </Button>

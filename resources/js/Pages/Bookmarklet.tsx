@@ -25,12 +25,14 @@ interface Props extends PageProps {
         description: string;
     };
     source: string | null;
+    hasSocialProviders: boolean;
 }
 
 export default function Bookmarklet({
     existingBookmark,
     prefill,
     source,
+    hasSocialProviders,
 }: Props) {
     const [saved, setSaved] = useState(false);
     const isPopup = source === 'bookmarklet';
@@ -39,7 +41,7 @@ export default function Bookmarklet({
         url: prefill.url,
         title: prefill.title,
         description: prefill.description,
-        share_social: false,
+        share_social: hasSocialProviders,
     });
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -193,16 +195,18 @@ export default function Bookmarklet({
                                         error={errors.description}
                                         minRows={3}
                                     />
-                                    <Checkbox
-                                        label="Share to social media"
-                                        checked={data.share_social}
-                                        onChange={(e) =>
-                                            setData(
-                                                'share_social',
-                                                e.currentTarget.checked,
-                                            )
-                                        }
-                                    />
+                                    {hasSocialProviders && (
+                                        <Checkbox
+                                            label="Share to social media"
+                                            checked={data.share_social}
+                                            onChange={(e) =>
+                                                setData(
+                                                    'share_social',
+                                                    e.currentTarget.checked,
+                                                )
+                                            }
+                                        />
+                                    )}
                                     <Group>
                                         <Button
                                             type="submit"
