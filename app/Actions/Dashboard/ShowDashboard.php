@@ -6,6 +6,7 @@ namespace App\Actions\Dashboard;
 
 use App\Models\Bookmark;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -15,8 +16,13 @@ class ShowDashboard
 {
     use AsAction;
 
-    public function handle(): array
+    private const PERIODS = ['7d', '30d', '90d', '1y', 'all'];
+
+    public function handle(string $period = '30d'): array
     {
+        // Determine date range
+        [$rangeStart, $rangeEnd] = $this->getDateRange($period);
+
         // Total bookmarks
         $totalBookmarks = Bookmark::count();
 
@@ -31,11 +37,11 @@ class ShowDashboard
             ->take(10)
             ->get(['id', 'short_url', 'title', 'url', 'created_at']);
 
-        // Bookmarks over time (last 30 days)
-        $bookmarksOverTime = $this->getBookmarksOverTime(30);
+        // Bookmarks over time (based on selected range)
+        $bookmarksOverTime = $this->getBookmarksOverTime($rangeStart, $rangeEnd);
 
-        // Bookmarks by domain (top 10)
-        $bookmarksByDomain = $this->getBookmarksByDomain(10);
+        // Bookmarks by domain (top 10, filtered by date range)
+        $bookmarksByDomain = $this->getBookmarksByDomain(10, $rangeStart, $rangeEnd);
 
         return [
             'total_bookmarks' => $totalBookmarks,
@@ -47,16 +53,44 @@ class ShowDashboard
         ];
     }
 
-    public function asController(): Response
+    public function asController(Request $request): Response
     {
+        $period = $request->query('period', '30d');
+
+        // Validate period
+        if (! in_array($period, self::PERIODS, true)) {
+            $period = '30d';
+        }
+
         return Inertia::render('Admin/Dashboard', [
-            'stats' => $this->handle(),
+            'stats' => $this->handle($period),
+            'filters' => [
+                'period' => $period,
+            ],
         ]);
     }
 
-    private function getBookmarksOverTime(int $days): array
+    private function getDateRange(string $period): array
     {
-        $startDate = now()->subDays($days)->startOfDay();
+        $end = now()->endOfDay();
+
+        $start = match ($period) {
+            '7d' => now()->subDays(7)->startOfDay(),
+            '30d' => now()->subDays(30)->startOfDay(),
+            '90d' => now()->subDays(90)->startOfDay(),
+            '1y' => now()->subYear()->startOfDay(),
+            'all' => Bookmark::min('created_at')
+                ? Carbon::parse(Bookmark::min('created_at'))->startOfDay()
+                : now()->subDays(30)->startOfDay(),
+            default => now()->subDays(30)->startOfDay(),
+        };
+
+        return [$start, $end];
+    }
+
+    private function getBookmarksOverTime(Carbon $startDate, Carbon $endDate): array
+    {
+        $days = (int) $startDate->diffInDays($endDate);
 
         // Get counts per day
         $driver = DB::connection()->getDriverName();
@@ -64,14 +98,14 @@ class ShowDashboard
         if ($driver === 'pgsql') {
             $results = DB::table('bookmarks')
                 ->select(DB::raw('DATE(created_at) as date'), DB::raw('COUNT(*) as count'))
-                ->where('created_at', '>=', $startDate)
+                ->whereBetween('created_at', [$startDate, $endDate])
                 ->groupBy(DB::raw('DATE(created_at)'))
                 ->orderBy('date')
                 ->get();
         } else {
             $results = DB::table('bookmarks')
                 ->select(DB::raw('date(created_at) as date'), DB::raw('COUNT(*) as count'))
-                ->where('created_at', '>=', $startDate)
+                ->whereBetween('created_at', [$startDate, $endDate])
                 ->groupBy(DB::raw('date(created_at)'))
                 ->orderBy('date')
                 ->get();
@@ -80,22 +114,27 @@ class ShowDashboard
         // Create a map of date => count
         $countsByDate = $results->pluck('count', 'date')->toArray();
 
-        // Fill in all days
+        // Include year in date format if data spans multiple years
+        $dateFormat = $startDate->year !== $endDate->year ? 'M d, Y' : 'M d';
+
+        // Fill in all days in the range
         $data = [];
-        for ($i = $days; $i >= 0; $i--) {
-            $date = now()->subDays($i)->format('Y-m-d');
+        $current = $startDate->copy();
+        while ($current <= $endDate) {
+            $dateKey = $current->format('Y-m-d');
             $data[] = [
-                'date' => Carbon::parse($date)->format('M d'),
-                'count' => (int) ($countsByDate[$date] ?? 0),
+                'date' => $current->format($dateFormat),
+                'count' => (int) ($countsByDate[$dateKey] ?? 0),
             ];
+            $current->addDay();
         }
 
         return $data;
     }
 
-    private function getBookmarksByDomain(int $limit): array
+    private function getBookmarksByDomain(int $limit, Carbon $startDate, Carbon $endDate): array
     {
-        $bookmarks = Bookmark::all(['url']);
+        $bookmarks = Bookmark::whereBetween('created_at', [$startDate, $endDate])->get(['url']);
 
         $domains = [];
         foreach ($bookmarks as $bookmark) {

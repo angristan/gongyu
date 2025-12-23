@@ -1,11 +1,25 @@
 import { jsxs, Fragment, jsx } from "react/jsx-runtime";
 import { Head, Link, router } from "@inertiajs/react";
 import { AreaChart, BarChart } from "@mantine/charts";
-import { Box, Container, Stack, Group, Title, Button, Text, SimpleGrid, Paper, Card, Table, Badge } from "@mantine/core";
+import { Box, Container, Stack, Group, Title, Button, Text, SimpleGrid, Paper, Card, SegmentedControl, Table, Badge } from "@mantine/core";
 import { IconPlus, IconSettings, IconLogout, IconBookmark, IconCalendar, IconCalendarWeek } from "@tabler/icons-react";
-function Dashboard({ stats, auth }) {
+const PERIOD_OPTIONS = [
+  { value: "7d", label: "7D" },
+  { value: "30d", label: "30D" },
+  { value: "90d", label: "90D" },
+  { value: "1y", label: "1Y" },
+  { value: "all", label: "All" }
+];
+function Dashboard({ stats, filters, auth }) {
   const handleLogout = () => {
     router.post("/logout");
+  };
+  const handlePeriodChange = (value) => {
+    router.get(
+      "/admin/dashboard",
+      { period: value },
+      { preserveState: true, preserveScroll: true }
+    );
   };
   return /* @__PURE__ */ jsxs(Fragment, { children: [
     /* @__PURE__ */ jsx(Head, { title: "Dashboard" }),
@@ -117,41 +131,55 @@ function Dashboard({ stats, auth }) {
           )
         ] }) })
       ] }),
-      /* @__PURE__ */ jsxs(SimpleGrid, { cols: { base: 1, md: 2 }, children: [
-        /* @__PURE__ */ jsxs(Card, { withBorder: true, p: "lg", children: [
-          /* @__PURE__ */ jsx(Title, { order: 4, mb: "md", children: "Bookmarks Over Time (30 days)" }),
-          stats.bookmarks_over_time.length > 0 ? /* @__PURE__ */ jsx(
-            AreaChart,
+      /* @__PURE__ */ jsxs(Card, { withBorder: true, p: "lg", children: [
+        /* @__PURE__ */ jsxs(Group, { justify: "space-between", mb: "md", children: [
+          /* @__PURE__ */ jsx(Title, { order: 4, children: "Charts" }),
+          /* @__PURE__ */ jsx(
+            SegmentedControl,
             {
-              h: 200,
-              data: stats.bookmarks_over_time,
-              dataKey: "date",
-              series: [
-                { name: "count", color: "blue.6" }
-              ],
-              curveType: "monotone",
-              withDots: false
+              size: "xs",
+              value: filters.period,
+              onChange: handlePeriodChange,
+              data: PERIOD_OPTIONS
             }
-          ) : /* @__PURE__ */ jsx(Text, { c: "dimmed", ta: "center", py: "xl", children: "No data yet" })
+          )
         ] }),
-        /* @__PURE__ */ jsxs(Card, { withBorder: true, p: "lg", children: [
-          /* @__PURE__ */ jsx(Title, { order: 4, mb: "md", children: "Top Domains" }),
-          stats.bookmarks_by_domain.length > 0 ? /* @__PURE__ */ jsx(
-            BarChart,
-            {
-              h: 200,
-              data: stats.bookmarks_by_domain,
-              dataKey: "domain",
-              series: [
-                {
-                  name: "count",
-                  label: "Bookmarks",
-                  color: "violet.6"
-                }
-              ],
-              tickLine: "none"
-            }
-          ) : /* @__PURE__ */ jsx(Text, { c: "dimmed", ta: "center", py: "xl", children: "No data yet" })
+        /* @__PURE__ */ jsxs(SimpleGrid, { cols: { base: 1, md: 2 }, children: [
+          /* @__PURE__ */ jsxs("div", { children: [
+            /* @__PURE__ */ jsx(Text, { size: "sm", fw: 500, mb: "sm", children: "Bookmarks Over Time" }),
+            stats.bookmarks_over_time.length > 0 ? /* @__PURE__ */ jsx(
+              AreaChart,
+              {
+                h: 200,
+                data: stats.bookmarks_over_time,
+                dataKey: "date",
+                series: [
+                  { name: "count", color: "blue.6" }
+                ],
+                curveType: "monotone",
+                withDots: false
+              }
+            ) : /* @__PURE__ */ jsx(Text, { c: "dimmed", ta: "center", py: "xl", children: "No data yet" })
+          ] }),
+          /* @__PURE__ */ jsxs("div", { children: [
+            /* @__PURE__ */ jsx(Text, { size: "sm", fw: 500, mb: "sm", children: "Top Domains" }),
+            stats.bookmarks_by_domain.length > 0 ? /* @__PURE__ */ jsx(
+              BarChart,
+              {
+                h: 200,
+                data: stats.bookmarks_by_domain,
+                dataKey: "domain",
+                series: [
+                  {
+                    name: "count",
+                    label: "Bookmarks",
+                    color: "violet.6"
+                  }
+                ],
+                tickLine: "none"
+              }
+            ) : /* @__PURE__ */ jsx(Text, { c: "dimmed", ta: "center", py: "xl", children: "No data yet" })
+          ] })
         ] })
       ] }),
       /* @__PURE__ */ jsxs(Card, { withBorder: true, p: "lg", children: [

@@ -8,6 +8,7 @@ import {
     Container,
     Group,
     Paper,
+    SegmentedControl,
     SimpleGrid,
     Stack,
     Table,
@@ -33,13 +34,34 @@ interface Stats {
     bookmarks_by_domain: { domain: string; count: number }[];
 }
 
-interface Props extends PageProps {
-    stats: Stats;
+interface Filters {
+    period: string;
 }
 
-export default function Dashboard({ stats, auth }: Props) {
+interface Props extends PageProps {
+    stats: Stats;
+    filters: Filters;
+}
+
+const PERIOD_OPTIONS = [
+    { value: '7d', label: '7D' },
+    { value: '30d', label: '30D' },
+    { value: '90d', label: '90D' },
+    { value: '1y', label: '1Y' },
+    { value: 'all', label: 'All' },
+];
+
+export default function Dashboard({ stats, filters, auth }: Props) {
     const handleLogout = () => {
         router.post('/logout');
+    };
+
+    const handlePeriodChange = (value: string) => {
+        router.get(
+            '/admin/dashboard',
+            { period: value },
+            { preserveState: true, preserveScroll: true },
+        );
     };
 
     return (
@@ -145,54 +167,65 @@ export default function Dashboard({ stats, auth }: Props) {
                             </Paper>
                         </SimpleGrid>
 
-                        <SimpleGrid cols={{ base: 1, md: 2 }}>
-                            <Card withBorder p="lg">
-                                <Title order={4} mb="md">
-                                    Bookmarks Over Time (30 days)
-                                </Title>
-                                {stats.bookmarks_over_time.length > 0 ? (
-                                    <AreaChart
-                                        h={200}
-                                        data={stats.bookmarks_over_time}
-                                        dataKey="date"
-                                        series={[
-                                            { name: 'count', color: 'blue.6' },
-                                        ]}
-                                        curveType="monotone"
-                                        withDots={false}
-                                    />
-                                ) : (
-                                    <Text c="dimmed" ta="center" py="xl">
-                                        No data yet
+                        <Card withBorder p="lg">
+                            <Group justify="space-between" mb="md">
+                                <Title order={4}>Charts</Title>
+                                <SegmentedControl
+                                    size="xs"
+                                    value={filters.period}
+                                    onChange={handlePeriodChange}
+                                    data={PERIOD_OPTIONS}
+                                />
+                            </Group>
+                            <SimpleGrid cols={{ base: 1, md: 2 }}>
+                                <div>
+                                    <Text size="sm" fw={500} mb="sm">
+                                        Bookmarks Over Time
                                     </Text>
-                                )}
-                            </Card>
+                                    {stats.bookmarks_over_time.length > 0 ? (
+                                        <AreaChart
+                                            h={200}
+                                            data={stats.bookmarks_over_time}
+                                            dataKey="date"
+                                            series={[
+                                                { name: 'count', color: 'blue.6' },
+                                            ]}
+                                            curveType="monotone"
+                                            withDots={false}
+                                        />
+                                    ) : (
+                                        <Text c="dimmed" ta="center" py="xl">
+                                            No data yet
+                                        </Text>
+                                    )}
+                                </div>
 
-                            <Card withBorder p="lg">
-                                <Title order={4} mb="md">
-                                    Top Domains
-                                </Title>
-                                {stats.bookmarks_by_domain.length > 0 ? (
-                                    <BarChart
-                                        h={200}
-                                        data={stats.bookmarks_by_domain}
-                                        dataKey="domain"
-                                        series={[
-                                            {
-                                                name: 'count',
-                                                label: 'Bookmarks',
-                                                color: 'violet.6',
-                                            },
-                                        ]}
-                                        tickLine="none"
-                                    />
-                                ) : (
-                                    <Text c="dimmed" ta="center" py="xl">
-                                        No data yet
+                                <div>
+                                    <Text size="sm" fw={500} mb="sm">
+                                        Top Domains
                                     </Text>
-                                )}
-                            </Card>
-                        </SimpleGrid>
+                                    {stats.bookmarks_by_domain.length > 0 ? (
+                                        <BarChart
+                                            h={200}
+                                            data={stats.bookmarks_by_domain}
+                                            dataKey="domain"
+                                            series={[
+                                                {
+                                                    name: 'count',
+                                                    label: 'Bookmarks',
+                                                    color: 'violet.6',
+                                                },
+                                            ]}
+                                            tickLine="none"
+                                        />
+                                    ) : (
+                                        <Text c="dimmed" ta="center" py="xl">
+                                            No data yet
+                                        </Text>
+                                    )}
+                                </div>
+                            </SimpleGrid>
+                        </Card>
 
                         <Card withBorder p="lg">
                             <Group justify="space-between" mb="md">
