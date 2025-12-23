@@ -49,6 +49,10 @@ RUN apt-get update; \
     pcntl \
     zip \
     intl \
+    # Install Datadog PHP tracer
+    && curl -LO https://github.com/DataDog/dd-trace-php/releases/latest/download/datadog-setup.php \
+    && php datadog-setup.php --php-bin=all \
+    && rm datadog-setup.php \
     && apt-get -y autoremove \
     && apt-get clean \
     && docker-php-source delete \
