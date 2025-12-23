@@ -10,6 +10,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -40,41 +41,52 @@ class ImportShaarliExport
 
         $parsed = ParseNetscapeBookmarks::run($html);
 
+        // Get all existing URLs in one query
+        $existingUrls = Bookmark::whereIn('url', array_column($parsed, 'url'))
+            ->pluck('shaarli_short_url', 'url')
+            ->toArray();
+
+        $toInsert = [];
+        $toUpdateShaarliHash = [];
+
         foreach ($parsed as $item) {
-            try {
-                // Check if bookmark already exists by URL
-                $existing = Bookmark::where('url', $item['url'])->first();
-
-                if ($existing) {
-                    // Update shaarli_short_url if not set and we have it
-                    if (empty($existing->shaarli_short_url) && ! empty($item['shaarli_hash'])) {
-                        $existing->update(['shaarli_short_url' => $item['shaarli_hash']]);
-                    }
-                    $result['skipped']++;
-
-                    continue;
+            if (isset($existingUrls[$item['url']])) {
+                // Update shaarli_short_url if not set and we have it
+                if (empty($existingUrls[$item['url']]) && ! empty($item['shaarli_hash'])) {
+                    $toUpdateShaarliHash[$item['url']] = $item['shaarli_hash'];
                 }
+                $result['skipped']++;
 
-                // Create new bookmark
-                $createdAt = $item['timestamp']
-                    ? Carbon::createFromTimestamp($item['timestamp'])
-                    : now();
-
-                $bookmark = new Bookmark([
-                    'url' => $item['url'],
-                    'title' => $item['title'],
-                    'description' => $item['description'] ?: null,
-                    'shaarli_short_url' => $item['shaarli_hash'],
-                ]);
-                $bookmark->created_at = $createdAt;
-                $bookmark->updated_at = $createdAt;
-                $bookmark->save();
-
-                $result['imported']++;
-            } catch (\Exception $e) {
-                $result['errors'][] = "Error importing {$item['url']}: {$e->getMessage()}";
+                continue;
             }
+
+            $createdAt = $item['timestamp']
+                ? Carbon::createFromTimestamp($item['timestamp'])
+                : now();
+
+            $toInsert[] = [
+                'short_url' => Str::random(8),
+                'url' => $item['url'],
+                'title' => $item['title'],
+                'description' => $item['description'] ?: null,
+                'shaarli_short_url' => $item['shaarli_hash'],
+                'created_at' => $createdAt,
+                'updated_at' => $createdAt,
+            ];
+            $result['imported']++;
         }
+
+        // Bulk insert in chunks of 500
+        DB::transaction(function () use ($toInsert, $toUpdateShaarliHash): void {
+            foreach (array_chunk($toInsert, 500) as $chunk) {
+                Bookmark::insert($chunk);
+            }
+
+            // Bulk update shaarli hashes for existing bookmarks
+            foreach ($toUpdateShaarliHash as $url => $hash) {
+                Bookmark::where('url', $url)->update(['shaarli_short_url' => $hash]);
+            }
+        });
 
         // Rebuild FTS index after import
         $this->rebuildSearchIndex();
