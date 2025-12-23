@@ -87,7 +87,7 @@ class PostToTwitter
     private function formatTweet(Bookmark $bookmark): string
     {
         $maxLength = 280;
-        $url = url('/b/'.$bookmark->short_url);
+        $url = $bookmark->url;
         $urlLength = 23; // Twitter counts all URLs as 23 chars
 
         $availableLength = $maxLength - $urlLength - 1; // -1 for space

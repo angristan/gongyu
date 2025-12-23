@@ -68,7 +68,7 @@ class PostToMastodon
     private function formatStatus(Bookmark $bookmark): string
     {
         $maxLength = 500;
-        $url = url('/b/'.$bookmark->short_url);
+        $url = $bookmark->url;
 
         $availableLength = $maxLength - mb_strlen($url) - 1; // -1 for space
 

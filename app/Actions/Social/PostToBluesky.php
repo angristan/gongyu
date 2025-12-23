@@ -36,7 +36,7 @@ class PostToBluesky
             }
 
             $text = $this->formatPost($bookmark);
-            $url = url('/b/'.$bookmark->short_url);
+            $url = $bookmark->url;
 
             // Create the post with link card
             $record = [
@@ -98,7 +98,7 @@ class PostToBluesky
     private function formatPost(Bookmark $bookmark): string
     {
         $maxLength = 300;
-        $url = url('/b/'.$bookmark->short_url);
+        $url = $bookmark->url;
 
         $availableLength = $maxLength - mb_strlen($url) - 1; // -1 for space
 
