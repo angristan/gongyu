@@ -1,5 +1,6 @@
 import { Head, router } from '@inertiajs/react';
 import {
+    ActionIcon,
     Anchor,
     Badge,
     Box,
@@ -12,8 +13,9 @@ import {
     Text,
     TextInput,
     Title,
+    useMantineColorScheme,
 } from '@mantine/core';
-import { IconSearch } from '@tabler/icons-react';
+import { IconMoon, IconSearch, IconSun } from '@tabler/icons-react';
 import { useState } from 'react';
 import type { Bookmark, PageProps } from '@/types';
 
@@ -32,6 +34,7 @@ interface Props extends PageProps {
 
 export default function Index({ bookmarks, search, auth }: Props) {
     const [searchValue, setSearchValue] = useState(search || '');
+    const { colorScheme, toggleColorScheme } = useMantineColorScheme();
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
@@ -156,6 +159,32 @@ export default function Index({ bookmarks, search, auth }: Props) {
                             </>
                         )}
                     </Stack>
+
+                    <Group justify="space-between" mt="xl" pt="xl">
+                        <Text size="sm" c="dimmed">
+                            Powered by{' '}
+                            <Anchor
+                                href="https://github.com/angristan/gongyu"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                size="sm"
+                            >
+                                Gongyu
+                            </Anchor>
+                        </Text>
+                        <ActionIcon
+                            variant="subtle"
+                            color="gray"
+                            onClick={toggleColorScheme}
+                            aria-label="Toggle color scheme"
+                        >
+                            {colorScheme === 'dark' ? (
+                                <IconSun size={18} />
+                            ) : (
+                                <IconMoon size={18} />
+                            )}
+                        </ActionIcon>
+                    </Group>
                 </Container>
             </Box>
         </>
