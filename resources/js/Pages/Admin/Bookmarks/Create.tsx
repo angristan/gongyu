@@ -23,14 +23,19 @@ interface Props extends PageProps {
         title: string;
         description: string;
     };
+    hasSocialProviders: boolean;
 }
 
-export default function Create({ existingBookmark, prefill }: Props) {
+export default function Create({
+    existingBookmark,
+    prefill,
+    hasSocialProviders,
+}: Props) {
     const { data, setData, post, processing, errors } = useForm({
         url: prefill.url,
         title: prefill.title,
         description: prefill.description,
-        share_social: false,
+        share_social: hasSocialProviders,
     });
 
     const handleSubmit = (e: React.FormEvent) => {

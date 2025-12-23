@@ -7,6 +7,7 @@ namespace App\Actions\Bookmark;
 use App\Actions\Social\ShareBookmark;
 use App\Actions\Thumbnail\GenerateThumbnail;
 use App\Models\Bookmark;
+use App\Models\Setting;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -57,6 +58,7 @@ class CreateBookmark
                     'title' => $request->input('title', ''),
                     'description' => $request->input('description', ''),
                 ],
+                'hasSocialProviders' => $this->hasSocialProviders(),
             ]);
         }
 
@@ -74,5 +76,24 @@ class CreateBookmark
 
         return redirect()->route('admin.bookmarks.index')
             ->with('success', 'Bookmark created successfully.');
+    }
+
+    private function hasSocialProviders(): bool
+    {
+        // Twitter requires all 4 credentials
+        $hasTwitter = Setting::get('twitter_api_key')
+            && Setting::get('twitter_api_secret')
+            && Setting::get('twitter_access_token')
+            && Setting::get('twitter_access_secret');
+
+        // Mastodon requires instance and access token
+        $hasMastodon = Setting::get('mastodon_instance')
+            && Setting::get('mastodon_access_token');
+
+        // Bluesky requires handle and app password
+        $hasBluesky = Setting::get('bluesky_handle')
+            && Setting::get('bluesky_app_password');
+
+        return $hasTwitter || $hasMastodon || $hasBluesky;
     }
 }
