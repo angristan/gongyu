@@ -41,11 +41,14 @@ class ImportShaarliExport
 
         $parsed = ParseNetscapeBookmarks::run($html);
 
-        // Get all existing URLs in one query
-        $existingUrls = Bookmark::whereIn('url', array_column($parsed, 'url'))
-            ->pluck('url')
-            ->flip()
-            ->toArray();
+        // Skip duplicate check if no bookmarks exist (fresh import)
+        $existingUrls = [];
+        if (Bookmark::exists()) {
+            $existingUrls = Bookmark::whereIn('url', array_column($parsed, 'url'))
+                ->pluck('url')
+                ->flip()
+                ->toArray();
+        }
 
         $toInsert = [];
 
@@ -90,11 +93,9 @@ class ImportShaarliExport
         $driver = DB::connection()->getDriverName();
 
         try {
+            // PostgreSQL uses triggers to auto-update search_vector on INSERT - no rebuild needed
             if ($driver === 'sqlite') {
                 DB::statement("INSERT INTO bookmarks_fts(bookmarks_fts) VALUES('rebuild')");
-            } elseif ($driver === 'pgsql') {
-                // PostgreSQL tsvector is updated via triggers, but force refresh
-                DB::statement('UPDATE bookmarks SET search_vector = to_tsvector(\'english\', coalesce(title, \'\') || \' \' || coalesce(description, \'\') || \' \' || coalesce(url, \'\'))');
             }
         } catch (\Exception $e) {
             // Silently fail - search index rebuild is not critical
