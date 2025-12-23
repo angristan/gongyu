@@ -25,8 +25,11 @@ import {
     IconCode,
     IconCopy,
 } from '@tabler/icons-react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { PageProps } from '@/types';
+
+const VALID_TABS = ['bookmarklet', 'twitter', 'mastodon', 'bluesky'] as const;
+type TabValue = (typeof VALID_TABS)[number];
 
 interface Settings {
     twitter_api_key: string;
@@ -44,7 +47,27 @@ interface Props extends PageProps {
     bookmarkletUrl: string;
 }
 
+function getInitialTab(): TabValue {
+    if (typeof window === 'undefined') return 'bookmarklet';
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab');
+    return tab && VALID_TABS.includes(tab as TabValue)
+        ? (tab as TabValue)
+        : 'bookmarklet';
+}
+
 export default function SettingsIndex({ settings, bookmarkletUrl }: Props) {
+    const [activeTab, setActiveTab] = useState<TabValue>(getInitialTab);
+
+    const handleTabChange = (value: string | null) => {
+        if (value && VALID_TABS.includes(value as TabValue)) {
+            setActiveTab(value as TabValue);
+            const url = new URL(window.location.href);
+            url.searchParams.set('tab', value);
+            window.history.replaceState({}, '', url.toString());
+        }
+    };
+
     const { data, setData, patch, processing, errors } = useForm({
         twitter_api_key: settings.twitter_api_key || '',
         twitter_api_secret: settings.twitter_api_secret || '',
@@ -90,7 +113,7 @@ export default function SettingsIndex({ settings, bookmarkletUrl }: Props) {
 
                         <Title order={1}>Settings</Title>
 
-                        <Tabs defaultValue="bookmarklet">
+                        <Tabs value={activeTab} onChange={handleTabChange}>
                             <Tabs.List>
                                 <Tabs.Tab
                                     value="bookmarklet"
