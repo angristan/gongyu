@@ -62,7 +62,7 @@ class ShowDashboard
             $period = '30d';
         }
 
-        return Inertia::render('Admin/Dashboard', [
+        return Inertia::render('Admin/Dashboard/Index', [
             'stats' => $this->handle($period),
             'filters' => [
                 'period' => $period,
