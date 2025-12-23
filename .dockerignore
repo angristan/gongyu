@@ -1,0 +1,51 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# Dependencies (will be installed in container)
+/vendor
+/node_modules
+
+# Build artifacts (will be built in container)
+/public/build
+/public/hot
+/bootstrap/ssr
+
+# Development files
+.env
+.env.*
+!.env.example
+
+# Testing
+/tests
+phpunit.xml
+phpstan.neon
+pint.json
+biome.json
+
+# Documentation
+README.md
+CHANGELOG.md
+LICENSE
+
+# Storage (mount as volume)
+/storage/app/*
+!/storage/app/.gitignore
+/storage/framework/*
+!/storage/framework/.gitignore
+/storage/logs/*
+!/storage/logs/.gitignore
+
+# Database (mount as volume)
+/database/*.sqlite
+
+# CI/CD
+.github
+scripts

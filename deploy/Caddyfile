@@ -1,0 +1,39 @@
+{
+	{$CADDY_GLOBAL_OPTIONS}
+
+	admin off
+}
+
+{$CADDY_SERVER_SERVER_NAME:localhost} {
+	log {
+		level {$CADDY_SERVER_LOG_LEVEL:INFO}
+		format console
+	}
+
+	route {
+		root * /var/www/html/public
+		encode zstd br gzip
+
+		# Static files with long cache
+		@static {
+			file
+			path *.js *.css *.jpg *.jpeg *.webp *.gif *.png *.ico *.svg *.woff2 *.woff
+		}
+
+		@staticshort {
+			file
+			path *.json *.xml *.rss
+		}
+
+		header @static Cache-Control "public, immutable, stale-while-revalidate, max-age=31536000"
+		header @staticshort Cache-Control "no-cache, max-age=3600"
+
+		# Block sensitive files
+		@rejected `path('*.bak', '*.conf', '*.dist', '*.ini', '*.log', '*.sql', '*.env', '*/.*') && !path('*/.well-known/')`
+		error @rejected 401
+
+		php_server {
+			resolve_root_symlink
+		}
+	}
+}
