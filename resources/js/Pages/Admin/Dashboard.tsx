@@ -188,7 +188,10 @@ export default function Dashboard({ stats, filters, auth }: Props) {
                                             data={stats.bookmarks_over_time}
                                             dataKey="date"
                                             series={[
-                                                { name: 'count', color: 'blue.6' },
+                                                {
+                                                    name: 'count',
+                                                    color: 'blue.6',
+                                                },
                                             ]}
                                             curveType="monotone"
                                             withDots={false}
