@@ -15,7 +15,7 @@ import {
     Title,
     useMantineColorScheme,
 } from '@mantine/core';
-import { IconMoon, IconSearch, IconSun } from '@tabler/icons-react';
+import { IconMoon, IconRss, IconSearch, IconSun } from '@tabler/icons-react';
 import { useState } from 'react';
 import type { Bookmark, PageProps } from '@/types';
 
@@ -172,18 +172,29 @@ export default function Index({ bookmarks, search, auth }: Props) {
                                 Gongyu
                             </Anchor>
                         </Text>
-                        <ActionIcon
-                            variant="subtle"
-                            color="gray"
-                            onClick={toggleColorScheme}
-                            aria-label="Toggle color scheme"
-                        >
-                            {colorScheme === 'dark' ? (
-                                <IconSun size={18} />
-                            ) : (
-                                <IconMoon size={18} />
-                            )}
-                        </ActionIcon>
+                        <Group gap="xs">
+                            <ActionIcon
+                                component="a"
+                                href="/feed"
+                                variant="subtle"
+                                color="gray"
+                                aria-label="RSS feed"
+                            >
+                                <IconRss size={18} />
+                            </ActionIcon>
+                            <ActionIcon
+                                variant="subtle"
+                                color="gray"
+                                onClick={toggleColorScheme}
+                                aria-label="Toggle color scheme"
+                            >
+                                {colorScheme === 'dark' ? (
+                                    <IconSun size={18} />
+                                ) : (
+                                    <IconMoon size={18} />
+                                )}
+                            </ActionIcon>
+                        </Group>
                     </Group>
                 </Container>
             </Box>
