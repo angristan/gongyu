@@ -67,9 +67,10 @@ class Setting extends Model
 
     public static function set(string $key, ?string $value, bool $encrypted = false): void
     {
+        // Must set 'encrypted' before 'value' so setValueAttribute knows whether to encrypt
         static::updateOrCreate(
             ['key' => $key],
-            ['value' => $value, 'encrypted' => $encrypted]
+            ['encrypted' => $encrypted, 'value' => $value]
         );
     }
 }
