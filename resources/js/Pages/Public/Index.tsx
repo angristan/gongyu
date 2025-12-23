@@ -127,11 +127,15 @@ export default function Index({ bookmarks, search, auth }: Props) {
                                                             ).hostname
                                                         }
                                                     </Badge>
-                                                    <Text size="xs" c="dimmed">
+                                                    <Anchor
+                                                        href={`/b/${bookmark.short_url}`}
+                                                        size="xs"
+                                                        c="dimmed"
+                                                    >
                                                         {new Date(
                                                             bookmark.created_at,
                                                         ).toLocaleDateString()}
-                                                    </Text>
+                                                    </Anchor>
                                                 </Group>
                                             </Stack>
                                         </Card>
