@@ -11,8 +11,6 @@ use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Inertia\Inertia;
-use Inertia\Response;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 class ImportShaarliExport
@@ -106,10 +104,10 @@ class ImportShaarliExport
         }
     }
 
-    public function asController(Request $request): Response|RedirectResponse
+    public function asController(Request $request): RedirectResponse
     {
         if ($request->isMethod('GET')) {
-            return Inertia::render('Admin/Import');
+            return redirect()->route('admin.settings', ['tab' => 'import']);
         }
 
         $request->validate([
@@ -118,8 +116,8 @@ class ImportShaarliExport
 
         $result = $this->handle($request->file('file'));
 
-        return Inertia::render('Admin/Import', [
-            'result' => $result,
-        ]);
+        return redirect()
+            ->route('admin.settings', ['tab' => 'import'])
+            ->with('importResult', $result);
     }
 }

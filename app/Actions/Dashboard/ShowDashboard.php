@@ -67,6 +67,7 @@ class ShowDashboard
             'filters' => [
                 'period' => $period,
             ],
+            'bookmarkletUrl' => url('/bookmarklet'),
         ]);
     }
 

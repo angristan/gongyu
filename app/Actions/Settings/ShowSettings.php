@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Settings;
 
 use App\Models\Setting;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -24,7 +25,7 @@ class ShowSettings
         'bluesky_app_password',
     ];
 
-    public function handle(): Response
+    public function handle(?array $importResult = null): Response
     {
         $settings = [];
         foreach (self::SETTING_KEYS as $key) {
@@ -33,12 +34,12 @@ class ShowSettings
 
         return Inertia::render('Admin/Settings/Index', [
             'settings' => $settings,
-            'bookmarkletUrl' => url('/bookmarklet'),
+            'importResult' => $importResult,
         ]);
     }
 
-    public function asController(): Response
+    public function asController(Request $request): Response
     {
-        return $this->handle();
+        return $this->handle($request->session()->get('importResult'));
     }
 }

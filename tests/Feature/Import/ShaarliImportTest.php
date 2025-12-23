@@ -74,13 +74,13 @@ class ShaarliImportTest extends TestCase
         $response->assertRedirect('/login');
     }
 
-    public function test_import_page_accessible_when_authenticated(): void
+    public function test_import_page_redirects_to_settings(): void
     {
         $user = User::factory()->create();
 
         $response = $this->actingAs($user)->get('/admin/import');
 
-        $response->assertOk();
+        $response->assertRedirect(route('admin.settings', ['tab' => 'import']));
     }
 
     private function makeNetscapeHtml(array $bookmarks): string

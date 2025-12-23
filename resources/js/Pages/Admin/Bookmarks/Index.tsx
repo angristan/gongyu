@@ -19,6 +19,7 @@ import {
     IconDotsVertical,
     IconEdit,
     IconExternalLink,
+    IconHome,
     IconPlus,
     IconSearch,
     IconTrash,
@@ -66,6 +67,14 @@ export default function Index({ bookmarks, search }: Props) {
                         <Group justify="space-between" align="center">
                             <Title order={1}>Bookmarks</Title>
                             <Group>
+                                <Button
+                                    component={Link}
+                                    href="/"
+                                    variant="default"
+                                    leftSection={<IconHome size={16} />}
+                                >
+                                    View Site
+                                </Button>
                                 <Button
                                     component={Link}
                                     href="/admin/bookmarks/create"

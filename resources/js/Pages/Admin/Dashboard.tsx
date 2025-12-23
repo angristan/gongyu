@@ -1,11 +1,14 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { AreaChart, BarChart } from '@mantine/charts';
 import {
+    ActionIcon,
     Badge,
     Box,
     Button,
     Card,
+    Code,
     Container,
+    CopyButton,
     Group,
     Paper,
     SegmentedControl,
@@ -14,15 +17,20 @@ import {
     Table,
     Text,
     Title,
+    Tooltip,
 } from '@mantine/core';
 import {
     IconBookmark,
     IconCalendar,
     IconCalendarWeek,
+    IconCheck,
+    IconCopy,
+    IconHome,
     IconLogout,
     IconPlus,
     IconSettings,
 } from '@tabler/icons-react';
+import { useEffect, useRef } from 'react';
 import type { Bookmark, PageProps } from '@/types';
 
 interface Stats {
@@ -41,6 +49,7 @@ interface Filters {
 interface Props extends PageProps {
     stats: Stats;
     filters: Filters;
+    bookmarkletUrl: string;
 }
 
 const PERIOD_OPTIONS = [
@@ -51,7 +60,12 @@ const PERIOD_OPTIONS = [
     { value: 'all', label: 'All' },
 ];
 
-export default function Dashboard({ stats, filters, auth }: Props) {
+export default function Dashboard({
+    stats,
+    filters,
+    auth,
+    bookmarkletUrl,
+}: Props) {
     const handleLogout = () => {
         router.post('/logout');
     };
@@ -64,6 +78,16 @@ export default function Dashboard({ stats, filters, auth }: Props) {
         );
     };
 
+    const bookmarkletCode = `javascript:(function(){window.open('${bookmarkletUrl}?url='+encodeURIComponent(location.href)+'&title='+encodeURIComponent(document.title)+'&description='+encodeURIComponent(window.getSelection())+'&source=bookmarklet','gongyu','width=600,height=500');})();`;
+
+    const bookmarkletRef = useRef<HTMLAnchorElement>(null);
+
+    useEffect(() => {
+        if (bookmarkletRef.current) {
+            bookmarkletRef.current.setAttribute('href', bookmarkletCode);
+        }
+    }, [bookmarkletCode]);
+
     return (
         <>
             <Head title="Dashboard" />
@@ -73,6 +97,14 @@ export default function Dashboard({ stats, filters, auth }: Props) {
                         <Group justify="space-between" align="center">
                             <Title order={1}>Dashboard</Title>
                             <Group>
+                                <Button
+                                    component={Link}
+                                    href="/"
+                                    variant="default"
+                                    leftSection={<IconHome size={16} />}
+                                >
+                                    View Site
+                                </Button>
                                 <Button
                                     component={Link}
                                     href="/admin/bookmarks/create"
@@ -291,32 +323,82 @@ export default function Dashboard({ stats, filters, auth }: Props) {
                             )}
                         </Card>
 
-                        <Card withBorder p="xl">
+                        <Card withBorder p="lg">
                             <Stack gap="md">
-                                <Title order={4}>Quick Actions</Title>
+                                <Title order={4}>Bookmarklet</Title>
+                                <Text size="sm" c="dimmed">
+                                    Drag the button below to your bookmarks bar,
+                                    or copy the code to create a bookmarklet
+                                    manually.
+                                </Text>
+
                                 <Group>
-                                    <Button
-                                        component={Link}
-                                        href="/admin/bookmarks"
-                                        variant="light"
+                                    <a
+                                        ref={bookmarkletRef}
+                                        onClick={(e) => e.preventDefault()}
+                                        draggable
+                                        style={{
+                                            padding: '8px 16px',
+                                            borderRadius:
+                                                'var(--mantine-radius-default)',
+                                            backgroundColor:
+                                                'var(--mantine-color-blue-filled)',
+                                            color: 'white',
+                                            textDecoration: 'none',
+                                            fontSize:
+                                                'var(--mantine-font-size-sm)',
+                                            fontWeight: 600,
+                                            cursor: 'grab',
+                                        }}
                                     >
-                                        View All Bookmarks
-                                    </Button>
-                                    <Button
-                                        component={Link}
-                                        href="/admin/import"
-                                        variant="light"
-                                    >
-                                        Import from Shaarli
-                                    </Button>
-                                    <Button
-                                        component={Link}
-                                        href="/"
-                                        variant="subtle"
-                                    >
-                                        View Public Site
-                                    </Button>
+                                        + Add to Gongyu
+                                    </a>
+                                    <Text size="sm" c="dimmed">
+                                        Drag this to your bookmarks bar
+                                    </Text>
                                 </Group>
+
+                                <Stack gap="xs">
+                                    <Group justify="space-between">
+                                        <Text size="sm" fw={500}>
+                                            Bookmarklet Code
+                                        </Text>
+                                        <CopyButton value={bookmarkletCode}>
+                                            {({ copied, copy }) => (
+                                                <Tooltip
+                                                    label={
+                                                        copied
+                                                            ? 'Copied'
+                                                            : 'Copy'
+                                                    }
+                                                >
+                                                    <ActionIcon
+                                                        variant="subtle"
+                                                        onClick={copy}
+                                                    >
+                                                        {copied ? (
+                                                            <IconCheck
+                                                                size={16}
+                                                            />
+                                                        ) : (
+                                                            <IconCopy
+                                                                size={16}
+                                                            />
+                                                        )}
+                                                    </ActionIcon>
+                                                </Tooltip>
+                                            )}
+                                        </CopyButton>
+                                    </Group>
+                                    <Code
+                                        block
+                                        style={{
+                                            wordBreak: 'break-all',
+                                        }}
+                                    >
+                                        {bookmarkletCode}
+                                    </Code>
+                                </Stack>
                             </Stack>
                         </Card>
                     </Stack>

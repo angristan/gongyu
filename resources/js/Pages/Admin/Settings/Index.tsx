@@ -1,34 +1,34 @@
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import {
-    ActionIcon,
+    Alert,
     Box,
     Button,
     Card,
-    Code,
     Container,
-    CopyButton,
+    FileInput,
     Group,
     PasswordInput,
+    Progress,
     Stack,
     Tabs,
     Text,
     TextInput,
     Title,
-    Tooltip,
 } from '@mantine/core';
 import {
+    IconAlertCircle,
     IconArrowLeft,
     IconBrandMastodon,
     IconBrandTwitter,
     IconCheck,
     IconCloud,
-    IconCode,
-    IconCopy,
+    IconHome,
+    IconUpload,
 } from '@tabler/icons-react';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import type { PageProps } from '@/types';
 
-const VALID_TABS = ['bookmarklet', 'twitter', 'mastodon', 'bluesky'] as const;
+const VALID_TABS = ['import', 'twitter', 'mastodon', 'bluesky'] as const;
 type TabValue = (typeof VALID_TABS)[number];
 
 interface Settings {
@@ -42,22 +42,31 @@ interface Settings {
     bluesky_app_password: string;
 }
 
+interface ImportResult {
+    imported: number;
+    skipped: number;
+    errors: string[];
+}
+
 interface Props extends PageProps {
     settings: Settings;
-    bookmarkletUrl: string;
+    importResult?: ImportResult;
 }
 
 function getInitialTab(): TabValue {
-    if (typeof window === 'undefined') return 'bookmarklet';
+    if (typeof window === 'undefined') return 'import';
     const params = new URLSearchParams(window.location.search);
     const tab = params.get('tab');
     return tab && VALID_TABS.includes(tab as TabValue)
         ? (tab as TabValue)
-        : 'bookmarklet';
+        : 'import';
 }
 
-export default function SettingsIndex({ settings, bookmarkletUrl }: Props) {
+export default function SettingsIndex({ settings, importResult }: Props) {
     const [activeTab, setActiveTab] = useState<TabValue>(getInitialTab);
+    const [importFile, setImportFile] = useState<File | null>(null);
+    const [importProcessing, setImportProcessing] = useState(false);
+    const [importProgress, setImportProgress] = useState<number | null>(null);
 
     const handleTabChange = (value: string | null) => {
         if (value && VALID_TABS.includes(value as TabValue)) {
@@ -84,15 +93,28 @@ export default function SettingsIndex({ settings, bookmarkletUrl }: Props) {
         patch('/admin/settings');
     };
 
-    const bookmarkletCode = `javascript:(function(){window.open('${bookmarkletUrl}?url='+encodeURIComponent(location.href)+'&title='+encodeURIComponent(document.title)+'&description='+encodeURIComponent(window.getSelection())+'&source=bookmarklet','gongyu','width=600,height=500');})();`;
+    const handleImportSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!importFile) return;
 
-    const bookmarkletRef = useRef<HTMLAnchorElement>(null);
-
-    useEffect(() => {
-        if (bookmarkletRef.current) {
-            bookmarkletRef.current.setAttribute('href', bookmarkletCode);
-        }
-    }, [bookmarkletCode]);
+        router.post(
+            '/admin/import',
+            { file: importFile },
+            {
+                forceFormData: true,
+                onStart: () => setImportProcessing(true),
+                onFinish: () => {
+                    setImportProcessing(false);
+                    setImportProgress(null);
+                },
+                onProgress: (event) => {
+                    if (event?.percentage) {
+                        setImportProgress(event.percentage);
+                    }
+                },
+            },
+        );
+    };
 
     return (
         <>
@@ -109,6 +131,14 @@ export default function SettingsIndex({ settings, bookmarkletUrl }: Props) {
                             >
                                 Dashboard
                             </Button>
+                            <Button
+                                component={Link}
+                                href="/"
+                                variant="default"
+                                leftSection={<IconHome size={16} />}
+                            >
+                                View Site
+                            </Button>
                         </Group>
 
                         <Title order={1}>Settings</Title>
@@ -116,10 +146,10 @@ export default function SettingsIndex({ settings, bookmarkletUrl }: Props) {
                         <Tabs value={activeTab} onChange={handleTabChange}>
                             <Tabs.List>
                                 <Tabs.Tab
-                                    value="bookmarklet"
-                                    leftSection={<IconCode size={16} />}
+                                    value="import"
+                                    leftSection={<IconUpload size={16} />}
                                 >
-                                    Bookmarklet
+                                    Import
                                 </Tabs.Tab>
                                 <Tabs.Tab
                                     value="twitter"
@@ -143,94 +173,114 @@ export default function SettingsIndex({ settings, bookmarkletUrl }: Props) {
                                 </Tabs.Tab>
                             </Tabs.List>
 
-                            <Tabs.Panel value="bookmarklet" pt="md">
-                                <Card withBorder p="xl">
-                                    <Stack gap="md">
-                                        <Title order={3}>Bookmarklet</Title>
-                                        <Text size="sm" c="dimmed">
-                                            Drag the button below to your
-                                            bookmarks bar, or copy the code to
-                                            create a bookmarklet manually.
-                                        </Text>
-
-                                        <Group>
-                                            <a
-                                                ref={bookmarkletRef}
-                                                onClick={(e) =>
-                                                    e.preventDefault()
-                                                }
-                                                draggable
-                                                style={{
-                                                    padding: '8px 16px',
-                                                    borderRadius:
-                                                        'var(--mantine-radius-default)',
-                                                    backgroundColor:
-                                                        'var(--mantine-color-blue-filled)',
-                                                    color: 'white',
-                                                    textDecoration: 'none',
-                                                    fontSize:
-                                                        'var(--mantine-font-size-sm)',
-                                                    fontWeight: 600,
-                                                    cursor: 'grab',
-                                                }}
-                                            >
-                                                + Add to Gongyu
-                                            </a>
-                                            <Text size="sm" c="dimmed">
-                                                ← Drag this to your bookmarks
-                                                bar
-                                            </Text>
-                                        </Group>
-
-                                        <Stack gap="xs">
-                                            <Group justify="space-between">
-                                                <Text size="sm" fw={500}>
-                                                    Bookmarklet Code
+                            <Tabs.Panel value="import" pt="md">
+                                <Stack gap="md">
+                                    {importResult && (
+                                        <Alert
+                                            icon={
+                                                importResult.errors.length >
+                                                0 ? (
+                                                    <IconAlertCircle
+                                                        size={16}
+                                                    />
+                                                ) : (
+                                                    <IconCheck size={16} />
+                                                )
+                                            }
+                                            color={
+                                                importResult.errors.length > 0
+                                                    ? 'yellow'
+                                                    : 'green'
+                                            }
+                                            title="Import Complete"
+                                        >
+                                            <Stack gap="xs">
+                                                <Text size="sm">
+                                                    Successfully imported{' '}
+                                                    {importResult.imported}{' '}
+                                                    bookmarks.
+                                                    {importResult.skipped > 0 &&
+                                                        ` Skipped ${importResult.skipped} duplicates.`}
                                                 </Text>
-                                                <CopyButton
-                                                    value={bookmarkletCode}
+                                                {importResult.errors.length >
+                                                    0 && (
+                                                    <Text size="sm" c="red">
+                                                        {
+                                                            importResult.errors
+                                                                .length
+                                                        }{' '}
+                                                        errors occurred during
+                                                        import.
+                                                    </Text>
+                                                )}
+                                            </Stack>
+                                        </Alert>
+                                    )}
+
+                                    <Card withBorder p="xl">
+                                        <form onSubmit={handleImportSubmit}>
+                                            <Stack gap="md">
+                                                <Title order={3}>
+                                                    Import from Shaarli
+                                                </Title>
+                                                <Text size="sm" c="dimmed">
+                                                    Import bookmarks from a
+                                                    Shaarli HTML export file
+                                                    (Netscape bookmark format).
+                                                </Text>
+
+                                                <FileInput
+                                                    label="Shaarli Export File"
+                                                    description="Select an HTML file exported from Shaarli"
+                                                    placeholder="Click to select file"
+                                                    accept=".html,.htm"
+                                                    value={importFile}
+                                                    onChange={setImportFile}
+                                                    leftSection={
+                                                        <IconUpload size={16} />
+                                                    }
+                                                />
+
+                                                {importProgress !== null && (
+                                                    <Progress
+                                                        value={importProgress}
+                                                        animated
+                                                    />
+                                                )}
+
+                                                <Button
+                                                    type="submit"
+                                                    loading={importProcessing}
+                                                    disabled={!importFile}
+                                                    leftSection={
+                                                        <IconUpload size={16} />
+                                                    }
                                                 >
-                                                    {({ copied, copy }) => (
-                                                        <Tooltip
-                                                            label={
-                                                                copied
-                                                                    ? 'Copied'
-                                                                    : 'Copy'
-                                                            }
-                                                        >
-                                                            <ActionIcon
-                                                                variant="subtle"
-                                                                onClick={copy}
-                                                            >
-                                                                {copied ? (
-                                                                    <IconCheck
-                                                                        size={
-                                                                            16
-                                                                        }
-                                                                    />
-                                                                ) : (
-                                                                    <IconCopy
-                                                                        size={
-                                                                            16
-                                                                        }
-                                                                    />
-                                                                )}
-                                                            </ActionIcon>
-                                                        </Tooltip>
-                                                    )}
-                                                </CopyButton>
-                                            </Group>
-                                            <Code
-                                                block
-                                                style={{
-                                                    wordBreak: 'break-all',
-                                                }}
-                                            >
-                                                {bookmarkletCode}
-                                            </Code>
+                                                    Import Bookmarks
+                                                </Button>
+                                            </Stack>
+                                        </form>
+                                    </Card>
+
+                                    <Card withBorder p="lg">
+                                        <Stack gap="sm">
+                                            <Title order={4}>
+                                                How to export from Shaarli
+                                            </Title>
+                                            <Text size="sm" c="dimmed">
+                                                1. Go to your Shaarli instance
+                                                <br />
+                                                2. Navigate to Tools → Export
+                                                <br />
+                                                3. Select "Export all" and click
+                                                "Export"
+                                                <br />
+                                                4. Save the HTML file and upload
+                                                it here
+                                            </Text>
                                         </Stack>
-                                    </Stack>
-                                </Card>
+                                    </Card>
+                                </Stack>
                             </Tabs.Panel>
 
                             <Tabs.Panel value="twitter" pt="md">
