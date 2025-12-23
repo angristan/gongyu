@@ -5,6 +5,7 @@ import '@mantine/spotlight/styles.css';
 
 import '../css/app.css';
 
+import UmamiAnalytics from '@danielgtmn/umami-react';
 import { createInertiaApp } from '@inertiajs/react';
 import { createTheme, MantineProvider } from '@mantine/core';
 import { Notifications } from '@mantine/notifications';
@@ -44,6 +45,13 @@ createInertiaApp({
         root.render(
             <MantineProvider theme={theme} defaultColorScheme="auto">
                 <Notifications />
+                {import.meta.env.VITE_UMAMI_URL &&
+                    import.meta.env.VITE_UMAMI_WEBSITE_ID && (
+                        <UmamiAnalytics
+                            url={import.meta.env.VITE_UMAMI_URL}
+                            websiteId={import.meta.env.VITE_UMAMI_WEBSITE_ID}
+                        />
+                    )}
                 <App {...props} />
             </MantineProvider>,
         );

@@ -1,3 +1,4 @@
+import { useUmami } from '@danielgtmn/umami-react';
 import { Head, router } from '@inertiajs/react';
 import {
     ActionIcon,
@@ -35,9 +36,11 @@ interface Props extends PageProps {
 export default function Index({ bookmarks, search, auth }: Props) {
     const [searchValue, setSearchValue] = useState(search || '');
     const { colorScheme, toggleColorScheme } = useMantineColorScheme();
+    const { track } = useUmami();
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
+        track('search', { query: searchValue });
         router.get(
             '/',
             { q: searchValue || undefined },
@@ -108,6 +111,15 @@ export default function Index({ bookmarks, search, auth }: Props) {
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     fw={500}
+                                                    onClick={() =>
+                                                        track(
+                                                            'bookmark_click',
+                                                            {
+                                                                url: bookmark.url,
+                                                                title: bookmark.title,
+                                                            },
+                                                        )
+                                                    }
                                                 >
                                                     {bookmark.title}
                                                 </Anchor>
@@ -148,6 +160,7 @@ export default function Index({ bookmarks, search, auth }: Props) {
                                             total={bookmarks.last_page}
                                             value={bookmarks.current_page}
                                             onChange={(page) => {
+                                                track('pagination', { page });
                                                 router.get(
                                                     '/',
                                                     {
@@ -183,13 +196,22 @@ export default function Index({ bookmarks, search, auth }: Props) {
                                 variant="subtle"
                                 color="gray"
                                 aria-label="RSS feed"
+                                onClick={() => track('rss_feed_click')}
                             >
                                 <IconRss size={18} />
                             </ActionIcon>
                             <ActionIcon
                                 variant="subtle"
                                 color="gray"
-                                onClick={toggleColorScheme}
+                                onClick={() => {
+                                    track('theme_toggle', {
+                                        to:
+                                            colorScheme === 'dark'
+                                                ? 'light'
+                                                : 'dark',
+                                    });
+                                    toggleColorScheme();
+                                }}
                                 aria-label="Toggle color scheme"
                             >
                                 {colorScheme === 'dark' ? (

@@ -1,3 +1,4 @@
+import { useUmami } from '@danielgtmn/umami-react';
 import { Head, Link } from '@inertiajs/react';
 import {
     Badge,
@@ -18,6 +19,8 @@ interface Props extends PageProps {
 }
 
 export default function BookmarkPage({ bookmark, auth }: Props) {
+    const { track } = useUmami();
+
     return (
         <>
             <Head title={bookmark.title} />
@@ -62,6 +65,12 @@ export default function BookmarkPage({ bookmark, auth }: Props) {
                                         rel="noopener noreferrer"
                                         leftSection={
                                             <IconExternalLink size={16} />
+                                        }
+                                        onClick={() =>
+                                            track('bookmark_click', {
+                                                url: bookmark.url,
+                                                title: bookmark.title,
+                                            })
                                         }
                                     >
                                         Visit Link
