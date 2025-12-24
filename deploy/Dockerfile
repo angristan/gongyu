@@ -49,9 +49,9 @@ RUN apt-get update; \
     pcntl \
     zip \
     intl \
-    # Install Datadog PHP tracer
+    # Install Datadog PHP tracer with profiling
     && curl -LO https://github.com/DataDog/dd-trace-php/releases/latest/download/datadog-setup.php \
-    && php datadog-setup.php --php-bin=all \
+    && php datadog-setup.php --php-bin=all --enable-profiling \
     && rm datadog-setup.php \
     && apt-get -y autoremove \
     && apt-get clean \
