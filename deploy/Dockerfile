@@ -49,9 +49,9 @@ RUN apt-get update; \
     pcntl \
     zip \
     intl \
-    # Install Datadog PHP tracer with profiling
+    # Install Datadog PHP tracer (profiling disabled - not yet supported on PHP 8.5)
     && curl -LO https://github.com/DataDog/dd-trace-php/releases/latest/download/datadog-setup.php \
-    && php datadog-setup.php --php-bin=all --enable-profiling \
+    && php datadog-setup.php --php-bin=all \
     && rm datadog-setup.php \
     && apt-get -y autoremove \
     && apt-get clean \
