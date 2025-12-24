@@ -28,10 +28,12 @@ export function BookmarkletCard({ bookmarkletUrl }: Props) {
     }, [bookmarkletCode]);
 
     return (
-        <Card withBorder p="lg">
+        <Card className="cozy-card" p="lg" radius="md">
             <Stack gap="md">
-                <Title order={4}>Bookmarklet</Title>
-                <Text size="sm" c="dimmed">
+                <Title order={4} className="cozy-title">
+                    Bookmarklet
+                </Title>
+                <Text size="sm" className="cozy-text">
                     Drag the button below to your bookmarks bar, or copy the
                     code to create a bookmarklet manually.
                 </Text>
@@ -44,7 +46,7 @@ export function BookmarkletCard({ bookmarkletUrl }: Props) {
                         style={{
                             padding: '8px 16px',
                             borderRadius: 'var(--mantine-radius-default)',
-                            backgroundColor: 'var(--mantine-color-blue-filled)',
+                            backgroundColor: 'var(--mantine-color-cozy-filled)',
                             color: 'white',
                             textDecoration: 'none',
                             fontSize: 'var(--mantine-font-size-sm)',
@@ -54,7 +56,7 @@ export function BookmarkletCard({ bookmarkletUrl }: Props) {
                     >
                         + Add to Gongyu
                     </a>
-                    <Text size="sm" c="dimmed">
+                    <Text size="sm" className="cozy-text">
                         Drag this to your bookmarks bar
                     </Text>
                 </Group>

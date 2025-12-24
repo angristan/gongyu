@@ -61,11 +61,13 @@ export default function Index({ bookmarks, search }: Props) {
     return (
         <>
             <Head title="Bookmarks" />
-            <Box bg="var(--mantine-color-body)" mih="100vh" py="xl">
+            <Box className="cozy-background" mih="100vh" py="xl">
                 <Container size="lg">
                     <Stack gap="lg">
                         <Group justify="space-between" align="center">
-                            <Title order={1}>Bookmarks</Title>
+                            <Title order={1} className="cozy-title">
+                                Bookmarks
+                            </Title>
                             <Group>
                                 <Button
                                     component={Link}
@@ -98,12 +100,13 @@ export default function Index({ bookmarks, search }: Props) {
                                 value={searchValue}
                                 onChange={(e) => setSearchValue(e.target.value)}
                                 leftSection={<IconSearch size={16} />}
+                                className="cozy-input"
                             />
                         </form>
 
                         {bookmarks.data.length === 0 ? (
-                            <Card withBorder p="xl">
-                                <Text c="dimmed" ta="center">
+                            <Card className="cozy-card" p="xl" radius="md">
+                                <Text className="cozy-text" ta="center">
                                     {search
                                         ? 'No bookmarks found matching your search.'
                                         : 'No bookmarks yet. Add your first one!'}
@@ -111,7 +114,7 @@ export default function Index({ bookmarks, search }: Props) {
                             </Card>
                         ) : (
                             <>
-                                <Card withBorder p={0}>
+                                <Card className="cozy-card" p={0} radius="md">
                                     <Table striped highlightOnHover>
                                         <Table.Thead>
                                             <Table.Tr>

@@ -16,7 +16,7 @@ A modern, self-hosted bookmark manager inspired by [Shaarli](https://github.com/
 - **Atom Feed** - Subscribe to your bookmarks at `/feed`
 - **Social Sharing** - Optional auto-posting to Twitter, Mastodon, and Bluesky
 - **Dashboard** - Stats and visualizations of your bookmark collection
-- **Dark Mode** - Automatic dark/light theme based on system preference
+- **Cozy Theme** - Warm, paper-textured aesthetic with automatic dark/light mode
 
 ## Tech Stack
 

@@ -18,29 +18,39 @@ export function StatisticsCards({
 }: Props) {
     return (
         <SimpleGrid cols={{ base: 1, sm: 3 }}>
-            <Paper withBorder p="md" radius="md">
+            <Paper className="cozy-card" p="md" radius="md">
                 <Group justify="space-between">
                     <div>
-                        <Text c="dimmed" size="xs" tt="uppercase" fw={700}>
+                        <Text
+                            className="cozy-muted"
+                            size="xs"
+                            tt="uppercase"
+                            fw={700}
+                        >
                             Total Bookmarks
                         </Text>
-                        <Text fw={700} size="xl">
+                        <Text fw={700} size="xl" className="cozy-title">
                             {totalBookmarks}
                         </Text>
                     </div>
                     <IconBookmark
                         size={32}
-                        color="var(--mantine-color-blue-6)"
+                        color="var(--mantine-color-cozy-6)"
                     />
                 </Group>
             </Paper>
-            <Paper withBorder p="md" radius="md">
+            <Paper className="cozy-card" p="md" radius="md">
                 <Group justify="space-between">
                     <div>
-                        <Text c="dimmed" size="xs" tt="uppercase" fw={700}>
+                        <Text
+                            className="cozy-muted"
+                            size="xs"
+                            tt="uppercase"
+                            fw={700}
+                        >
                             This Month
                         </Text>
-                        <Text fw={700} size="xl">
+                        <Text fw={700} size="xl" className="cozy-title">
                             {bookmarksThisMonth}
                         </Text>
                     </div>
@@ -50,13 +60,18 @@ export function StatisticsCards({
                     />
                 </Group>
             </Paper>
-            <Paper withBorder p="md" radius="md">
+            <Paper className="cozy-card" p="md" radius="md">
                 <Group justify="space-between">
                     <div>
-                        <Text c="dimmed" size="xs" tt="uppercase" fw={700}>
+                        <Text
+                            className="cozy-muted"
+                            size="xs"
+                            tt="uppercase"
+                            fw={700}
+                        >
                             This Week
                         </Text>
-                        <Text fw={700} size="xl">
+                        <Text fw={700} size="xl" className="cozy-title">
                             {bookmarksThisWeek}
                         </Text>
                     </div>

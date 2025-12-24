@@ -90,7 +90,7 @@ export default function SettingsIndex({ settings, importResult }: Props) {
     return (
         <>
             <Head title="Settings" />
-            <Box bg="var(--mantine-color-body)" mih="100vh" py="xl">
+            <Box className="cozy-background" mih="100vh" py="xl">
                 <Container size="md">
                     <Stack gap="lg">
                         <Group>
@@ -112,7 +112,9 @@ export default function SettingsIndex({ settings, importResult }: Props) {
                             </Button>
                         </Group>
 
-                        <Title order={1}>Settings</Title>
+                        <Title order={1} className="cozy-title">
+                            Settings
+                        </Title>
 
                         <Tabs value={activeTab} onChange={handleTabChange}>
                             <Tabs.List>

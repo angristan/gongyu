@@ -15,7 +15,7 @@ import { createRoot } from 'react-dom/client';
 const appName = import.meta.env.VITE_APP_NAME || 'Gongyu';
 
 const theme = createTheme({
-    primaryColor: 'blue',
+    primaryColor: 'cozy',
     colors: {
         dark: [
             '#C9C9C9',
@@ -28,6 +28,19 @@ const theme = createTheme({
             '#242424',
             '#1F1F1F',
             '#141414',
+        ],
+        // Warm cozy brown/amber palette
+        cozy: [
+            '#FDF8F3', // 0: lightest - card background
+            '#F5EBE0', // 1: light cream
+            '#E8D5C4', // 2: warm beige (borders)
+            '#D4B896', // 3: tan (badges)
+            '#C4A77D', // 4: warm brown (focus)
+            '#A67C52', // 5: medium brown (muted)
+            '#8B5E3C', // 6: darker brown (text)
+            '#6F4E37', // 7: coffee brown
+            '#5C4033', // 8: dark brown (titles)
+            '#3E2723', // 9: darkest
         ],
     },
 });

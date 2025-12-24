@@ -47,7 +47,7 @@ export default function Create({
         return (
             <>
                 <Head title="Bookmark Exists" />
-                <Box bg="var(--mantine-color-body)" mih="100vh" py="xl">
+                <Box className="cozy-background" mih="100vh" py="xl">
                     <Container size="sm">
                         <Stack gap="lg">
                             <Group>
@@ -69,7 +69,7 @@ export default function Create({
                                 This URL has already been bookmarked.
                             </Alert>
 
-                            <Card withBorder p="lg">
+                            <Card className="cozy-card" p="lg" radius="md">
                                 <Stack gap="md">
                                     <Text fw={500}>
                                         {existingBookmark.title}
@@ -110,7 +110,7 @@ export default function Create({
     return (
         <>
             <Head title="Add Bookmark" />
-            <Box bg="var(--mantine-color-body)" mih="100vh" py="xl">
+            <Box className="cozy-background" mih="100vh" py="xl">
                 <Container size="sm">
                     <Stack gap="lg">
                         <Group>
@@ -124,9 +124,11 @@ export default function Create({
                             </Button>
                         </Group>
 
-                        <Title order={1}>Add Bookmark</Title>
+                        <Title order={1} className="cozy-title">
+                            Add Bookmark
+                        </Title>
 
-                        <Card withBorder p="xl">
+                        <Card className="cozy-card" p="xl" radius="md">
                             <form onSubmit={handleSubmit}>
                                 <Stack gap="md">
                                     <TextInput

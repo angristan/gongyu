@@ -38,7 +38,7 @@ export default function Edit({ bookmark }: Props) {
     return (
         <>
             <Head title="Edit Bookmark" />
-            <Box bg="var(--mantine-color-body)" mih="100vh" py="xl">
+            <Box className="cozy-background" mih="100vh" py="xl">
                 <Container size="sm">
                     <Stack gap="lg">
                         <Group>
@@ -52,9 +52,11 @@ export default function Edit({ bookmark }: Props) {
                             </Button>
                         </Group>
 
-                        <Title order={1}>Edit Bookmark</Title>
+                        <Title order={1} className="cozy-title">
+                            Edit Bookmark
+                        </Title>
 
-                        <Card withBorder p="xl">
+                        <Card className="cozy-card" p="xl" radius="md">
                             <form onSubmit={handleSubmit}>
                                 <Stack gap="md">
                                     <TextInput

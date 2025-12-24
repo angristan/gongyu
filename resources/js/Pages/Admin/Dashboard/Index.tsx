@@ -62,11 +62,13 @@ export default function Dashboard({
     return (
         <>
             <Head title="Dashboard" />
-            <Box bg="var(--mantine-color-body)" mih="100vh" py="xl">
+            <Box className="cozy-background" mih="100vh" py="xl">
                 <Container size="lg">
                     <Stack gap="lg">
                         <Group justify="space-between" align="center">
-                            <Title order={1}>Dashboard</Title>
+                            <Title order={1} className="cozy-title">
+                                Dashboard
+                            </Title>
                             <Group>
                                 <Button
                                     component={Link}
@@ -102,7 +104,9 @@ export default function Dashboard({
                             </Group>
                         </Group>
 
-                        <Text c="dimmed">Welcome back, {auth.user?.name}!</Text>
+                        <Text className="cozy-text">
+                            Welcome back, {auth.user?.name}!
+                        </Text>
 
                         <StatisticsCards
                             totalBookmarks={stats.total_bookmarks}

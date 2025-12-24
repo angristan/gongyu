@@ -30,9 +30,11 @@ export function ChartsSection({
     onPeriodChange,
 }: Props) {
     return (
-        <Card withBorder p="lg">
+        <Card className="cozy-card" p="lg" radius="md">
             <Group justify="space-between" mb="md">
-                <Title order={4}>Charts</Title>
+                <Title order={4} className="cozy-title">
+                    Charts
+                </Title>
                 <SegmentedControl
                     size="xs"
                     value={period}
@@ -42,7 +44,7 @@ export function ChartsSection({
             </Group>
             <SimpleGrid cols={{ base: 1, md: 2 }}>
                 <div>
-                    <Text size="sm" fw={500} mb="sm">
+                    <Text size="sm" fw={500} mb="sm" className="cozy-title">
                         Bookmarks Over Time
                     </Text>
                     {bookmarksOverTime.length > 0 ? (
@@ -53,21 +55,21 @@ export function ChartsSection({
                             series={[
                                 {
                                     name: 'count',
-                                    color: 'blue.6',
+                                    color: 'teal.6',
                                 },
                             ]}
                             curveType="monotone"
                             withDots={false}
                         />
                     ) : (
-                        <Text c="dimmed" ta="center" py="xl">
+                        <Text className="cozy-text" ta="center" py="xl">
                             No data yet
                         </Text>
                     )}
                 </div>
 
                 <div>
-                    <Text size="sm" fw={500} mb="sm">
+                    <Text size="sm" fw={500} mb="sm" className="cozy-title">
                         Top Domains
                     </Text>
                     {bookmarksByDomain.length > 0 ? (
@@ -79,13 +81,13 @@ export function ChartsSection({
                                 {
                                     name: 'count',
                                     label: 'Bookmarks',
-                                    color: 'violet.6',
+                                    color: 'violet.4',
                                 },
                             ]}
                             tickLine="none"
                         />
                     ) : (
-                        <Text c="dimmed" ta="center" py="xl">
+                        <Text className="cozy-text" ta="center" py="xl">
                             No data yet
                         </Text>
                     )}

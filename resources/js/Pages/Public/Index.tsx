@@ -51,7 +51,7 @@ export default function Index({ bookmarks, search, auth }: Props) {
     return (
         <>
             <Head title="Bookmarks" />
-            <Box bg="var(--mantine-color-body)" mih="100vh" py="xl">
+            <Box className="cozy-background" mih="100vh" py="xl">
                 <Container size="md">
                     <Stack gap="lg">
                         <Group justify="space-between" align="center">
@@ -62,22 +62,33 @@ export default function Index({ bookmarks, search, auth }: Props) {
                                     h={40}
                                     w={40}
                                     fit="contain"
-                                    style={{
-                                        filter: 'drop-shadow(0 1px 3px rgba(255, 255, 255, 0.15))',
-                                    }}
                                 />
-                                <Title order={1}>Gongyu</Title>
+                                <Title order={1} className="cozy-title">
+                                    Gongyu
+                                </Title>
                             </Group>
                             {auth.user ? (
-                                <Anchor href="/admin/dashboard">
+                                <Anchor
+                                    href="/admin/dashboard"
+                                    className="cozy-link"
+                                    fw={500}
+                                >
                                     Dashboard
                                 </Anchor>
                             ) : (
-                                <Anchor href="/login">Login</Anchor>
+                                <Anchor
+                                    href="/login"
+                                    className="cozy-link"
+                                    fw={500}
+                                >
+                                    Login
+                                </Anchor>
                             )}
                         </Group>
 
-                        <Text c="dimmed">A simple bookmark manager</Text>
+                        <Text className="cozy-text">
+                            A simple bookmark manager
+                        </Text>
 
                         <form onSubmit={handleSearch}>
                             <TextInput
@@ -85,12 +96,13 @@ export default function Index({ bookmarks, search, auth }: Props) {
                                 value={searchValue}
                                 onChange={(e) => setSearchValue(e.target.value)}
                                 leftSection={<IconSearch size={16} />}
+                                className="cozy-input"
                             />
                         </form>
 
                         {bookmarks.data.length === 0 ? (
-                            <Card withBorder p="xl">
-                                <Text c="dimmed" ta="center">
+                            <Card className="cozy-card" p="xl" radius="md">
+                                <Text className="cozy-text" ta="center">
                                     {search
                                         ? 'No bookmarks found matching your search.'
                                         : 'No bookmarks yet.'}
@@ -102,8 +114,9 @@ export default function Index({ bookmarks, search, auth }: Props) {
                                     {bookmarks.data.map((bookmark) => (
                                         <Card
                                             key={bookmark.id}
-                                            withBorder
+                                            className="cozy-card"
                                             p="md"
+                                            radius="md"
                                         >
                                             <Stack gap="xs">
                                                 <Anchor
@@ -111,6 +124,7 @@ export default function Index({ bookmarks, search, auth }: Props) {
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     fw={500}
+                                                    className="cozy-link"
                                                     onClick={() =>
                                                         track(
                                                             'bookmark_click',
@@ -124,14 +138,18 @@ export default function Index({ bookmarks, search, auth }: Props) {
                                                     {bookmark.title}
                                                 </Anchor>
                                                 {bookmark.description && (
-                                                    <Text size="sm" c="dimmed">
+                                                    <Text
+                                                        size="sm"
+                                                        className="cozy-text"
+                                                    >
                                                         {bookmark.description}
                                                     </Text>
                                                 )}
                                                 <Group gap="xs">
                                                     <Badge
                                                         size="xs"
-                                                        variant="light"
+                                                        variant="filled"
+                                                        className="cozy-badge"
                                                     >
                                                         {
                                                             new URL(
@@ -142,7 +160,8 @@ export default function Index({ bookmarks, search, auth }: Props) {
                                                     <Anchor
                                                         href={`/b/${bookmark.short_url}`}
                                                         size="xs"
-                                                        c="dimmed"
+                                                        className="cozy-muted"
+                                                        underline="never"
                                                     >
                                                         {new Date(
                                                             bookmark.created_at,
@@ -170,6 +189,7 @@ export default function Index({ bookmarks, search, auth }: Props) {
                                                     { preserveState: true },
                                                 );
                                             }}
+                                            color="cozy"
                                         />
                                     </Group>
                                 )}
@@ -178,13 +198,14 @@ export default function Index({ bookmarks, search, auth }: Props) {
                     </Stack>
 
                     <Group justify="space-between" mt="xl" pt="xl">
-                        <Text size="sm" c="dimmed">
+                        <Text size="sm" className="cozy-muted">
                             Powered by{' '}
                             <Anchor
                                 href="https://github.com/angristan/gongyu"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 size="sm"
+                                className="cozy-text"
                             >
                                 Gongyu
                             </Anchor>
@@ -194,7 +215,7 @@ export default function Index({ bookmarks, search, auth }: Props) {
                                 component="a"
                                 href="/feed"
                                 variant="subtle"
-                                color="gray"
+                                className="cozy-text"
                                 aria-label="RSS feed"
                                 onClick={() => track('rss_feed_click')}
                             >
@@ -202,7 +223,7 @@ export default function Index({ bookmarks, search, auth }: Props) {
                             </ActionIcon>
                             <ActionIcon
                                 variant="subtle"
-                                color="gray"
+                                className="cozy-text"
                                 onClick={() => {
                                     track('theme_toggle', {
                                         to:

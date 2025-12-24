@@ -8,9 +8,11 @@ interface Props {
 
 export function RecentBookmarksCard({ bookmarks }: Props) {
     return (
-        <Card withBorder p="lg">
+        <Card className="cozy-card" p="lg" radius="md">
             <Group justify="space-between" mb="md">
-                <Title order={4}>Recent Bookmarks</Title>
+                <Title order={4} className="cozy-title">
+                    Recent Bookmarks
+                </Title>
                 <Button
                     component={Link}
                     href="/admin/bookmarks"
@@ -26,12 +28,20 @@ export function RecentBookmarksCard({ bookmarks }: Props) {
                         {bookmarks.map((bookmark) => (
                             <Table.Tr key={bookmark.id}>
                                 <Table.Td>
-                                    <Text fw={500} lineClamp={1}>
+                                    <Text
+                                        fw={500}
+                                        lineClamp={1}
+                                        className="cozy-title"
+                                    >
                                         {bookmark.title}
                                     </Text>
                                 </Table.Td>
                                 <Table.Td>
-                                    <Badge size="xs" variant="light">
+                                    <Badge
+                                        size="xs"
+                                        variant="filled"
+                                        className="cozy-badge"
+                                    >
                                         {new URL(bookmark.url).hostname.replace(
                                             'www.',
                                             '',
@@ -39,7 +49,7 @@ export function RecentBookmarksCard({ bookmarks }: Props) {
                                     </Badge>
                                 </Table.Td>
                                 <Table.Td>
-                                    <Text size="sm" c="dimmed">
+                                    <Text size="sm" className="cozy-muted">
                                         {new Date(
                                             bookmark.created_at,
                                         ).toLocaleDateString()}
@@ -50,7 +60,7 @@ export function RecentBookmarksCard({ bookmarks }: Props) {
                     </Table.Tbody>
                 </Table>
             ) : (
-                <Text c="dimmed" ta="center" py="xl">
+                <Text className="cozy-text" ta="center" py="xl">
                     No bookmarks yet
                 </Text>
             )}
