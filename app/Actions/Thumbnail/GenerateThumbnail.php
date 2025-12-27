@@ -6,8 +6,6 @@ namespace App\Actions\Thumbnail;
 
 use App\Actions\Bookmark\FetchUrlMetadata;
 use App\Models\Bookmark;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Storage;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 class GenerateThumbnail
@@ -15,7 +13,7 @@ class GenerateThumbnail
     use AsAction;
 
     /**
-     * Generate a thumbnail for a bookmark by fetching its Open Graph image.
+     * Get the thumbnail URL for a bookmark by fetching its Open Graph image.
      */
     public function handle(Bookmark $bookmark): ?string
     {
@@ -42,47 +40,7 @@ class GenerateThumbnail
             }
         }
 
-        // Try to download and store the image
-        try {
-            $response = Http::timeout(15)
-                ->withHeaders([
-                    'User-Agent' => 'Mozilla/5.0 (compatible; Gongyu/1.0)',
-                ])
-                ->get($imageUrl);
-
-            if (! $response->successful()) {
-                // Fall back to using the original URL
-                return $imageUrl;
-            }
-
-            // Get content type
-            $contentType = $response->header('Content-Type');
-            if (! $contentType || ! str_starts_with($contentType, 'image/')) {
-                return $imageUrl;
-            }
-
-            // Determine extension
-            $extension = match (true) {
-                str_contains($contentType, 'jpeg'), str_contains($contentType, 'jpg') => 'jpg',
-                str_contains($contentType, 'png') => 'png',
-                str_contains($contentType, 'gif') => 'gif',
-                str_contains($contentType, 'webp') => 'webp',
-                default => 'jpg',
-            };
-
-            // Generate filename
-            $filename = 'thumbnails/'.$bookmark->short_url.'.'.$extension;
-
-            // Store the image
-            Storage::disk('public')->put($filename, $response->body());
-
-            // Return the public URL
-            return Storage::disk('public')->url($filename);
-
-        } catch (\Exception $e) {
-            // On any error, return the original OG image URL
-            return $imageUrl;
-        }
+        return $imageUrl;
     }
 
     /**

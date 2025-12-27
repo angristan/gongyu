@@ -10,6 +10,7 @@ A modern, self-hosted, single-tenant bookmark manager inspired by [Shaarli](http
 
 - **Bookmark Management** - Save, organize, and search your bookmarks
 - **Full-Text Search** - Fast search powered by SQLite FTS5 or PostgreSQL tsvector
+- **OpenGraph Thumbnails** - Automatically fetches og:image from bookmarked URLs for visual previews
 - **Bookmarklet** - Quick-add bookmarks from any page with a browser bookmarklet
 - **Shaarli Import** - Migrate from Shaarli with full history preservation (including original dates)
 - **Legacy URL Support** - 301 redirects from old Shaarli URLs (`/shaare/{hash}`)

@@ -118,57 +118,87 @@ export default function Index({ bookmarks, search, auth }: Props) {
                                             p="md"
                                             radius="md"
                                         >
-                                            <Stack gap="xs">
-                                                <Anchor
-                                                    href={bookmark.url}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    fw={500}
-                                                    className="cozy-link"
-                                                    onClick={() =>
-                                                        track(
-                                                            'bookmark_click',
-                                                            {
-                                                                url: bookmark.url,
-                                                                title: bookmark.title,
-                                                            },
-                                                        )
-                                                    }
-                                                >
-                                                    {bookmark.title}
-                                                </Anchor>
-                                                {bookmark.description && (
-                                                    <Text
-                                                        size="sm"
-                                                        className="cozy-text"
-                                                    >
-                                                        {bookmark.description}
-                                                    </Text>
-                                                )}
-                                                <Group gap="xs">
-                                                    <Badge
-                                                        size="xs"
-                                                        variant="filled"
-                                                        className="cozy-badge"
-                                                    >
-                                                        {
-                                                            new URL(
-                                                                bookmark.url,
-                                                            ).hostname
+                                            <Group
+                                                gap="md"
+                                                align="flex-start"
+                                                wrap="nowrap"
+                                            >
+                                                {bookmark.thumbnail_url && (
+                                                    <Image
+                                                        src={
+                                                            bookmark.thumbnail_url
                                                         }
-                                                    </Badge>
+                                                        alt=""
+                                                        w={80}
+                                                        h={60}
+                                                        radius="sm"
+                                                        fit="cover"
+                                                        style={{
+                                                            flexShrink: 0,
+                                                        }}
+                                                    />
+                                                )}
+                                                <Stack
+                                                    gap="xs"
+                                                    style={{
+                                                        flex: 1,
+                                                        minWidth: 0,
+                                                    }}
+                                                >
                                                     <Anchor
-                                                        href={`/b/${bookmark.short_url}`}
-                                                        size="xs"
-                                                        className="cozy-muted"
-                                                        underline="never"
+                                                        href={bookmark.url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        fw={500}
+                                                        className="cozy-link"
+                                                        onClick={() =>
+                                                            track(
+                                                                'bookmark_click',
+                                                                {
+                                                                    url: bookmark.url,
+                                                                    title: bookmark.title,
+                                                                },
+                                                            )
+                                                        }
                                                     >
-                                                        {new Date(
-                                                            bookmark.created_at,
-                                                        ).toLocaleDateString()}
+                                                        {bookmark.title}
                                                     </Anchor>
-                                                </Group>
-                                            </Stack>
+                                                    {bookmark.description && (
+                                                        <Text
+                                                            size="sm"
+                                                            className="cozy-text"
+                                                            lineClamp={2}
+                                                        >
+                                                            {
+                                                                bookmark.description
+                                                            }
+                                                        </Text>
+                                                    )}
+                                                    <Group gap="xs">
+                                                        <Badge
+                                                            size="xs"
+                                                            variant="filled"
+                                                            className="cozy-badge"
+                                                        >
+                                                            {
+                                                                new URL(
+                                                                    bookmark.url,
+                                                                ).hostname
+                                                            }
+                                                        </Badge>
+                                                        <Anchor
+                                                            href={`/b/${bookmark.short_url}`}
+                                                            size="xs"
+                                                            className="cozy-muted"
+                                                            underline="never"
+                                                        >
+                                                            {new Date(
+                                                                bookmark.created_at,
+                                                            ).toLocaleDateString()}
+                                                        </Anchor>
+                                                    </Group>
+                                                </Stack>
+                                            </Group>
                                         </Card>
                                     ))}
                                 </Stack>
