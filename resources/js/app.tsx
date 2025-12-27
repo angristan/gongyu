@@ -11,6 +11,7 @@ import { createTheme, MantineProvider } from '@mantine/core';
 import { Notifications } from '@mantine/notifications';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createRoot } from 'react-dom/client';
+import type { PageProps } from '@/types';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Gongyu';
 
@@ -54,17 +55,17 @@ createInertiaApp({
         ),
     setup({ el, App, props }) {
         const root = createRoot(el);
+        const { umami } = props.initialPage.props as unknown as PageProps;
 
         root.render(
             <MantineProvider theme={theme} defaultColorScheme="auto">
                 <Notifications />
-                {import.meta.env.VITE_UMAMI_URL &&
-                    import.meta.env.VITE_UMAMI_WEBSITE_ID && (
-                        <UmamiAnalytics
-                            url={import.meta.env.VITE_UMAMI_URL}
-                            websiteId={import.meta.env.VITE_UMAMI_WEBSITE_ID}
-                        />
-                    )}
+                {umami.url && umami.websiteId && (
+                    <UmamiAnalytics
+                        url={umami.url}
+                        websiteId={umami.websiteId}
+                    />
+                )}
                 <App {...props} />
             </MantineProvider>,
         );

@@ -108,6 +108,15 @@ DB_USERNAME=gongyu
 DB_PASSWORD=secret
 ```
 
+### Analytics (Optional)
+
+Gongyu supports [Umami](https://umami.is/) for privacy-friendly analytics:
+
+```env
+UMAMI_URL=https://your-umami-instance.com
+UMAMI_WEBSITE_ID=your-website-id
+```
+
 ### Social Media (Optional)
 
 Configure in Settings or via environment:

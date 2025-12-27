@@ -37,4 +37,9 @@ return [
         ],
     ],
 
+    'umami' => [
+        'url' => env('UMAMI_URL'),
+        'website_id' => env('UMAMI_WEBSITE_ID'),
+    ],
+
 ];

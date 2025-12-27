@@ -27,4 +27,8 @@ export interface PageProps {
         success: string | null;
         error: string | null;
     };
+    umami: {
+        url: string | null;
+        websiteId: string | null;
+    };
 }
