@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace App\Search;
 
-use App\Models\Bookmark;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\DB;
 
 class PostgresSearchDriver implements SearchDriver
 {
@@ -17,24 +15,6 @@ class PostgresSearchDriver implements SearchDriver
         return $query
             ->whereRaw("search_vector @@ to_tsquery('english', ?)", [$tsQuery])
             ->orderByRaw("ts_rank(search_vector, to_tsquery('english', ?)) DESC", [$tsQuery]);
-    }
-
-    public function updateIndex(int $bookmarkId): void
-    {
-        $bookmark = Bookmark::find($bookmarkId);
-        if (! $bookmark) {
-            return;
-        }
-
-        DB::statement(
-            "UPDATE bookmarks SET search_vector = to_tsvector('english', coalesce(title, '') || ' ' || coalesce(description, '') || ' ' || coalesce(url, '')) WHERE id = ?",
-            [$bookmarkId]
-        );
-    }
-
-    public function deleteIndex(int $bookmarkId): void
-    {
-        // No separate index to delete for PostgreSQL - the column is part of the row
     }
 
     private function buildTsQuery(string $searchTerm): string

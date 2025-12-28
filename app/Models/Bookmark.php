@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Search\SqliteSearchDriver;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class Bookmark extends Model
@@ -31,18 +29,8 @@ class Bookmark extends Model
             }
         });
 
-        // Sync FTS index for SQLite (PostgreSQL uses triggers)
-        static::saved(function (Bookmark $bookmark) {
-            if (DB::connection()->getDriverName() === 'sqlite') {
-                (new SqliteSearchDriver)->updateIndex($bookmark->id);
-            }
-        });
-
-        static::deleted(function (Bookmark $bookmark) {
-            if (DB::connection()->getDriverName() === 'sqlite') {
-                (new SqliteSearchDriver)->deleteIndex($bookmark->id);
-            }
-        });
+        // FTS index is synced automatically via database triggers
+        // (SQLite: bookmarks_ai/au/ad, PostgreSQL: bookmarks_search_vector_trigger)
     }
 
     /**
