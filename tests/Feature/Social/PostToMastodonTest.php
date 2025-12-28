@@ -129,7 +129,9 @@ class PostToMastodonTest extends TestCase
             'mastodon.social/api/v1/statuses' => Http::response(['id' => '123'], 200),
         ]);
 
-        $longTitle = str_repeat('a', 600);
+        // Title is 490 chars (within DB limit of 500), but combined with URL (19 chars) + space
+        // would exceed Mastodon's 500 char limit, triggering truncation
+        $longTitle = str_repeat('a', 490);
         $bookmark = Bookmark::factory()->create([
             'title' => $longTitle,
             'url' => 'https://example.com',
