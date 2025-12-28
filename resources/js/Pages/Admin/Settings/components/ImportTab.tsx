@@ -1,15 +1,27 @@
 import { router } from '@inertiajs/react';
 import {
     Alert,
+    Badge,
     Button,
     Card,
     FileInput,
+    Group,
+    PasswordInput,
     Progress,
+    SegmentedControl,
     Stack,
     Text,
+    TextInput,
     Title,
 } from '@mantine/core';
-import { IconAlertCircle, IconCheck, IconUpload } from '@tabler/icons-react';
+import {
+    IconAlertCircle,
+    IconCheck,
+    IconCloud,
+    IconDatabase,
+    IconFileText,
+    IconUpload,
+} from '@tabler/icons-react';
 import { useState } from 'react';
 
 interface ImportResult {
@@ -22,18 +34,48 @@ interface Props {
     importResult?: ImportResult;
 }
 
+type ImportType = 'html' | 'datastore' | 'api';
+
 export function ImportTab({ importResult }: Props) {
+    const [importType, setImportType] = useState<ImportType>('api');
     const [importFile, setImportFile] = useState<File | null>(null);
+    const [shaarliUrl, setShaarliUrl] = useState('');
+    const [apiSecret, setApiSecret] = useState('');
     const [importProcessing, setImportProcessing] = useState(false);
     const [importProgress, setImportProgress] = useState<number | null>(null);
 
     const handleImportSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (importType === 'api') {
+            router.post(
+                '/admin/import',
+                {
+                    import_type: importType,
+                    shaarli_url: shaarliUrl,
+                    api_secret: apiSecret,
+                },
+                {
+                    onStart: () => setImportProcessing(true),
+                    onFinish: () => {
+                        setImportProcessing(false);
+                        setImportProgress(null);
+                    },
+                    onProgress: (event) => {
+                        if (event?.percentage) {
+                            setImportProgress(event.percentage);
+                        }
+                    },
+                },
+            );
+            return;
+        }
+
         if (!importFile) return;
 
         router.post(
             '/admin/import',
-            { file: importFile },
+            { import_type: importType, file: importFile },
             {
                 forceFormData: true,
                 onStart: () => setImportProcessing(true),
@@ -48,6 +90,13 @@ export function ImportTab({ importResult }: Props) {
                 },
             },
         );
+    };
+
+    const canSubmit = () => {
+        if (importType === 'api') {
+            return shaarliUrl.length > 0 && apiSecret.length >= 12;
+        }
+        return importFile !== null;
     };
 
     return (
@@ -71,12 +120,11 @@ export function ImportTab({ importResult }: Props) {
                             {importResult.skipped > 0 &&
                                 ` Skipped ${importResult.skipped} duplicates.`}
                         </Text>
-                        {importResult.errors.length > 0 && (
-                            <Text size="sm" c="red">
-                                {importResult.errors.length} errors occurred
-                                during import.
+                        {importResult.errors.map((error) => (
+                            <Text key={error} size="sm" c="red">
+                                {error}
                             </Text>
-                        )}
+                        ))}
                     </Stack>
                 </Alert>
             )}
@@ -85,20 +133,125 @@ export function ImportTab({ importResult }: Props) {
                 <form onSubmit={handleImportSubmit}>
                     <Stack gap="md">
                         <Title order={3}>Import from Shaarli</Title>
-                        <Text size="sm" c="dimmed">
-                            Import bookmarks from a Shaarli HTML export file
-                            (Netscape bookmark format).
-                        </Text>
 
-                        <FileInput
-                            label="Shaarli Export File"
-                            description="Select an HTML file exported from Shaarli"
-                            placeholder="Click to select file"
-                            accept=".html,.htm"
-                            value={importFile}
-                            onChange={setImportFile}
-                            leftSection={<IconUpload size={16} />}
+                        <SegmentedControl
+                            value={importType}
+                            onChange={(v) => setImportType(v as ImportType)}
+                            data={[
+                                {
+                                    value: 'api',
+                                    label: (
+                                        <Group gap="xs">
+                                            <IconCloud size={16} />
+                                            <span>API</span>
+                                        </Group>
+                                    ),
+                                },
+                                {
+                                    value: 'datastore',
+                                    label: (
+                                        <Group gap="xs">
+                                            <IconDatabase size={16} />
+                                            <span>Database File</span>
+                                        </Group>
+                                    ),
+                                },
+                                {
+                                    value: 'html',
+                                    label: (
+                                        <Group gap="xs">
+                                            <IconFileText size={16} />
+                                            <span>HTML Export</span>
+                                        </Group>
+                                    ),
+                                },
+                            ]}
                         />
+
+                        {importType === 'html' && (
+                            <>
+                                <Text size="sm" c="dimmed">
+                                    Upload your Shaarli HTML export file
+                                    (Netscape bookmark format).
+                                </Text>
+                                <Alert
+                                    color="yellow"
+                                    variant="light"
+                                    icon={<IconAlertCircle size={16} />}
+                                >
+                                    Legacy URLs (/shaare/xxx) won't be preserved
+                                    with HTML import. Use Database or API import
+                                    for full migration.
+                                </Alert>
+                                <FileInput
+                                    label="Shaarli Export File"
+                                    description="Select an HTML file exported from Shaarli"
+                                    placeholder="Click to select file"
+                                    accept=".html,.htm"
+                                    value={importFile}
+                                    onChange={setImportFile}
+                                    leftSection={<IconUpload size={16} />}
+                                />
+                            </>
+                        )}
+
+                        {importType === 'datastore' && (
+                            <>
+                                <Group gap="xs">
+                                    <Text size="sm" c="dimmed">
+                                        Upload your Shaarli datastore.php file.
+                                    </Text>
+                                    <Badge color="green" size="sm">
+                                        Preserves legacy URLs
+                                    </Badge>
+                                </Group>
+                                <Text size="xs" c="dimmed">
+                                    Location: data/datastore.php in your Shaarli
+                                    folder.
+                                </Text>
+                                <FileInput
+                                    label="Datastore File"
+                                    description="Select the datastore.php file from your Shaarli installation"
+                                    placeholder="Click to select file"
+                                    accept=".php"
+                                    value={importFile}
+                                    onChange={setImportFile}
+                                    leftSection={<IconDatabase size={16} />}
+                                />
+                            </>
+                        )}
+
+                        {importType === 'api' && (
+                            <>
+                                <Group gap="xs">
+                                    <Text size="sm" c="dimmed">
+                                        Import directly from a running Shaarli
+                                        instance.
+                                    </Text>
+                                    <Badge color="green" size="sm">
+                                        Preserves legacy URLs
+                                    </Badge>
+                                </Group>
+                                <TextInput
+                                    label="Shaarli URL"
+                                    description="The base URL of your Shaarli instance"
+                                    placeholder="https://links.example.com"
+                                    value={shaarliUrl}
+                                    onChange={(e) =>
+                                        setShaarliUrl(e.target.value)
+                                    }
+                                />
+                                <PasswordInput
+                                    label="API Secret"
+                                    description="Find in Tools → Configure your Shaarli → REST API"
+                                    placeholder="Your API secret"
+                                    value={apiSecret}
+                                    onChange={(e) =>
+                                        setApiSecret(e.target.value)
+                                    }
+                                />
+                            </>
+                        )}
 
                         {importProgress !== null && (
                             <Progress value={importProgress} animated />
@@ -107,7 +260,7 @@ export function ImportTab({ importResult }: Props) {
                         <Button
                             type="submit"
                             loading={importProcessing}
-                            disabled={!importFile}
+                            disabled={!canSubmit()}
                             leftSection={<IconUpload size={16} />}
                         >
                             Import Bookmarks
@@ -118,16 +271,24 @@ export function ImportTab({ importResult }: Props) {
 
             <Card withBorder p="lg">
                 <Stack gap="sm">
-                    <Title order={4}>How to export from Shaarli</Title>
-                    <Text size="sm" c="dimmed">
-                        1. Go to your Shaarli instance
-                        <br />
-                        2. Navigate to Tools → Export
-                        <br />
-                        3. Select "Export all" and click "Export"
-                        <br />
-                        4. Save the HTML file and upload it here
-                    </Text>
+                    <Title order={4}>Import Methods</Title>
+                    <Stack gap="xs">
+                        <Text size="sm">
+                            <strong>API:</strong> Live import from a running
+                            Shaarli instance. Requires API secret from Shaarli
+                            settings. Preserves legacy URLs.
+                        </Text>
+                        <Text size="sm">
+                            <strong>Database File:</strong> Direct import from
+                            Shaarli's datastore.php. Preserves all data
+                            including legacy URLs.
+                        </Text>
+                        <Text size="sm">
+                            <strong>HTML Export:</strong> Standard Netscape
+                            bookmark format. Quick but doesn't preserve legacy
+                            Shaarli URLs.
+                        </Text>
+                    </Stack>
                 </Stack>
             </Card>
         </Stack>

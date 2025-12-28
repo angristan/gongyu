@@ -9,10 +9,12 @@ import {
     Title,
 } from '@mantine/core';
 import {
+    IconAlertTriangle,
     IconArrowLeft,
     IconBrandMastodon,
     IconBrandTwitter,
     IconCloud,
+    IconDownload,
     IconHome,
     IconUpload,
 } from '@tabler/icons-react';
@@ -20,12 +22,21 @@ import { useState } from 'react';
 import type { PageProps } from '@/types';
 import {
     BlueskySettingsTab,
+    DangerZoneTab,
+    ExportTab,
     ImportTab,
     MastodonSettingsTab,
     TwitterSettingsTab,
 } from './components';
 
-const VALID_TABS = ['import', 'twitter', 'mastodon', 'bluesky'] as const;
+const VALID_TABS = [
+    'import',
+    'export',
+    'twitter',
+    'mastodon',
+    'bluesky',
+    'danger',
+] as const;
 type TabValue = (typeof VALID_TABS)[number];
 
 interface Settings {
@@ -45,9 +56,15 @@ interface ImportResult {
     errors: string[];
 }
 
+interface DeleteResult {
+    deleted: number;
+}
+
 interface Props extends PageProps {
     settings: Settings;
     importResult?: ImportResult;
+    deleteResult?: DeleteResult;
+    bookmarkCount: number;
 }
 
 function getInitialTab(): TabValue {
@@ -59,7 +76,12 @@ function getInitialTab(): TabValue {
         : 'import';
 }
 
-export default function SettingsIndex({ settings, importResult }: Props) {
+export default function SettingsIndex({
+    settings,
+    importResult,
+    deleteResult,
+    bookmarkCount,
+}: Props) {
     const [activeTab, setActiveTab] = useState<TabValue>(getInitialTab);
 
     const handleTabChange = (value: string | null) => {
@@ -125,6 +147,12 @@ export default function SettingsIndex({ settings, importResult }: Props) {
                                     Import
                                 </Tabs.Tab>
                                 <Tabs.Tab
+                                    value="export"
+                                    leftSection={<IconDownload size={16} />}
+                                >
+                                    Export
+                                </Tabs.Tab>
+                                <Tabs.Tab
                                     value="twitter"
                                     leftSection={<IconBrandTwitter size={16} />}
                                 >
@@ -144,10 +172,23 @@ export default function SettingsIndex({ settings, importResult }: Props) {
                                 >
                                     Bluesky
                                 </Tabs.Tab>
+                                <Tabs.Tab
+                                    value="danger"
+                                    leftSection={
+                                        <IconAlertTriangle size={16} />
+                                    }
+                                    color="red"
+                                >
+                                    Danger Zone
+                                </Tabs.Tab>
                             </Tabs.List>
 
                             <Tabs.Panel value="import" pt="md">
                                 <ImportTab importResult={importResult} />
+                            </Tabs.Panel>
+
+                            <Tabs.Panel value="export" pt="md">
+                                <ExportTab />
                             </Tabs.Panel>
 
                             <Tabs.Panel value="twitter" pt="md">
@@ -177,6 +218,13 @@ export default function SettingsIndex({ settings, importResult }: Props) {
                                     errors={errors}
                                     processing={processing}
                                     onSubmit={handleSubmit}
+                                />
+                            </Tabs.Panel>
+
+                            <Tabs.Panel value="danger" pt="md">
+                                <DangerZoneTab
+                                    deleteResult={deleteResult}
+                                    bookmarkCount={bookmarkCount}
                                 />
                             </Tabs.Panel>
                         </Tabs>

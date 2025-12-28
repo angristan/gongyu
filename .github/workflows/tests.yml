@@ -6,16 +6,43 @@ on:
 jobs:
   phpunit:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        database: [sqlite, pgsql]
+
+    services:
+      postgres:
+        image: ${{ matrix.database == 'pgsql' && 'postgres:17' || '' }}
+        env:
+          POSTGRES_USER: gongyu
+          POSTGRES_PASSWORD: gongyu
+          POSTGRES_DB: gongyu_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U gongyu"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
     env:
       APP_ENV: testing
       APP_KEY: base64:1qZ0b9E93sKOG5XQ3YwKwcjwXDf+ZFIzuD0kZwIUSnA=
       BROADCAST_DRIVER: log
       CACHE_DRIVER: array
-      DB_CONNECTION: sqlite
-      DB_DATABASE: ":memory:"
+      DB_CONNECTION: ${{ matrix.database }}
+      DB_DATABASE: ${{ matrix.database == 'sqlite' && ':memory:' || 'gongyu_test' }}
+      DB_HOST: ${{ matrix.database == 'pgsql' && '127.0.0.1' || '' }}
+      DB_PORT: ${{ matrix.database == 'pgsql' && '5432' || '' }}
+      DB_USERNAME: ${{ matrix.database == 'pgsql' && 'gongyu' || '' }}
+      DB_PASSWORD: ${{ matrix.database == 'pgsql' && 'gongyu' || '' }}
       MAIL_MAILER: log
       QUEUE_CONNECTION: sync
       SESSION_DRIVER: array
+
+    name: PHPUnit (${{ matrix.database }})
+
     steps:
       - uses: actions/checkout@v6
 
@@ -23,7 +50,7 @@ jobs:
         with:
           php-version: "8.5"
           coverage: none
-          extensions: pdo_sqlite, sqlite3, pcntl, bcmath, intl
+          extensions: pdo_sqlite, sqlite3, pdo_pgsql, pcntl, bcmath, intl
 
       - name: Get composer cache directory
         id: composer-cache
@@ -54,6 +81,9 @@ jobs:
 
       - name: Generate app key
         run: php artisan key:generate
+
+      - name: Run migrations
+        run: php artisan migrate --force
 
       - name: Run test suite
         run: php artisan test

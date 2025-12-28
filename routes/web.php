@@ -2,11 +2,13 @@
 
 declare(strict_types=1);
 
+use App\Actions\Admin\DeleteAllBookmarks;
 use App\Actions\Bookmark\CreateBookmark;
 use App\Actions\Bookmark\DeleteBookmark;
 use App\Actions\Bookmark\ShowAdminBookmarks;
 use App\Actions\Bookmark\UpdateBookmark;
 use App\Actions\Dashboard\ShowDashboard;
+use App\Actions\Export\ExportBookmarks;
 use App\Actions\Feed\GenerateAtomFeed;
 use App\Actions\Import\ImportShaarliExport;
 use App\Actions\Public\HandleLegacyShaarliUrl;
@@ -121,6 +123,7 @@ Route::prefix('admin')->middleware('auth')->group(function () {
     Route::get('/bookmarks', ShowAdminBookmarks::class)->name('admin.bookmarks.index');
     Route::get('/bookmarks/create', CreateBookmark::class)->name('admin.bookmarks.create');
     Route::post('/bookmarks', CreateBookmark::class)->name('admin.bookmarks.store');
+    Route::delete('/bookmarks/all', DeleteAllBookmarks::class)->name('admin.bookmarks.deleteAll');
     Route::get('/bookmarks/{bookmark}/edit', UpdateBookmark::class)->name('admin.bookmarks.edit');
     Route::patch('/bookmarks/{bookmark}', UpdateBookmark::class)->name('admin.bookmarks.update');
     Route::delete('/bookmarks/{bookmark}', DeleteBookmark::class)->name('admin.bookmarks.destroy');
@@ -128,6 +131,9 @@ Route::prefix('admin')->middleware('auth')->group(function () {
     // Import
     Route::get('/import', ImportShaarliExport::class)->name('admin.import');
     Route::post('/import', ImportShaarliExport::class)->name('admin.import.store');
+
+    // Export
+    Route::get('/export', ExportBookmarks::class)->name('admin.export');
 
     // Settings
     Route::get('/settings', ShowSettings::class)->name('admin.settings');
