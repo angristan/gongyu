@@ -21,11 +21,13 @@ class BookmarkImporter
      * - url: string (required, but validated)
      * - title: string (required, but validated)
      * - description: ?string
+     * - short_url: ?string (preserved from Gongyu export)
      * - shaarli_short_url: ?string
-     * - created_at: ?Carbon|?int (timestamp)
-     * - updated_at: ?Carbon|?int (timestamp)
+     * - thumbnail_url: ?string
+     * - created_at: ?Carbon|?int|?string (timestamp)
+     * - updated_at: ?Carbon|?int|?string (timestamp)
      *
-     * @param  array<array{url?: string, title?: string, description?: ?string, shaarli_short_url?: ?string, created_at?: mixed, updated_at?: mixed}>  $bookmarks
+     * @param  array<array{url?: string, title?: string, description?: ?string, short_url?: ?string, shaarli_short_url?: ?string, thumbnail_url?: ?string, created_at?: mixed, updated_at?: mixed}>  $bookmarks
      * @return array{imported: int, skipped: int, errors: array<string>}
      */
     public function handle(array $bookmarks): array
@@ -77,11 +79,12 @@ class BookmarkImporter
             $updatedAt = $this->normalizeTimestamp($item['updated_at'] ?? null);
 
             $toInsert[] = [
-                'short_url' => Str::random(8),
+                'short_url' => $item['short_url'] ?? Str::random(8),
                 'url' => $url,
                 'title' => $item['title'] ?? $url,
                 'description' => $item['description'] ?? null,
                 'shaarli_short_url' => $item['shaarli_short_url'] ?? null,
+                'thumbnail_url' => $item['thumbnail_url'] ?? null,
                 'created_at' => $createdAt,
                 'updated_at' => $updatedAt,
             ];

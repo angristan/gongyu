@@ -84,6 +84,26 @@ class ImportShaarliExport
         }
     }
 
+    /**
+     * Import bookmarks from a Gongyu JSON export.
+     *
+     * @return array{imported: int, skipped: int, errors: array<string>}
+     */
+    public function handleGongyu(UploadedFile $file): array
+    {
+        try {
+            $bookmarks = ParseGongyuExport::run($file);
+
+            return BookmarkImporter::run($bookmarks);
+        } catch (\RuntimeException $e) {
+            return [
+                'imported' => 0,
+                'skipped' => 0,
+                'errors' => [$e->getMessage()],
+            ];
+        }
+    }
+
     public function asController(Request $request): RedirectResponse
     {
         if ($request->isMethod('GET')) {
@@ -95,6 +115,7 @@ class ImportShaarliExport
         $result = match ($importType) {
             'datastore' => $this->handleDatastoreRequest($request),
             'api' => $this->handleApiRequest($request),
+            'gongyu' => $this->handleGongyuRequest($request),
             default => $this->handleHtmlRequest($request),
         };
 
@@ -141,5 +162,17 @@ class ImportShaarliExport
             $request->input('shaarli_url'),
             $request->input('api_secret')
         );
+    }
+
+    /**
+     * @return array{imported: int, skipped: int, errors: array<string>}
+     */
+    private function handleGongyuRequest(Request $request): array
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:json|max:10240', // 10MB max
+        ]);
+
+        return $this->handleGongyu($request->file('file'));
     }
 }

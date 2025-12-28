@@ -232,6 +232,84 @@ class ShaarliImportTest extends TestCase
         $response->assertSessionHasErrors('api_secret');
     }
 
+    public function test_import_gongyu_via_controller(): void
+    {
+        $user = User::factory()->create();
+        $data = [
+            'exported_at' => '2025-12-28T12:00:00Z',
+            'version' => '1.0',
+            'count' => 2,
+            'bookmarks' => [
+                [
+                    'id' => 1,
+                    'url' => 'https://example.com/1',
+                    'title' => 'Example 1',
+                    'description' => 'Description 1',
+                    'short_url' => 'abc12345',
+                    'shaarli_short_url' => 'xyz789',
+                    'thumbnail_url' => 'https://example.com/thumb1.jpg',
+                    'created_at' => '2025-01-01T00:00:00Z',
+                    'updated_at' => '2025-01-02T00:00:00Z',
+                ],
+                [
+                    'id' => 2,
+                    'url' => 'https://example.com/2',
+                    'title' => 'Example 2',
+                    'description' => null,
+                    'short_url' => 'def67890',
+                    'shaarli_short_url' => null,
+                    'thumbnail_url' => null,
+                    'created_at' => '2025-01-03T00:00:00Z',
+                    'updated_at' => '2025-01-03T00:00:00Z',
+                ],
+            ],
+        ];
+
+        $file = UploadedFile::fake()->createWithContent('export.json', json_encode($data));
+
+        $response = $this->actingAs($user)->post('/admin/import', [
+            'import_type' => 'gongyu',
+            'file' => $file,
+        ]);
+
+        $response->assertRedirect(route('admin.settings', ['tab' => 'import']));
+        $response->assertSessionHas('importResult');
+
+        $result = session('importResult');
+        $this->assertEquals(2, $result['imported']);
+
+        $this->assertCount(2, Bookmark::all());
+
+        $bookmark1 = Bookmark::where('url', 'https://example.com/1')->first();
+        $this->assertEquals('Example 1', $bookmark1->title);
+        $this->assertEquals('abc12345', $bookmark1->short_url);
+        $this->assertEquals('xyz789', $bookmark1->shaarli_short_url);
+        $this->assertEquals('https://example.com/thumb1.jpg', $bookmark1->thumbnail_url);
+
+        $bookmark2 = Bookmark::where('url', 'https://example.com/2')->first();
+        $this->assertEquals('def67890', $bookmark2->short_url);
+        $this->assertNull($bookmark2->shaarli_short_url);
+    }
+
+    public function test_import_gongyu_with_invalid_json(): void
+    {
+        $user = User::factory()->create();
+        $file = UploadedFile::fake()->createWithContent('export.json', 'not valid json');
+
+        $response = $this->actingAs($user)->post('/admin/import', [
+            'import_type' => 'gongyu',
+            'file' => $file,
+        ]);
+
+        $response->assertRedirect(route('admin.settings', ['tab' => 'import']));
+        $response->assertSessionHas('importResult');
+
+        $result = session('importResult');
+        $this->assertEquals(0, $result['imported']);
+        $this->assertNotEmpty($result['errors']);
+        $this->assertStringContainsString('Invalid JSON', $result['errors'][0]);
+    }
+
     private function makeNetscapeHtml(array $bookmarks): string
     {
         $html = "<!DOCTYPE NETSCAPE-Bookmark-file-1>\n<TITLE>Bookmarks</TITLE>\n<H1>Bookmarks</H1>\n<DL><p>\n";
