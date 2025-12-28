@@ -92,15 +92,13 @@ class BookmarkImporter
         }
 
         // Bulk insert in chunks of 500
+        // FTS index is updated automatically via triggers (SQLite and PostgreSQL)
         if (! empty($toInsert)) {
             DB::transaction(function () use ($toInsert): void {
                 foreach (array_chunk($toInsert, 500) as $chunk) {
                     Bookmark::insert($chunk);
                 }
             });
-
-            // Rebuild FTS index after import
-            $this->rebuildSearchIndex();
         }
 
         return $result;
@@ -136,19 +134,5 @@ class BookmarkImporter
         }
 
         return now();
-    }
-
-    private function rebuildSearchIndex(): void
-    {
-        $driver = DB::connection()->getDriverName();
-
-        try {
-            // PostgreSQL uses triggers to auto-update search_vector on INSERT - no rebuild needed
-            if ($driver === 'sqlite') {
-                DB::statement("INSERT INTO bookmarks_fts(bookmarks_fts) VALUES('rebuild')");
-            }
-        } catch (\Exception) {
-            // Silently fail - search index rebuild is not critical
-        }
     }
 }
