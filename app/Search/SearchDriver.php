@@ -10,16 +10,8 @@ interface SearchDriver
 {
     /**
      * Apply full-text search to the query.
+     *
+     * Index updates are handled automatically via database triggers.
      */
     public function applySearch(Builder $query, string $searchTerm): Builder;
-
-    /**
-     * Update the search index for a bookmark.
-     */
-    public function updateIndex(int $bookmarkId): void;
-
-    /**
-     * Delete the search index for a bookmark.
-     */
-    public function deleteIndex(int $bookmarkId): void;
 }

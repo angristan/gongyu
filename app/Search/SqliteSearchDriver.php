@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Search;
 
-use App\Models\Bookmark;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
@@ -35,44 +34,6 @@ class SqliteSearchDriver implements SearchDriver
                 '(SELECT rank FROM bookmarks_fts WHERE bookmarks_fts.rowid = bookmarks.id AND bookmarks_fts MATCH ?) ASC',
                 [$ftsQuery]
             );
-    }
-
-    public function updateIndex(int $bookmarkId): void
-    {
-        if (! $this->ftsTableExists()) {
-            return;
-        }
-
-        $bookmark = Bookmark::find($bookmarkId);
-        if (! $bookmark) {
-            return;
-        }
-
-        try {
-            // Delete existing entry
-            DB::statement('DELETE FROM bookmarks_fts WHERE rowid = ?', [$bookmarkId]);
-
-            // Insert new entry
-            DB::statement(
-                'INSERT INTO bookmarks_fts(rowid, title, description, url) VALUES (?, ?, ?, ?)',
-                [$bookmarkId, $bookmark->title, $bookmark->description ?? '', $bookmark->url]
-            );
-        } catch (\Exception $e) {
-            // Silently fail - FTS is a nice-to-have, not critical
-        }
-    }
-
-    public function deleteIndex(int $bookmarkId): void
-    {
-        if (! $this->ftsTableExists()) {
-            return;
-        }
-
-        try {
-            DB::statement('DELETE FROM bookmarks_fts WHERE rowid = ?', [$bookmarkId]);
-        } catch (\Exception $e) {
-            // Silently fail
-        }
     }
 
     private function ftsTableExists(): bool
