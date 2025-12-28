@@ -118,6 +118,10 @@ Go to Settings > Import to migrate your bookmarks. Three methods are available:
 
 > **Note**: API and Database imports preserve legacy Shaarli URLs (`/shaare/{hash}`), enabling automatic redirects. HTML import does not preserve these URLs.
 
+## Restoring from Backup
+
+Go to Settings > Import > Restore from Backup to restore bookmarks from a Gongyu JSON export. This preserves all data including short URLs, Shaarli legacy URLs, and thumbnails.
+
 ## Exporting Bookmarks
 
 Go to Settings > Export to download your bookmarks:
