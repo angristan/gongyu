@@ -20,6 +20,7 @@ import {
     IconCloud,
     IconDatabase,
     IconFileText,
+    IconJson,
     IconUpload,
 } from '@tabler/icons-react';
 import { useState } from 'react';
@@ -291,6 +292,84 @@ export function ImportTab({ importResult }: Props) {
                     </Stack>
                 </Stack>
             </Card>
+
+            <GongyuImportCard
+                importProcessing={importProcessing}
+                setImportProcessing={setImportProcessing}
+                importProgress={importProgress}
+                setImportProgress={setImportProgress}
+            />
         </Stack>
+    );
+}
+
+function GongyuImportCard({
+    importProcessing,
+    setImportProcessing,
+    importProgress,
+    setImportProgress,
+}: {
+    importProcessing: boolean;
+    setImportProcessing: (v: boolean) => void;
+    importProgress: number | null;
+    setImportProgress: (v: number | null) => void;
+}) {
+    const [gongyuFile, setGongyuFile] = useState<File | null>(null);
+
+    const handleGongyuImport = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!gongyuFile) return;
+
+        router.post(
+            '/admin/import',
+            { import_type: 'gongyu', file: gongyuFile },
+            {
+                forceFormData: true,
+                onStart: () => setImportProcessing(true),
+                onFinish: () => {
+                    setImportProcessing(false);
+                    setImportProgress(null);
+                },
+                onProgress: (event) => {
+                    if (event?.percentage) {
+                        setImportProgress(event.percentage);
+                    }
+                },
+            },
+        );
+    };
+
+    return (
+        <Card withBorder p="xl">
+            <form onSubmit={handleGongyuImport}>
+                <Stack gap="md">
+                    <Title order={3}>Restore from Backup</Title>
+                    <Text size="sm" c="dimmed">
+                        Restore bookmarks from a Gongyu JSON export. This
+                        preserves all data including short URLs and thumbnails.
+                    </Text>
+                    <FileInput
+                        label="Gongyu Export File"
+                        description="Select a JSON file exported from Gongyu"
+                        placeholder="Click to select file"
+                        accept=".json"
+                        value={gongyuFile}
+                        onChange={setGongyuFile}
+                        leftSection={<IconJson size={16} />}
+                    />
+                    {importProgress !== null && (
+                        <Progress value={importProgress} animated />
+                    )}
+                    <Button
+                        type="submit"
+                        loading={importProcessing}
+                        disabled={!gongyuFile}
+                        leftSection={<IconUpload size={16} />}
+                    >
+                        Restore Bookmarks
+                    </Button>
+                </Stack>
+            </form>
+        </Card>
     );
 }
