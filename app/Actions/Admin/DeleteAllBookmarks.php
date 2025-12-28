@@ -7,7 +7,6 @@ namespace App\Actions\Admin;
 use App\Models\Bookmark;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 class DeleteAllBookmarks
@@ -23,14 +22,8 @@ class DeleteAllBookmarks
     {
         $count = Bookmark::count();
 
-        DB::transaction(function () {
-            Bookmark::query()->delete();
-
-            // Clear FTS index (SQLite only - PostgreSQL uses column on bookmarks table)
-            if (DB::connection()->getDriverName() === 'sqlite') {
-                DB::statement('DELETE FROM bookmarks_fts');
-            }
-        });
+        // FTS index is cleared automatically via triggers (SQLite and PostgreSQL)
+        Bookmark::query()->delete();
 
         return ['deleted' => $count];
     }
