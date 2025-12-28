@@ -21,7 +21,7 @@ return new class extends Migration
 
         // Trigger for INSERT - add new row to FTS index
         DB::statement('
-            CREATE TRIGGER IF NOT EXISTS bookmarks_ai AFTER INSERT ON bookmarks BEGIN
+            CREATE TRIGGER IF NOT EXISTS bookmarks_fts_after_insert AFTER INSERT ON bookmarks BEGIN
                 INSERT INTO bookmarks_fts(rowid, title, description, url)
                 VALUES (new.id, new.title, new.description, new.url);
             END
@@ -30,7 +30,7 @@ return new class extends Migration
         // Trigger for DELETE - remove row from FTS index
         // FTS5 requires special delete syntax with the table name as first column
         DB::statement("
-            CREATE TRIGGER IF NOT EXISTS bookmarks_ad AFTER DELETE ON bookmarks BEGIN
+            CREATE TRIGGER IF NOT EXISTS bookmarks_fts_after_delete AFTER DELETE ON bookmarks BEGIN
                 INSERT INTO bookmarks_fts(bookmarks_fts, rowid, title, description, url)
                 VALUES ('delete', old.id, old.title, old.description, old.url);
             END
@@ -38,7 +38,7 @@ return new class extends Migration
 
         // Trigger for UPDATE - remove old entry and add new entry
         DB::statement("
-            CREATE TRIGGER IF NOT EXISTS bookmarks_au AFTER UPDATE ON bookmarks BEGIN
+            CREATE TRIGGER IF NOT EXISTS bookmarks_fts_after_update AFTER UPDATE ON bookmarks BEGIN
                 INSERT INTO bookmarks_fts(bookmarks_fts, rowid, title, description, url)
                 VALUES ('delete', old.id, old.title, old.description, old.url);
                 INSERT INTO bookmarks_fts(rowid, title, description, url)
@@ -56,8 +56,8 @@ return new class extends Migration
             return;
         }
 
-        DB::statement('DROP TRIGGER IF EXISTS bookmarks_ai');
-        DB::statement('DROP TRIGGER IF EXISTS bookmarks_ad');
-        DB::statement('DROP TRIGGER IF EXISTS bookmarks_au');
+        DB::statement('DROP TRIGGER IF EXISTS bookmarks_fts_after_insert');
+        DB::statement('DROP TRIGGER IF EXISTS bookmarks_fts_after_delete');
+        DB::statement('DROP TRIGGER IF EXISTS bookmarks_fts_after_update');
     }
 };

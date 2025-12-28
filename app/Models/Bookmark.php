@@ -30,7 +30,7 @@ class Bookmark extends Model
         });
 
         // FTS index is synced automatically via database triggers
-        // (SQLite: bookmarks_ai/au/ad, PostgreSQL: bookmarks_search_vector_trigger)
+        // (SQLite: bookmarks_fts_after_*, PostgreSQL: bookmarks_search_vector_trigger)
     }
 
     /**
