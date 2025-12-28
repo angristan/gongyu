@@ -12,7 +12,8 @@ A modern, self-hosted, single-tenant bookmark manager inspired by [Shaarli](http
 - **Full-Text Search** - Fast search powered by SQLite FTS5 or PostgreSQL tsvector
 - **OpenGraph Thumbnails** - Automatically fetches og:image from bookmarked URLs for visual previews
 - **Bookmarklet** - Quick-add bookmarks from any page with a browser bookmarklet
-- **Shaarli Import** - Migrate from Shaarli with full history preservation (including original dates)
+- **Shaarli Migration** - Three import methods: API, Database file, or HTML export
+- **Export** - Download bookmarks as HTML (Netscape format) or JSON
 - **Legacy URL Support** - 301 redirects from old Shaarli URLs (`/shaare/{hash}`)
 - **Atom Feed** - Subscribe to your bookmarks at `/feed`
 - **Social Sharing** - Optional auto-posting to Twitter, Mastodon, and Bluesky
@@ -98,12 +99,30 @@ composer lint
 
 ## Importing from Shaarli
 
+Go to Settings > Import to migrate your bookmarks. Three methods are available:
+
+### API Import (Recommended)
+1. In Shaarli, go to Tools > Configure your Shaarli > REST API
+2. Copy your API secret
+3. Enter your Shaarli URL and API secret in Gongyu
+4. Click Import
+
+### Database Import
+1. Locate `data/datastore.php` in your Shaarli installation
+2. Upload the file in Gongyu
+
+### HTML Import
 1. In Shaarli, go to Tools > Export
 2. Export as HTML (Netscape bookmark format)
-3. In Gongyu, go to Dashboard > Import from Shaarli
-4. Upload your HTML export file
+3. Upload the HTML file in Gongyu
 
-All bookmarks will be imported with their original timestamps preserved. Legacy Shaarli URLs will automatically redirect to the new short URLs.
+> **Note**: API and Database imports preserve legacy Shaarli URLs (`/shaare/{hash}`), enabling automatic redirects. HTML import does not preserve these URLs.
+
+## Exporting Bookmarks
+
+Go to Settings > Export to download your bookmarks:
+- **HTML**: Netscape bookmark format (compatible with browsers and Shaarli)
+- **JSON**: Full data backup with all fields
 
 ## Self-Hosting
 

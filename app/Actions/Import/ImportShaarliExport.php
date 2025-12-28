@@ -4,13 +4,9 @@ declare(strict_types=1);
 
 namespace App\Actions\Import;
 
-use App\Models\Bookmark;
-use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 class ImportShaarliExport
@@ -24,83 +20,67 @@ class ImportShaarliExport
      */
     public function handle(UploadedFile $file): array
     {
-        $result = [
-            'imported' => 0,
-            'skipped' => 0,
-            'errors' => [],
-        ];
-
         $html = file_get_contents($file->getRealPath());
         if ($html === false) {
-            $result['errors'][] = 'Could not read the uploaded file.';
-
-            return $result;
+            return [
+                'imported' => 0,
+                'skipped' => 0,
+                'errors' => ['Could not read the uploaded file.'],
+            ];
         }
 
         $parsed = ParseNetscapeBookmarks::run($html);
 
-        // Skip duplicate check if no bookmarks exist (fresh import)
-        $existingUrls = [];
-        if (Bookmark::exists()) {
-            $existingUrls = Bookmark::whereIn('url', array_column($parsed, 'url'))
-                ->pluck('url')
-                ->flip()
-                ->toArray();
-        }
+        // Normalize HTML parser output to BookmarkImporter format
+        $bookmarks = array_map(fn ($item) => [
+            'url' => $item['url'],
+            'title' => $item['title'],
+            'description' => $item['description'] ?: null,
+            'shaarli_short_url' => $item['shaarli_hash'],
+            'created_at' => $item['timestamp'],
+            'updated_at' => $item['timestamp'],
+        ], $parsed);
 
-        $toInsert = [];
-        $seenUrls = [];
-
-        foreach ($parsed as $item) {
-            // Skip if already in DB or already seen in this import
-            if (isset($existingUrls[$item['url']]) || isset($seenUrls[$item['url']])) {
-                $result['skipped']++;
-
-                continue;
-            }
-
-            $seenUrls[$item['url']] = true;
-
-            $createdAt = $item['timestamp']
-                ? Carbon::createFromTimestamp($item['timestamp'])
-                : now();
-
-            $toInsert[] = [
-                'short_url' => Str::random(8),
-                'url' => $item['url'],
-                'title' => $item['title'],
-                'description' => $item['description'] ?: null,
-                'shaarli_short_url' => $item['shaarli_hash'],
-                'created_at' => $createdAt,
-                'updated_at' => $createdAt,
-            ];
-            $result['imported']++;
-        }
-
-        // Bulk insert in chunks of 500
-        DB::transaction(function () use ($toInsert): void {
-            foreach (array_chunk($toInsert, 500) as $chunk) {
-                Bookmark::insert($chunk);
-            }
-        });
-
-        // Rebuild FTS index after import
-        $this->rebuildSearchIndex();
-
-        return $result;
+        return BookmarkImporter::run($bookmarks);
     }
 
-    private function rebuildSearchIndex(): void
+    /**
+     * Import bookmarks from a Shaarli datastore.php file.
+     *
+     * @return array{imported: int, skipped: int, errors: array<string>}
+     */
+    public function handleDatastore(UploadedFile $file): array
     {
-        $driver = DB::connection()->getDriverName();
-
         try {
-            // PostgreSQL uses triggers to auto-update search_vector on INSERT - no rebuild needed
-            if ($driver === 'sqlite') {
-                DB::statement("INSERT INTO bookmarks_fts(bookmarks_fts) VALUES('rebuild')");
-            }
-        } catch (\Exception $e) {
-            // Silently fail - search index rebuild is not critical
+            $bookmarks = ParseShaarliDatastore::run($file);
+
+            return BookmarkImporter::run($bookmarks);
+        } catch (\RuntimeException $e) {
+            return [
+                'imported' => 0,
+                'skipped' => 0,
+                'errors' => [$e->getMessage()],
+            ];
+        }
+    }
+
+    /**
+     * Import bookmarks from a Shaarli API.
+     *
+     * @return array{imported: int, skipped: int, errors: array<string>}
+     */
+    public function handleApi(string $shaarliUrl, string $apiSecret): array
+    {
+        try {
+            $bookmarks = ShaarliApiClient::run($shaarliUrl, $apiSecret);
+
+            return BookmarkImporter::run($bookmarks);
+        } catch (\RuntimeException $e) {
+            return [
+                'imported' => 0,
+                'skipped' => 0,
+                'errors' => [$e->getMessage()],
+            ];
         }
     }
 
@@ -110,14 +90,56 @@ class ImportShaarliExport
             return redirect()->route('admin.settings', ['tab' => 'import']);
         }
 
-        $request->validate([
-            'file' => 'required|file|mimes:html,htm|max:10240', // 10MB max
-        ]);
+        $importType = $request->input('import_type', 'html');
 
-        $result = $this->handle($request->file('file'));
+        $result = match ($importType) {
+            'datastore' => $this->handleDatastoreRequest($request),
+            'api' => $this->handleApiRequest($request),
+            default => $this->handleHtmlRequest($request),
+        };
 
         return redirect()
             ->route('admin.settings', ['tab' => 'import'])
             ->with('importResult', $result);
+    }
+
+    /**
+     * @return array{imported: int, skipped: int, errors: array<string>}
+     */
+    private function handleHtmlRequest(Request $request): array
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:html,htm|max:10240', // 10MB max
+        ]);
+
+        return $this->handle($request->file('file'));
+    }
+
+    /**
+     * @return array{imported: int, skipped: int, errors: array<string>}
+     */
+    private function handleDatastoreRequest(Request $request): array
+    {
+        $request->validate([
+            'file' => 'required|file|max:10240', // 10MB max
+        ]);
+
+        return $this->handleDatastore($request->file('file'));
+    }
+
+    /**
+     * @return array{imported: int, skipped: int, errors: array<string>}
+     */
+    private function handleApiRequest(Request $request): array
+    {
+        $request->validate([
+            'shaarli_url' => 'required|url',
+            'api_secret' => 'required|string|min:12',
+        ]);
+
+        return $this->handleApi(
+            $request->input('shaarli_url'),
+            $request->input('api_secret')
+        );
     }
 }
