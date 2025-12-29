@@ -46,6 +46,9 @@ class PostToBluesky
                 'facets' => $this->createFacets($text, $url),
             ];
 
+            // Add external embed for link preview card
+            $record['embed'] = $this->createExternalEmbed($bookmark, $session['accessJwt']);
+
             $response = Http::withToken($session['accessJwt'])
                 ->post('https://bsky.social/xrpc/com.atproto.repo.createRecord', [
                     'repo' => $session['did'],
@@ -132,5 +135,61 @@ class PostToBluesky
         }
 
         return $facets;
+    }
+
+    private function createExternalEmbed(Bookmark $bookmark, string $accessJwt): array
+    {
+        $external = [
+            'uri' => $bookmark->url,
+            'title' => $bookmark->title,
+            'description' => $bookmark->description ?? '',
+        ];
+
+        // Upload thumbnail as blob if available
+        if ($bookmark->thumbnail_url) {
+            $thumb = $this->uploadThumbnailBlob($bookmark->thumbnail_url, $accessJwt);
+            if ($thumb) {
+                $external['thumb'] = $thumb;
+            }
+        }
+
+        return [
+            '$type' => 'app.bsky.embed.external',
+            'external' => $external,
+        ];
+    }
+
+    private function uploadThumbnailBlob(string $thumbnailUrl, string $accessJwt): ?array
+    {
+        try {
+            // Fetch the thumbnail image
+            $imageResponse = Http::timeout(10)->get($thumbnailUrl);
+            if (! $imageResponse->successful()) {
+                return null;
+            }
+
+            $imageData = $imageResponse->body();
+            $contentType = $imageResponse->header('Content-Type') ?: 'image/jpeg';
+
+            // Upload to Bluesky as a blob
+            $uploadResponse = Http::withToken($accessJwt)
+                ->withBody($imageData, $contentType)
+                ->post('https://bsky.social/xrpc/com.atproto.repo.uploadBlob');
+
+            if ($uploadResponse->successful()) {
+                return $uploadResponse->json('blob');
+            }
+
+            Log::debug('Failed to upload thumbnail blob to Bluesky', [
+                'status' => $uploadResponse->status(),
+            ]);
+
+        } catch (\Exception $e) {
+            Log::debug('Error uploading thumbnail to Bluesky', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return null;
     }
 }

@@ -205,4 +205,101 @@ class PostToBlueskyTest extends TestCase
             return mb_strlen($request['record']['text']) <= 300;
         });
     }
+
+    public function test_includes_external_embed_for_link_preview(): void
+    {
+        Setting::set('bluesky_handle', 'test.bsky.social');
+        Setting::set('bluesky_app_password', 'app-password', encrypted: true);
+
+        Http::fake([
+            'bsky.social/xrpc/com.atproto.server.createSession' => Http::response([
+                'did' => 'did:plc:test123',
+                'accessJwt' => 'test-jwt-token',
+            ], 200),
+            'bsky.social/xrpc/com.atproto.repo.createRecord' => Http::response([
+                'uri' => 'at://did:plc:test123/app.bsky.feed.post/abc',
+            ], 200),
+        ]);
+
+        $bookmark = Bookmark::factory()->create([
+            'title' => 'Test Article',
+            'description' => 'This is a test description',
+            'url' => 'https://example.com/article',
+        ]);
+
+        $result = PostToBluesky::run($bookmark);
+
+        $this->assertTrue($result);
+
+        Http::assertSent(function ($request) use ($bookmark) {
+            if ($request->url() !== 'https://bsky.social/xrpc/com.atproto.repo.createRecord') {
+                return false;
+            }
+
+            $embed = $request['record']['embed'] ?? null;
+            if (! $embed) {
+                return false;
+            }
+
+            return $embed['$type'] === 'app.bsky.embed.external'
+                && $embed['external']['uri'] === $bookmark->url
+                && $embed['external']['title'] === $bookmark->title
+                && $embed['external']['description'] === $bookmark->description;
+        });
+    }
+
+    public function test_uploads_thumbnail_blob_when_available(): void
+    {
+        Setting::set('bluesky_handle', 'test.bsky.social');
+        Setting::set('bluesky_app_password', 'app-password', encrypted: true);
+
+        $fakeImageData = 'fake-image-data';
+
+        Http::fake([
+            'bsky.social/xrpc/com.atproto.server.createSession' => Http::response([
+                'did' => 'did:plc:test123',
+                'accessJwt' => 'test-jwt-token',
+            ], 200),
+            'example.com/image.jpg' => Http::response($fakeImageData, 200, [
+                'Content-Type' => 'image/jpeg',
+            ]),
+            'bsky.social/xrpc/com.atproto.repo.uploadBlob' => Http::response([
+                'blob' => [
+                    '$type' => 'blob',
+                    'ref' => ['$link' => 'bafktest123'],
+                    'mimeType' => 'image/jpeg',
+                    'size' => strlen($fakeImageData),
+                ],
+            ], 200),
+            'bsky.social/xrpc/com.atproto.repo.createRecord' => Http::response([
+                'uri' => 'at://did:plc:test123/app.bsky.feed.post/abc',
+            ], 200),
+        ]);
+
+        $bookmark = Bookmark::factory()->create([
+            'title' => 'Test Article',
+            'url' => 'https://example.com/article',
+            'thumbnail_url' => 'https://example.com/image.jpg',
+        ]);
+
+        $result = PostToBluesky::run($bookmark);
+
+        $this->assertTrue($result);
+
+        // Verify blob upload was called
+        Http::assertSent(function ($request) {
+            return $request->url() === 'https://bsky.social/xrpc/com.atproto.repo.uploadBlob';
+        });
+
+        // Verify embed includes thumb
+        Http::assertSent(function ($request) {
+            if ($request->url() !== 'https://bsky.social/xrpc/com.atproto.repo.createRecord') {
+                return false;
+            }
+
+            $thumb = $request['record']['embed']['external']['thumb'] ?? null;
+
+            return $thumb !== null && isset($thumb['ref']);
+        });
+    }
 }
