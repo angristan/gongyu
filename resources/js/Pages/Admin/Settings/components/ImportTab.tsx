@@ -189,7 +189,13 @@ function ShaarliImportPanel({
                 <Stack gap="md">
                     <SegmentedControl
                         value={importType}
-                        onChange={(v) => setImportType(v as ShaarliImportType)}
+                        onChange={(v) => {
+                            setImportType(v as ShaarliImportType);
+                            // Reset form fields when switching import method
+                            setImportFile(null);
+                            setShaarliUrl('');
+                            setApiSecret('');
+                        }}
                         data={[
                             {
                                 value: 'api',
