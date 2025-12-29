@@ -67,8 +67,9 @@ class ParseShaarliDatastore
             throw new \RuntimeException('Invalid datastore format: gzinflate failed.');
         }
 
-        // Unserialize (this creates __PHP_Incomplete_Class objects)
-        $data = @unserialize($decompressed);
+        // Unserialize with allowed_classes disabled to prevent PHP object injection
+        // This converts objects to __PHP_Incomplete_Class which we handle in extractBookmarks()
+        $data = @unserialize($decompressed, ['allowed_classes' => false]);
         if ($data === false) {
             throw new \RuntimeException('Invalid datastore format: unserialize failed.');
         }
