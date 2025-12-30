@@ -1,0 +1,18 @@
+pre-commit:
+  parallel: true
+  commands:
+    pint:
+      glob: "*.php"
+      run: composer pint -- --test
+    phpstan:
+      glob: "*.php"
+      run: composer phpstan
+    tests:
+      glob: "*.php"
+      run: php artisan test --parallel
+    biome:
+      glob: "*.{js,ts,tsx}"
+      run: npx biome check
+    typecheck:
+      glob: "*.{ts,tsx}"
+      run: npm run typecheck
