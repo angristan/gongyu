@@ -9,6 +9,13 @@
                 "artisan",
                 "boost:mcp"
             ]
+        },
+        "playwriter": {
+            "type": "local",
+            "command": [
+                "npx",
+                "playwriter@latest"
+            ]
         }
     }
 }
