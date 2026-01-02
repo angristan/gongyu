@@ -1,0 +1,136 @@
+services:
+    init:
+        image: ghcr.io/angristan/gongyu:latest
+        volumes:
+            - ./.secrets:/secrets
+        entrypoint: ["sh", "-c"]
+        command:
+            - |
+                if [ ! -f /secrets/.env.generated ]; then
+                    echo "Generating secrets for first-time setup..."
+                    APP_KEY=$$(php artisan key:generate --show)
+                    cat > /secrets/.env.generated << EOF
+                APP_KEY=$$APP_KEY
+                EOF
+                    echo "Secrets generated and saved to .secrets/.env.generated"
+                else
+                    echo "Secrets already exist, skipping generation."
+                fi
+        networks:
+            - internal_network
+
+    web:
+        image: ghcr.io/angristan/gongyu:latest
+        env_file:
+            - .env.compose
+            - path: ./.secrets/.env.generated
+              required: false
+        volumes:
+            - ./.secrets:/secrets
+            - gongyu_data:/app/database
+        command:
+            [
+                "sh",
+                "-c",
+                "if [ -f /secrets/.env.generated ]; then export $$(cat /secrets/.env.generated | xargs); fi && php artisan optimize && php artisan migrate --force && php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8080 --log-level=info --caddyfile=./deploy/Caddyfile.octane --max-requests=100",
+            ]
+        ports:
+            - "8000:8080"
+        depends_on:
+            init:
+                condition: service_completed_successfully
+            postgres:
+                condition: service_healthy
+                required: false
+            redis:
+                condition: service_healthy
+        networks:
+            - internal_network
+            - external_network
+
+    queue:
+        image: ghcr.io/angristan/gongyu:latest
+        env_file:
+            - .env.compose
+            - path: ./.secrets/.env.generated
+              required: false
+        volumes:
+            - ./.secrets:/secrets
+            - gongyu_data:/app/database
+        command:
+            [
+                "sh",
+                "-c",
+                "if [ -f /secrets/.env.generated ]; then export $$(cat /secrets/.env.generated | xargs); fi && php artisan queue:work --max-jobs=100 --max-time=600 --memory=64",
+            ]
+        depends_on:
+            init:
+                condition: service_completed_successfully
+            postgres:
+                condition: service_healthy
+                required: false
+            redis:
+                condition: service_healthy
+        networks:
+            - external_network
+            - internal_network
+
+    scheduler:
+        image: ghcr.io/angristan/gongyu:latest
+        env_file:
+            - .env.compose
+            - path: ./.secrets/.env.generated
+              required: false
+        volumes:
+            - ./.secrets:/secrets
+            - gongyu_data:/app/database
+        command:
+            [
+                "sh",
+                "-c",
+                "if [ -f /secrets/.env.generated ]; then export $$(cat /secrets/.env.generated | xargs); fi && while true; do php artisan schedule:run --verbose --no-interaction; sleep 60; done",
+            ]
+        depends_on:
+            init:
+                condition: service_completed_successfully
+            postgres:
+                condition: service_healthy
+                required: false
+            redis:
+                condition: service_healthy
+        networks:
+            - internal_network
+
+    postgres:
+        image: postgres:17-alpine
+        env_file: .env.compose
+        healthcheck:
+            test: ["CMD", "pg_isready", "-U", "postgres"]
+        environment:
+            - "POSTGRES_HOST_AUTH_METHOD=trust"
+        volumes:
+            - postgres-data:/var/lib/postgresql/data
+        networks:
+            - internal_network
+        profiles:
+            - postgres
+
+    redis:
+        image: redis:7-alpine
+        env_file: .env.compose
+        healthcheck:
+            test: ["CMD", "redis-cli", "ping"]
+        volumes:
+            - redis-data:/data
+        networks:
+            - internal_network
+
+networks:
+    external_network:
+    internal_network:
+        internal: true
+
+volumes:
+    gongyu_data:
+    postgres-data:
+    redis-data:

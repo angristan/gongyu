@@ -1,6 +1,3 @@
-# Gongyu Production Dockerfile
-# Uses FrankenPHP for high-performance PHP serving
-
 ARG PHP_VERSION=8.4
 ARG FRANKENPHP_VERSION=1.11
 ARG COMPOSER_VERSION=2.9
@@ -13,13 +10,14 @@ FROM dunglas/frankenphp:${FRANKENPHP_VERSION}-php${PHP_VERSION} AS base
 ARG WWWUSER=1000
 ARG WWWGROUP=1000
 ARG TZ=UTC
-ARG APP_DIR=/var/www/html
+ARG APP_DIR=/app
 
 ENV DEBIAN_FRONTEND=noninteractive \
     TERM=xterm-color \
+    OCTANE_SERVER=frankenphp \
     APP_ENV=production \
     TZ=${TZ} \
-    USER=gongyu \
+    USER=octane \
     ROOT=${APP_DIR} \
     COMPOSER_FUND=0 \
     COMPOSER_MAX_PARALLEL_HTTP=24 \
@@ -68,8 +66,7 @@ USER ${USER}
 
 COPY --link --chown=${WWWUSER}:${WWWUSER} --from=composer /usr/bin/composer /usr/bin/composer
 
-COPY --link --chown=${WWWUSER}:${WWWUSER} deploy/php.ini ${PHP_INI_DIR}/conf.d/99-gongyu.ini
-COPY --link --chown=${WWWUSER}:${WWWUSER} deploy/Caddyfile /etc/caddy/Caddyfile
+COPY --link --chown=${WWWUSER}:${WWWUSER} deploy/php.ini ${PHP_INI_DIR}/conf.d/99-octane.ini
 
 COPY --link --chown=${WWWUSER}:${WWWUSER} composer.json composer.lock ./
 
@@ -81,22 +78,20 @@ RUN composer install \
     --no-scripts \
     --audit
 
-# Build frontend assets
 FROM node:${NODE_VERSION}-slim AS npm_build
 
-ENV ROOT=/var/www/html
+ENV ROOT=/app
 
 WORKDIR ${ROOT}
 
 COPY --link package.json package-lock.json ./
 
-RUN npm ci
+RUN npm ci --frozen-lockfile
 
 COPY --link . .
 
 RUN npm run build
 
-# Final production image
 FROM base AS app
 
 USER ${USER}
@@ -110,8 +105,7 @@ RUN mkdir -p \
     storage/logs \
     storage/app/thumbnails \
     bootstrap/cache \
-    database \
-    && chmod -R a+rw storage bootstrap/cache database
+    database && chmod -R a+rw storage bootstrap/cache database
 
 RUN composer install \
     --classmap-authoritative \
@@ -120,30 +114,4 @@ RUN composer install \
     --no-dev \
     && composer clear-cache
 
-# Default to SQLite - mount a volume to /var/www/html/database for persistence
-ENV DB_CONNECTION=sqlite \
-    DB_DATABASE=/var/www/html/database/database.sqlite
-
-EXPOSE 80 443
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost/up || exit 1
-
-# SSR server image (optional - for Inertia server-side rendering)
-FROM node:${NODE_VERSION}-slim AS ssr
-
-ARG APP_DIR=/var/www/html
-
-ENV NODE_ENV=production
-
-WORKDIR ${APP_DIR}
-
-COPY --link --from=npm_build ${APP_DIR}/bootstrap/ssr bootstrap/ssr
-
-EXPOSE 13714
-
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD node -e "fetch('http://localhost:13714/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))" || exit 1
-
-CMD ["node", "bootstrap/ssr/ssr.js"]
+CMD ["sh", "-c", "php artisan key:generate --force && php artisan optimize && php artisan migrate --force && php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8080 --log-level=info --caddyfile=./deploy/Caddyfile.octane --max-requests=100"]
