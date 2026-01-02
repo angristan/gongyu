@@ -42,6 +42,7 @@ jobs:
           file: ./deploy/Dockerfile
           target: app
           push: true
+          pull: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
@@ -69,6 +70,7 @@ jobs:
           file: ./deploy/Dockerfile
           target: ssr
           push: true
+          pull: true
           tags: ${{ steps.meta-ssr.outputs.tags }}
           labels: ${{ steps.meta-ssr.outputs.labels }}
 
