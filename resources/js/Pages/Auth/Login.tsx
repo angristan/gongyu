@@ -36,7 +36,10 @@ export default function Login({ quickLoginHosts }: Props) {
         remember: false,
     });
 
-    const showQuickLogin = matchesHost(window.location.hostname, quickLoginHosts);
+    const showQuickLogin = matchesHost(
+        window.location.hostname,
+        quickLoginHosts,
+    );
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();

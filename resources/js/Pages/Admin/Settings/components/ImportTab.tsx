@@ -1,4 +1,4 @@
-import { router } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import {
     Alert,
     Badge,
@@ -356,6 +356,7 @@ function GongyuImportPanel({
     importProgress: number | null;
     setImportProgress: (v: number | null) => void;
 }) {
+    const { errors } = usePage().props as { errors: Record<string, string> };
     const [gongyuFile, setGongyuFile] = useState<File | null>(null);
 
     const handleGongyuImport = (e: React.FormEvent) => {
@@ -394,10 +395,11 @@ function GongyuImportPanel({
                         label="Gongyu Export File"
                         description="Select a JSON file exported from Gongyu"
                         placeholder="Click to select file"
-                        accept=".json"
+                        accept="application/json,.json"
                         value={gongyuFile}
                         onChange={setGongyuFile}
                         leftSection={<IconJson size={16} />}
+                        error={errors.file}
                     />
 
                     {importProgress !== null && (
