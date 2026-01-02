@@ -6,22 +6,46 @@ import {
     Card,
     Checkbox,
     Container,
+    Group,
     PasswordInput,
     Stack,
     Text,
     TextInput,
     Title,
 } from '@mantine/core';
-export default function Login() {
+
+interface Props {
+    quickLoginHosts: string[];
+}
+
+function matchesHost(hostname: string, patterns: string[]): boolean {
+    return patterns.some((pattern) => {
+        if (pattern.includes('*')) {
+            const escaped = pattern.replace(/\./g, '\\.').replace(/\*/g, '.*');
+            const regex = new RegExp(`^${escaped}$`);
+            return regex.test(hostname);
+        }
+        return pattern === hostname;
+    });
+}
+
+export default function Login({ quickLoginHosts }: Props) {
     const { data, setData, post, processing, errors } = useForm({
         email: '',
         password: '',
         remember: false,
     });
 
+    const showQuickLogin = matchesHost(window.location.hostname, quickLoginHosts);
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         post('/login');
+    };
+
+    const handleQuickLogin = (e: React.MouseEvent) => {
+        e.preventDefault();
+        post('/laravel-login-link-login');
     };
 
     return (
@@ -69,13 +93,24 @@ export default function Login() {
                                             )
                                         }
                                     />
-                                    <Button
-                                        type="submit"
-                                        loading={processing}
-                                        fullWidth
-                                    >
-                                        Sign In
-                                    </Button>
+                                    <Group gap="sm">
+                                        <Button
+                                            type="submit"
+                                            loading={processing}
+                                            fullWidth
+                                        >
+                                            Sign In
+                                        </Button>
+                                        {showQuickLogin && (
+                                            <Anchor
+                                                component="a"
+                                                href="/laravel-login-link-login"
+                                                onClick={handleQuickLogin}
+                                            >
+                                                Quick Login
+                                            </Anchor>
+                                        )}
+                                    </Group>
                                 </Stack>
                             </form>
                         </Card>

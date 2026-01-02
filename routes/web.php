@@ -64,7 +64,9 @@ Route::post('/setup', function (Request $request) {
 
 // Auth routes
 Route::get('/login', function () {
-    return Inertia::render('Auth/Login');
+    return Inertia::render('Auth/Login', [
+        'quickLoginHosts' => config('login-link.allowed_hosts', []),
+    ]);
 })->name('login')->middleware('guest');
 
 Route::post('/login', function (Request $request) {
