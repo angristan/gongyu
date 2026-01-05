@@ -102,4 +102,33 @@ class BookmarkTest extends TestCase
 
         $response->assertSessionHasErrors(['url']);
     }
+
+    public function test_fetch_metadata_requires_authentication(): void
+    {
+        $response = $this->postJson('/admin/bookmarks/fetch-metadata', [
+            'url' => 'https://example.com',
+        ]);
+
+        $response->assertUnauthorized();
+    }
+
+    public function test_fetch_metadata_requires_valid_url(): void
+    {
+        $response = $this->actingAs($this->user)->postJson('/admin/bookmarks/fetch-metadata', [
+            'url' => 'not-a-valid-url',
+        ]);
+
+        $response->assertUnprocessable();
+        $response->assertJsonValidationErrors(['url']);
+    }
+
+    public function test_fetch_metadata_returns_json(): void
+    {
+        $response = $this->actingAs($this->user)->postJson('/admin/bookmarks/fetch-metadata', [
+            'url' => 'https://example.com',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonStructure(['title', 'description', 'og_image']);
+    }
 }

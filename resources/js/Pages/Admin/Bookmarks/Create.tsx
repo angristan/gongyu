@@ -7,6 +7,7 @@ import {
     Checkbox,
     Container,
     Group,
+    Loader,
     Stack,
     Text,
     Textarea,
@@ -14,6 +15,7 @@ import {
     Title,
 } from '@mantine/core';
 import { IconAlertCircle, IconArrowLeft } from '@tabler/icons-react';
+import { useCallback, useState } from 'react';
 import type { Bookmark, PageProps } from '@/types';
 
 interface Props extends PageProps {
@@ -37,6 +39,53 @@ export default function Create({
         description: prefill.description,
         share_social: hasSocialProviders,
     });
+
+    const [fetchingMetadata, setFetchingMetadata] = useState(false);
+
+    const fetchMetadata = useCallback(
+        async (url: string) => {
+            if (!url || data.title) return;
+
+            try {
+                new URL(url);
+            } catch {
+                return;
+            }
+
+            setFetchingMetadata(true);
+            try {
+                const response = await fetch(
+                    '/admin/bookmarks/fetch-metadata',
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN':
+                                document.querySelector<HTMLMetaElement>(
+                                    'meta[name="csrf-token"]',
+                                )?.content || '',
+                        },
+                        body: JSON.stringify({ url }),
+                    },
+                );
+
+                if (response.ok) {
+                    const metadata = await response.json();
+                    if (metadata.title && !data.title) {
+                        setData('title', metadata.title);
+                    }
+                    if (metadata.description && !data.description) {
+                        setData('description', metadata.description);
+                    }
+                }
+            } catch {
+                // Ignore fetch errors
+            } finally {
+                setFetchingMetadata(false);
+            }
+        },
+        [data.title, data.description, setData],
+    );
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -138,6 +187,9 @@ export default function Create({
                                         onChange={(e) =>
                                             setData('url', e.target.value)
                                         }
+                                        onBlur={(e) =>
+                                            fetchMetadata(e.target.value)
+                                        }
                                         error={errors.url}
                                         required
                                     />
@@ -150,6 +202,11 @@ export default function Create({
                                         }
                                         error={errors.title}
                                         required
+                                        rightSection={
+                                            fetchingMetadata ? (
+                                                <Loader size="xs" />
+                                            ) : null
+                                        }
                                     />
                                     <Textarea
                                         label="Description"

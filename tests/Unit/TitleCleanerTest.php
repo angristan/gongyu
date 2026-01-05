@@ -94,4 +94,45 @@ class TitleCleanerTest extends TestCase
         $cleaned = CleanTitle::run('Part 1 - Part 2 | Website');
         $this->assertStringContainsString('Part 1', $cleaned);
     }
+
+    public function test_preserves_colons_in_title(): void
+    {
+        $this->assertEquals(
+            'Kubernetes v1.35: New level of efficiency with in-place Pod restart',
+            CleanTitle::run('Kubernetes v1.35: New level of efficiency with in-place Pod restart | Kubernetes')
+        );
+    }
+
+    public function test_preserves_hyphenated_words(): void
+    {
+        $this->assertEquals(
+            'Working with in-place updates',
+            CleanTitle::run('Working with in-place updates | Blog')
+        );
+    }
+
+    public function test_preserves_multiple_hyphenated_words(): void
+    {
+        $this->assertEquals(
+            'A real-time, high-performance solution',
+            CleanTitle::run('A real-time, high-performance solution - TechSite')
+        );
+    }
+
+    public function test_removes_spaced_hyphen_separator(): void
+    {
+        $this->assertEquals(
+            'Article Title',
+            CleanTitle::run('Article Title - Site Name')
+        );
+    }
+
+    public function test_does_not_remove_hyphen_without_spaces(): void
+    {
+        // "word-word" should not be treated as a separator
+        $this->assertEquals(
+            'Self-hosted application',
+            CleanTitle::run('Self-hosted application')
+        );
+    }
 }

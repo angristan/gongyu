@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Actions\Admin\DeleteAllBookmarks;
 use App\Actions\Bookmark\CreateBookmark;
 use App\Actions\Bookmark\DeleteBookmark;
+use App\Actions\Bookmark\FetchUrlMetadataApi;
 use App\Actions\Bookmark\ShowAdminBookmarks;
 use App\Actions\Bookmark\UpdateBookmark;
 use App\Actions\Dashboard\ShowDashboard;
@@ -122,6 +123,7 @@ Route::prefix('admin')->middleware('auth')->group(function () {
     Route::get('/dashboard', ShowDashboard::class)->name('admin.dashboard');
 
     // Bookmarks management
+    Route::post('/bookmarks/fetch-metadata', FetchUrlMetadataApi::class)->name('admin.bookmarks.fetchMetadata');
     Route::get('/bookmarks', ShowAdminBookmarks::class)->name('admin.bookmarks.index');
     Route::get('/bookmarks/create', CreateBookmark::class)->name('admin.bookmarks.create');
     Route::post('/bookmarks', CreateBookmark::class)->name('admin.bookmarks.store');

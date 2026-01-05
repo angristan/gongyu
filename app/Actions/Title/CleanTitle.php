@@ -14,17 +14,14 @@ class CleanTitle
      * Common patterns for website suffixes in page titles.
      */
     private const PATTERNS = [
-        // "Title | Site Name" or "Title - Site Name" or "Title — Site Name" or "Title – Site Name"
-        '/\s*[\|\x{2013}\x{2014}-]\s*[^|\x{2013}\x{2014}-]+$/u',
+        // "Title | Site Name" or "Title — Site Name" or "Title – Site Name"
+        '/\s*[\|\x{2013}\x{2014}]\s*[^|\x{2013}\x{2014}]+$/u',
+
+        // "Title - Site Name" (require spaces around hyphen to avoid matching "in-place")
+        '/\s+-\s+[^-]+$/u',
 
         // "Title · Site Name"
         '/\s*\x{00B7}\s*[^\x{00B7}]+$/u',
-
-        // "Title : Site Name" (at the end only)
-        '/\s*:\s*[^:]+$/',
-
-        // "Site Name: Title" (at the beginning) - swap and clean
-        // This is handled separately
     ];
 
     /**
