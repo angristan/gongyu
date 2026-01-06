@@ -11,7 +11,7 @@
     "prepare": "[ -d .git ] && lefthook install || true"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.3.10",
+    "@biomejs/biome": "^2.3.11",
     "@vitejs/plugin-react": "^5.1.2",
     "axios": "^1.11.0",
     "concurrently": "^9.0.1",
