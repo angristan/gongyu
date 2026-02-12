@@ -21,7 +21,7 @@
     "vite": "^7.0.7"
   },
   "dependencies": {
-    "@danielgtmn/umami-react": "^1.1.2",
+    "@danielgtmn/umami-react": "^1.1.4",
     "@inertiajs/react": "^2.3.14",
     "@mantine/charts": "^8.3.10",
     "@mantine/core": "^8.3.10",
