@@ -36,6 +36,6 @@
     "postcss-simple-vars": "^7.0.1",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
-    "recharts": "^3.6.0"
+    "recharts": "^3.7.0"
   }
 }
