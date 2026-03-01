@@ -121,7 +121,7 @@ RUN composer install \
 CMD ["sh", "-c", "php artisan key:generate --force && php artisan optimize && php artisan migrate --force && php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8080 --log-level=info --caddyfile=./deploy/Caddyfile.octane --max-requests=100"]
 
 # SSR server image (for Inertia server-side rendering)
-FROM node:${NODE_VERSION}-slim AS ssr
+FROM oven/bun:1-slim AS ssr
 
 ARG APP_DIR=/app
 
@@ -134,6 +134,6 @@ COPY --link --from=npm_build ${APP_DIR}/bootstrap/ssr bootstrap/ssr
 EXPOSE 13714
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD node -e "fetch('http://localhost:13714/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))" || exit 1
+    CMD bun -e "fetch('http://localhost:13714/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))" || exit 1
 
-CMD ["node", "bootstrap/ssr/ssr.js"]
+CMD ["bun", "bootstrap/ssr/ssr.js"]
