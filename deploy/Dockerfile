@@ -120,6 +120,98 @@ RUN composer install \
 
 CMD ["sh", "-c", "php artisan key:generate --force && php artisan optimize && php artisan migrate --force && php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8080 --log-level=info --caddyfile=./deploy/Caddyfile.octane --max-requests=100"]
 
+# FPM + nginx image (low memory, ondemand workers)
+FROM php:${PHP_VERSION}-fpm AS fpm-base
+
+ARG WWWUSER=1000
+ARG WWWGROUP=1000
+ARG TZ=UTC
+ARG APP_DIR=/app
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    APP_ENV=production \
+    TZ=${TZ} \
+    ROOT=${APP_DIR}
+
+WORKDIR ${ROOT}
+
+SHELL ["/bin/bash", "-eou", "pipefail", "-c"]
+
+RUN ln -snf /usr/share/zoneinfo/${TZ} /etc/localtime \
+    && echo ${TZ} > /etc/timezone
+
+COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
+
+RUN apt-get update \
+    && apt-get install -yqq --no-install-recommends \
+    nginx \
+    sqlite3 \
+    curl \
+    && install-php-extensions \
+    pgsql \
+    pdo_pgsql \
+    pdo_sqlite \
+    opcache \
+    pcntl \
+    zip \
+    intl \
+    && apt-get -y autoremove \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+RUN userdel --remove --force www-data \
+    && groupadd --force -g ${WWWGROUP} app \
+    && useradd -ms /bin/bash --no-log-init --no-user-group -g ${WWWGROUP} -u ${WWWUSER} app
+
+RUN cp ${PHP_INI_DIR}/php.ini-production ${PHP_INI_DIR}/php.ini
+
+COPY --link --chown=${WWWUSER}:${WWWUSER} --from=composer /usr/bin/composer /usr/bin/composer
+
+FROM fpm-base AS fpm
+
+COPY --link deploy/php.ini ${PHP_INI_DIR}/conf.d/99-app.ini
+COPY --link deploy/fpm-pool.conf /usr/local/etc/php-fpm.d/zz-app.conf
+COPY --link deploy/nginx.conf /etc/nginx/sites-enabled/default
+
+RUN chown -R app:app ${ROOT} /var/{log,run} /var/lib/nginx \
+    && chmod -R a+rw ${ROOT} /var/{log,run} /var/lib/nginx
+
+USER app
+
+COPY --link --chown=${WWWUSER}:${WWWUSER} composer.json composer.lock ./
+
+RUN composer install \
+    --no-dev \
+    --no-interaction \
+    --no-autoloader \
+    --no-ansi \
+    --no-scripts \
+    --audit
+
+COPY --link --chown=${WWWUSER}:${WWWUSER} . .
+COPY --link --chown=${WWWUSER}:${WWWUSER} --from=npm_build ${ROOT}/public/build public/build
+
+RUN mkdir -p \
+    storage/framework/{sessions,views,cache,testing} \
+    storage/logs \
+    storage/app/thumbnails \
+    bootstrap/cache \
+    database && chmod -R a+rw storage bootstrap/cache database
+
+RUN composer install \
+    --classmap-authoritative \
+    --no-interaction \
+    --no-ansi \
+    --no-dev \
+    && composer clear-cache
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/ || exit 1
+
+CMD ["sh", "-c", "php artisan optimize && php artisan migrate --force && php-fpm -D && nginx -g 'daemon off;'"]
+
 # SSR server image (for Inertia server-side rendering)
 FROM oven/bun:1-slim AS ssr
 

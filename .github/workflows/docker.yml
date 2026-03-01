@@ -80,3 +80,31 @@ jobs:
           subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
           subject-digest: ${{ steps.push-ssr.outputs.digest }}
           push-to-registry: true
+
+      - name: Extract metadata for FPM image
+        id: meta-fpm
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=fpm,enable={{is_default_branch}}
+            type=raw,value={{branch}}-fpm
+
+      - name: Build and push FPM image
+        id: push-fpm
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./deploy/Dockerfile
+          target: fpm
+          push: true
+          pull: true
+          tags: ${{ steps.meta-fpm.outputs.tags }}
+          labels: ${{ steps.meta-fpm.outputs.labels }}
+
+      - name: Generate artifact attestation for FPM
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
+          subject-digest: ${{ steps.push-fpm.outputs.digest }}
+          push-to-registry: true
