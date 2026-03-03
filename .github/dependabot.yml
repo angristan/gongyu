@@ -9,9 +9,6 @@ updates:
       mantine:
         patterns:
           - "@mantine/*"
-      vite:
-        patterns:
-          - "*vite*"
       react:
         patterns:
           - "react"
@@ -21,9 +18,16 @@ updates:
       inertia:
         patterns:
           - "@inertiajs/*"
-      tabler:
+      minor-dependencies:
         patterns:
-          - "@tabler/*"
+          - "*"
+        exclude-patterns:
+          - "@mantine/*"
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+          - "@inertiajs/*"
 
   - package-ecosystem: composer
     directory: /
@@ -34,14 +38,22 @@ updates:
       laravel:
         patterns:
           - "laravel/*"
-      symfony:
+          - "inertiajs/*"
+      minor-dependencies:
         patterns:
-          - "symfony/*"
+          - "*"
+        exclude-patterns:
+          - "laravel/*"
+          - "inertiajs/*"
 
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+    groups:
+      actions:
+        patterns:
+          - "*"
 
   - package-ecosystem: docker
     directory: /deploy
