@@ -437,3 +437,44 @@ func formVal(form map[string]string, key string) string {
 	}
 	return form[key]
 }
+
+// paginationItem represents a single element in the pagination bar.
+type paginationItem struct {
+	Page    int
+	Active  bool
+	Ellipsis bool
+}
+
+// paginationItems builds a windowed page list: 1 ... [current-1, current, current+1] ... last
+func paginationItems(page, lastPage int) []paginationItem {
+	if lastPage <= 1 {
+		return nil
+	}
+
+	const window = 2 // pages around current
+
+	// Collect which page numbers to show
+	show := make(map[int]bool)
+	show[1] = true
+	show[lastPage] = true
+	for i := page - window; i <= page+window; i++ {
+		if i >= 1 && i <= lastPage {
+			show[i] = true
+		}
+	}
+
+	// Build sorted list with ellipsis gaps
+	var items []paginationItem
+	prev := 0
+	for p := 1; p <= lastPage; p++ {
+		if !show[p] {
+			continue
+		}
+		if prev > 0 && p > prev+1 {
+			items = append(items, paginationItem{Ellipsis: true})
+		}
+		items = append(items, paginationItem{Page: p, Active: p == page})
+		prev = p
+	}
+	return items
+}

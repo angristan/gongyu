@@ -66,11 +66,13 @@ templ AdminPagination(page, lastPage int, query string) {
 		if page > 1 {
 			<a href={ templ.SafeURL(fmt.Sprintf("?q=%s&page=%d", QueryEscape(query), page-1)) }>&laquo; Prev</a>
 		}
-		for i := 1; i <= lastPage; i++ {
-			if i == page {
-				<span class="active">{ fmt.Sprintf("%d", i) }</span>
+		for _, item := range paginationItems(page, lastPage) {
+			if item.Ellipsis {
+				<span class="ellipsis">&hellip;</span>
+			} else if item.Active {
+				<span class="active">{ fmt.Sprintf("%d", item.Page) }</span>
 			} else {
-				<a href={ templ.SafeURL(fmt.Sprintf("?q=%s&page=%d", QueryEscape(query), i)) }>{ fmt.Sprintf("%d", i) }</a>
+				<a href={ templ.SafeURL(fmt.Sprintf("?q=%s&page=%d", QueryEscape(query), item.Page)) }>{ fmt.Sprintf("%d", item.Page) }</a>
 			}
 		}
 		if page < lastPage {

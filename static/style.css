@@ -349,6 +349,11 @@ textarea {
     color: #fff;
     border-color: var(--accent);
 }
+.pagination .ellipsis {
+    border: none;
+    padding: 0.375rem 0.25rem;
+    color: var(--text-muted);
+}
 
 table {
     width: 100%;
