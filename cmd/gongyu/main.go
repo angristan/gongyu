@@ -3,9 +3,13 @@ package main
 import (
 	"context"
 	"crypto/sha256"
+	"errors"
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	gongyu "github.com/angristan/gongyu"
 	"github.com/angristan/gongyu/internal/handler"
@@ -14,7 +18,8 @@ import (
 )
 
 func main() {
-	ctx := context.Background()
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
 
 	otelShutdown, err := telemetry.Init(ctx)
 	if err != nil {
@@ -22,7 +27,7 @@ func main() {
 		os.Exit(1)
 	}
 	defer func() {
-		if err := otelShutdown(ctx); err != nil {
+		if err := otelShutdown(context.Background()); err != nil {
 			slog.Error("failed to shutdown telemetry", "error", err)
 		}
 	}()
@@ -48,12 +53,31 @@ func main() {
 	}()
 
 	h := handler.New(db, encKey, baseURL, gongyu.StaticFS)
-	router := h.Routes()
 
-	slog.Info("server starting", "addr", addr)
-	if err := http.ListenAndServe(addr, router); err != nil {
-		slog.Error("server error", "error", err)
-		os.Exit(1)
+	srv := &http.Server{
+		Addr:    addr,
+		Handler: h.Routes(),
+	}
+
+	// Start server in a goroutine
+	go func() {
+		slog.Info("server starting", "addr", addr)
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			slog.Error("server error", "error", err)
+			os.Exit(1)
+		}
+	}()
+
+	// Wait for interrupt signal
+	<-ctx.Done()
+	slog.Info("shutting down")
+
+	// Give in-flight requests 10 seconds to complete
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		slog.Error("server shutdown error", "error", err)
 	}
 }
 
