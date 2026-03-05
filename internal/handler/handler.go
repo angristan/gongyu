@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/stanislas/gongyu/internal/auth"
-	"github.com/stanislas/gongyu/internal/model"
+	"github.com/angristan/gongyu/internal/auth"
+	"github.com/angristan/gongyu/internal/model"
 )
 
 // Handler holds dependencies shared across all HTTP handlers.

@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/stanislas/gongyu/internal/model"
-	"github.com/stanislas/gongyu/internal/social"
-	"github.com/stanislas/gongyu/internal/thumbnail"
-	"github.com/stanislas/gongyu/internal/title"
+	"github.com/angristan/gongyu/internal/model"
+	"github.com/angristan/gongyu/internal/social"
+	"github.com/angristan/gongyu/internal/thumbnail"
+	"github.com/angristan/gongyu/internal/title"
 )
 
 func (h *Handler) AdminBookmarks(w http.ResponseWriter, r *http.Request) {

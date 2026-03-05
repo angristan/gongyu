@@ -3,9 +3,9 @@ package handler
 import (
 	"net/http"
 
-	"github.com/stanislas/gongyu/internal/auth"
-	"github.com/stanislas/gongyu/internal/model"
-	"github.com/stanislas/gongyu/internal/social"
+	"github.com/angristan/gongyu/internal/auth"
+	"github.com/angristan/gongyu/internal/model"
+	"github.com/angristan/gongyu/internal/social"
 )
 
 func (h *Handler) Bookmarklet(w http.ResponseWriter, r *http.Request) {

@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/stanislas/gongyu/internal/exporter"
+	"github.com/angristan/gongyu/internal/exporter"
 )
 
 func (h *Handler) AdminExport(w http.ResponseWriter, r *http.Request) {

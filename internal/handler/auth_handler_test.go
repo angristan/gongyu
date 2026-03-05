@@ -8,8 +8,8 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/stanislas/gongyu/internal/auth"
-	"github.com/stanislas/gongyu/internal/model"
+	"github.com/angristan/gongyu/internal/auth"
+	"github.com/angristan/gongyu/internal/model"
 )
 
 func TestLoginPageGuest(t *testing.T) {

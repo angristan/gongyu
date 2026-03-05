@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/stanislas/gongyu/internal/feed"
+	"github.com/angristan/gongyu/internal/feed"
 )
 
 func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {

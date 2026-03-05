@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/stanislas/gongyu/internal/model"
+	"github.com/angristan/gongyu/internal/model"
 	"golang.org/x/crypto/bcrypt"
 )
 

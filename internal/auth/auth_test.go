@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stanislas/gongyu/internal/model"
+	"github.com/angristan/gongyu/internal/model"
 )
 
 func TestHashPasswordAndCheck(t *testing.T) {

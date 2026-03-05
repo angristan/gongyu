@@ -4,7 +4,7 @@ import (
 	"encoding/xml"
 	"time"
 
-	"github.com/stanislas/gongyu/internal/model"
+	"github.com/angristan/gongyu/internal/model"
 )
 
 type atomFeed struct {

@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/stanislas/gongyu/internal/auth"
-	"github.com/stanislas/gongyu/internal/model"
+	"github.com/angristan/gongyu/internal/auth"
+	"github.com/angristan/gongyu/internal/model"
 )
 
 func (h *Handler) LoginPage(w http.ResponseWriter, r *http.Request) {

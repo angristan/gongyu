@@ -10,8 +10,8 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
-	"github.com/stanislas/gongyu/internal/model"
-	"github.com/stanislas/gongyu/internal/store/postgres"
+	"github.com/angristan/gongyu/internal/model"
+	"github.com/angristan/gongyu/internal/store/postgres"
 )
 
 // Store implements model.Store for PostgreSQL using sqlc-generated queries.

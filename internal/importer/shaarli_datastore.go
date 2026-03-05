@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/stanislas/gongyu/internal/model"
+	"github.com/angristan/gongyu/internal/model"
 )
 
 // ParseShaarliDatastore parses a Shaarli datastore.php file.

@@ -3,7 +3,7 @@ package handler
 import (
 	"net/http"
 
-	"github.com/stanislas/gongyu/internal/auth"
+	"github.com/angristan/gongyu/internal/auth"
 )
 
 // Routes returns the configured HTTP router.

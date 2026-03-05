@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/stanislas/gongyu/internal/model"
-	"github.com/stanislas/gongyu/internal/importer"
+	"github.com/angristan/gongyu/internal/model"
+	"github.com/angristan/gongyu/internal/importer"
 )
 
 func (h *Handler) AdminImportPage(w http.ResponseWriter, r *http.Request) {

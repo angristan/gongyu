@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/stanislas/gongyu/internal/model"
+	"github.com/angristan/gongyu/internal/model"
 )
 
 type gongyuExport struct {

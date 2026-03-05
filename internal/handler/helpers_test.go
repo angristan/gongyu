@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	gongyu "github.com/stanislas/gongyu"
-	"github.com/stanislas/gongyu/internal/model"
+	gongyu "github.com/angristan/gongyu"
+	"github.com/angristan/gongyu/internal/model"
 )
 
 // mockStore implements model.Store with function fields.

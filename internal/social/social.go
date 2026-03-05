@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/stanislas/gongyu/internal/model"
+	"github.com/angristan/gongyu/internal/model"
 )
 
 func ShareBookmark(ctx context.Context, store model.Store, encKey []byte, b *model.Bookmark) {

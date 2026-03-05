@@ -1,4 +1,4 @@
-module github.com/stanislas/gongyu
+module github.com/angristan/gongyu
 
 go 1.26.0
 

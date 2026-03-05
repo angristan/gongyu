@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/stanislas/gongyu/internal/model"
+	"github.com/angristan/gongyu/internal/model"
 )
 
 var settingsKeys = []struct {
