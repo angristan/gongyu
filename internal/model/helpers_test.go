@@ -2,6 +2,8 @@ package model
 
 import (
 	"crypto/sha256"
+	"encoding/json"
+	"strings"
 	"testing"
 )
 
@@ -84,6 +86,22 @@ func TestEncryptProducesDifferentCiphertexts(t *testing.T) {
 	b, _ := encrypt("same", key)
 	if a == b {
 		t.Error("encrypt should produce different ciphertexts for the same plaintext (random nonce)")
+	}
+}
+
+func TestUserPasswordOmittedFromJSON(t *testing.T) {
+	u := User{
+		ID:       1,
+		Name:     "test",
+		Email:    "test@example.com",
+		Password: "$2a$10$somebcrypthash",
+	}
+	data, err := json.Marshal(u)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(data), "bcrypt") || strings.Contains(string(data), "password") {
+		t.Errorf("User JSON should not contain password, got: %s", data)
 	}
 }
 
