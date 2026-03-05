@@ -5,43 +5,56 @@ import "fmt"
 templ HomePage(data HomeData) {
 	@Layout("Gongyu", data.LayoutData) {
 		<div class="search-bar">
-			<form method="GET" action="/" style="display:flex;gap:0.5rem;width:100%">
-				<input type="search" name="q" value={ data.Query } placeholder="Search bookmarks..." autofocus/>
-				<button type="submit" class="btn btn-primary">Search</button>
-			</form>
+			<input
+				type="search"
+				name="q"
+				value={ data.Query }
+				placeholder="Search bookmarks..."
+				autofocus?={ data.Query != "" }
+			if data.Query != "" {
+				onfocus="this.setSelectionRange(this.value.length,this.value.length)"
+			}
+				hx-get="/"
+				hx-trigger="input changed delay:300ms, search"
+				hx-target="#results"
+				hx-select="#results"
+				hx-push-url="true"
+				/>
 		</div>
-		if data.Query != "" {
-			<p class="text-muted text-sm mb-2">{ searchSummary(data.Total, data.Query) }</p>
-		}
-		<div class="card" style="padding:0">
-			if len(data.Bookmarks) > 0 {
-				for _, b := range data.Bookmarks {
-					<div class="bookmark-card">
-						if b.ThumbnailUrl != "" {
-							<img src={ b.ThumbnailUrl } alt="" class="bookmark-thumb" loading="lazy"/>
-						}
-						<div class="bookmark-info">
-							<a href={ templ.URL(b.Url) } class="bookmark-title" target="_blank" rel="noopener">{ b.Title }</a>
-							if b.Description != "" {
-								<p class="bookmark-desc">{ b.Description }</p>
+		<div id="results">
+			if data.Query != "" {
+				<p class="text-muted text-sm mb-2">{ searchSummary(data.Total, data.Query) }</p>
+			}
+			<div class="card" style="padding:0">
+				if len(data.Bookmarks) > 0 {
+					for _, b := range data.Bookmarks {
+						<div class="bookmark-card">
+							if b.ThumbnailUrl != "" {
+								<img src={ b.ThumbnailUrl } alt="" class="bookmark-thumb" loading="lazy"/>
 							}
-							<div class="bookmark-meta">
-								<span class="badge">{ Domain(b.Url) }</span>
-								<span>{ Timeago(b.CreatedAt) }</span>
-								<a href={ templ.SafeURL("/b/" + b.ShortUrl) } style="font-size:0.8rem">permalink</a>
+							<div class="bookmark-info">
+								<a href={ templ.URL(b.Url) } class="bookmark-title" target="_blank" rel="noopener">{ b.Title }</a>
+								if b.Description != "" {
+									<p class="bookmark-desc">{ b.Description }</p>
+								}
+								<div class="bookmark-meta">
+									<span class="badge">{ Domain(b.Url) }</span>
+									<span>{ Timeago(b.CreatedAt) }</span>
+									<a href={ templ.SafeURL("/b/" + b.ShortUrl) } style="font-size:0.8rem">permalink</a>
+								</div>
 							</div>
 						</div>
+					}
+				} else {
+					<div style="padding:2rem;text-align:center">
+						<p class="text-muted">No bookmarks found.</p>
 					</div>
 				}
-			} else {
-				<div style="padding:2rem;text-align:center">
-					<p class="text-muted">No bookmarks found.</p>
-				</div>
+			</div>
+			if data.LastPage > 1 {
+				@Pagination(data.Page, data.LastPage, data.Query)
 			}
 		</div>
-		if data.LastPage > 1 {
-			@Pagination(data.Page, data.LastPage, data.Query)
-		}
 	}
 }
 
