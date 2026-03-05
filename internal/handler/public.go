@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/stanislas/gongyu/internal/feed"
 )
 
@@ -33,7 +32,7 @@ func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ShowBookmark(w http.ResponseWriter, r *http.Request) {
-	shortURL := chi.URLParam(r, "shortURL")
+	shortURL := r.PathValue("shortURL")
 	b, err := h.Store.GetBookmarkByShortURL(r.Context(), shortURL)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -51,7 +50,7 @@ func (h *Handler) ShowBookmark(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) HandleLegacyShaarliURL(w http.ResponseWriter, r *http.Request) {
-	hash := chi.URLParam(r, "hash")
+	hash := r.PathValue("hash")
 	b, err := h.Store.GetBookmarkByShaarliHash(r.Context(), hash)
 	if err != nil {
 		http.NotFound(w, r)

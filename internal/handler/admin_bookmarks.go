@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/stanislas/gongyu/internal/database"
 	"github.com/stanislas/gongyu/internal/db"
 	"github.com/stanislas/gongyu/internal/social"
@@ -127,7 +126,7 @@ func (h *Handler) AdminCreateBookmark(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) AdminEditBookmarkPage(w http.ResponseWriter, r *http.Request) {
-	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	id, _ := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	b, err := h.Store.GetBookmarkByID(r.Context(), id)
 	if err != nil {
 		http.NotFound(w, r)
@@ -141,7 +140,7 @@ func (h *Handler) AdminEditBookmarkPage(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *Handler) AdminUpdateBookmark(w http.ResponseWriter, r *http.Request) {
-	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	id, _ := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	b, err := h.Store.GetBookmarkByID(r.Context(), id)
 	if err != nil {
 		http.NotFound(w, r)
@@ -172,7 +171,7 @@ func (h *Handler) AdminUpdateBookmark(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) AdminDeleteBookmark(w http.ResponseWriter, r *http.Request) {
-	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	id, _ := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	h.Store.DeleteBookmark(r.Context(), id)
 	setFlash(w, "Bookmark deleted")
 	http.Redirect(w, r, "/admin/bookmarks", http.StatusFound)

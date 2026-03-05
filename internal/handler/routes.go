@@ -3,69 +3,58 @@ package handler
 import (
 	"net/http"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 	"github.com/stanislas/gongyu/internal/auth"
 )
 
 // Routes returns the configured HTTP router.
 func (h *Handler) Routes() http.Handler {
-	r := chi.NewRouter()
-
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
-	r.Use(middleware.Compress(5))
-	r.Use(auth.Middleware(h.Store))
+	mux := http.NewServeMux()
 
 	// Static files
-	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.FS(h.StaticFS))))
+	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.FS(h.StaticFS))))
 
 	// Public routes
-	r.Get("/", h.Home)
-	r.Get("/b/{shortURL}", h.ShowBookmark)
-	r.Get("/search", h.Home) // Same handler, uses ?q= param
-	r.Get("/feed", h.Feed)
-	r.Get("/shaare/{hash}", h.HandleLegacyShaarliURL)
+	mux.HandleFunc("GET /{$}", h.Home)
+	mux.HandleFunc("GET /b/{shortURL}", h.ShowBookmark)
+	mux.HandleFunc("GET /search", h.Home)
+	mux.HandleFunc("GET /feed", h.Feed)
+	mux.HandleFunc("GET /shaare/{hash}", h.HandleLegacyShaarliURL)
 
-	// Auth routes
-	r.Group(func(r chi.Router) {
-		r.Use(auth.RequireGuest)
-		r.Get("/login", h.LoginPage)
-		r.Post("/login", h.LoginSubmit)
-	})
+	// Auth routes (guest-only)
+	mux.Handle("GET /login", auth.RequireGuest(http.HandlerFunc(h.LoginPage)))
+	mux.Handle("POST /login", auth.RequireGuest(http.HandlerFunc(h.LoginSubmit)))
 
-	r.Get("/setup", h.SetupPage)
-	r.Post("/setup", h.SetupSubmit)
-	r.Post("/logout", h.Logout)
+	mux.HandleFunc("GET /setup", h.SetupPage)
+	mux.HandleFunc("POST /setup", h.SetupSubmit)
+	mux.HandleFunc("POST /logout", h.Logout)
 
-	// Bookmarklet (needs auth but separate from admin prefix)
-	r.Get("/bookmarklet", h.Bookmarklet)
+	// Bookmarklet
+	mux.HandleFunc("GET /bookmarklet", h.Bookmarklet)
 
-	// Admin routes
-	r.Route("/admin", func(r chi.Router) {
-		r.Use(auth.RequireAuth)
+	// Admin routes (auth-required)
+	mux.Handle("GET /admin/dashboard", auth.RequireAuth(http.HandlerFunc(h.AdminDashboard)))
 
-		r.Get("/dashboard", h.AdminDashboard)
+	mux.Handle("GET /admin/bookmarks", auth.RequireAuth(http.HandlerFunc(h.AdminBookmarks)))
+	mux.Handle("GET /admin/bookmarks/create", auth.RequireAuth(http.HandlerFunc(h.AdminCreateBookmarkPage)))
+	mux.Handle("POST /admin/bookmarks", auth.RequireAuth(http.HandlerFunc(h.AdminCreateBookmark)))
+	mux.Handle("GET /admin/bookmarks/{id}/edit", auth.RequireAuth(http.HandlerFunc(h.AdminEditBookmarkPage)))
+	mux.Handle("POST /admin/bookmarks/{id}", auth.RequireAuth(http.HandlerFunc(h.AdminUpdateBookmark)))
+	mux.Handle("POST /admin/bookmarks/{id}/delete", auth.RequireAuth(http.HandlerFunc(h.AdminDeleteBookmark)))
+	mux.Handle("POST /admin/bookmarks/delete-all", auth.RequireAuth(http.HandlerFunc(h.AdminDeleteAllBookmarks)))
+	mux.Handle("POST /admin/bookmarks/fetch-metadata", auth.RequireAuth(http.HandlerFunc(h.FetchMetadataAPI)))
 
-		// Bookmarks
-		r.Get("/bookmarks", h.AdminBookmarks)
-		r.Get("/bookmarks/create", h.AdminCreateBookmarkPage)
-		r.Post("/bookmarks", h.AdminCreateBookmark)
-		r.Get("/bookmarks/{id}/edit", h.AdminEditBookmarkPage)
-		r.Post("/bookmarks/{id}", h.AdminUpdateBookmark)
-		r.Post("/bookmarks/{id}/delete", h.AdminDeleteBookmark)
-		r.Post("/bookmarks/delete-all", h.AdminDeleteAllBookmarks)
-		r.Post("/bookmarks/fetch-metadata", h.FetchMetadataAPI)
+	mux.Handle("GET /admin/import", auth.RequireAuth(http.HandlerFunc(h.AdminImportPage)))
+	mux.Handle("POST /admin/import", auth.RequireAuth(http.HandlerFunc(h.AdminImport)))
+	mux.Handle("GET /admin/export", auth.RequireAuth(http.HandlerFunc(h.AdminExport)))
 
-		// Import/Export
-		r.Get("/import", h.AdminImportPage)
-		r.Post("/import", h.AdminImport)
-		r.Get("/export", h.AdminExport)
+	mux.Handle("GET /admin/settings", auth.RequireAuth(http.HandlerFunc(h.AdminSettings)))
+	mux.Handle("POST /admin/settings", auth.RequireAuth(http.HandlerFunc(h.AdminUpdateSettings)))
 
-		// Settings
-		r.Get("/settings", h.AdminSettings)
-		r.Post("/settings", h.AdminUpdateSettings)
-	})
+	// Wrap with global middleware
+	var handler http.Handler = mux
+	handler = auth.Middleware(h.Store)(handler)
+	handler = recoverMiddleware(handler)
+	handler = logMiddleware(handler)
 
-	return r
+	return handler
 }
