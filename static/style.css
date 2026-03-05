@@ -308,14 +308,19 @@ textarea {
 
 .grid-2 {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(2, 1fr);
     gap: 1rem;
 }
 
 .grid-3 {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: 1rem;
+}
+
+.grid-2 > .card + .card,
+.grid-3 > .card + .card {
+    margin-top: 0;
 }
 
 .pagination {
@@ -527,6 +532,7 @@ tr:hover td {
 }
 
 .bar-chart .bar-label {
+    flex-shrink: 0;
     width: 120px;
     font-size: 0.8rem;
     text-align: right;
@@ -534,6 +540,11 @@ tr:hover td {
     text-overflow: ellipsis;
     white-space: nowrap;
     color: var(--text-muted);
+}
+
+.bar-chart .bar-track {
+    flex: 1;
+    min-width: 0;
 }
 
 .bar-chart .bar-fill {
@@ -545,9 +556,71 @@ tr:hover td {
 }
 
 .bar-chart .bar-value {
+    flex-shrink: 0;
     font-size: 0.75rem;
     color: var(--text-muted);
     min-width: 30px;
+}
+
+/* SVG chart */
+.chart-wrapper {
+    flex: 1;
+    display: flex;
+    align-items: flex-end;
+}
+
+.chart {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.chart-grid {
+    stroke: var(--border);
+    stroke-width: 0.5;
+    stroke-dasharray: 3 3;
+}
+
+.chart-baseline {
+    stroke: var(--border);
+    stroke-width: 1;
+}
+
+.chart-axis-label {
+    fill: var(--text-muted);
+    font-size: 10px;
+    font-family: inherit;
+}
+
+.chart-bar-rect {
+    fill: var(--accent);
+    transition: opacity 0.15s;
+}
+
+.chart-bar:hover .chart-bar-rect {
+    opacity: 0.75;
+}
+
+.chart-tooltip {
+    opacity: 0;
+    transition: opacity 0.15s;
+    pointer-events: none;
+}
+
+.chart-bar:hover .chart-tooltip {
+    opacity: 1;
+}
+
+.chart-tooltip-bg {
+    fill: var(--bg-card);
+    stroke: var(--border);
+    stroke-width: 0.5;
+}
+
+.chart-tooltip-text {
+    fill: var(--text);
+    font-size: 10px;
+    font-family: inherit;
 }
 
 .inline-form {
@@ -558,6 +631,10 @@ tr:hover td {
     .grid-2,
     .grid-3 {
         grid-template-columns: 1fr;
+    }
+    .grid-2 > .card + .card,
+    .grid-3 > .card + .card {
+        margin-top: 1rem;
     }
     header .container {
         flex-wrap: wrap;

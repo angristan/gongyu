@@ -44,5 +44,6 @@ func (h *Handler) AdminDashboard(w http.ResponseWriter, r *http.Request) {
 		OverTime:   overTime,
 		TopDomains: topDomains,
 		Period:     period,
+		Since:      since,
 	}))
 }

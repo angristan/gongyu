@@ -36,20 +36,11 @@ templ AdminDashboardPage(data DashboardData) {
 			</div>
 		</div>
 		<div class="grid-2 mb-2">
-			<div class="card">
+			<div class="card" style="display:flex;flex-direction:column">
 				<h3 class="text-sm text-muted mb-1" style="text-transform:uppercase;letter-spacing:0.05em">Bookmarks Over Time</h3>
-				if len(data.OverTime) > 0 {
-					<div style="height:200px;display:flex;align-items:flex-end;gap:2px">
-						for _, row := range data.OverTime {
-							<div
-								style={ fmt.Sprintf("flex:1;background:var(--accent);border-radius:2px 2px 0 0;min-height:2px;height:%dpx;max-height:200px", barHeight(row.Count, maxOverTime(data.OverTime))) }
-								title={ fmt.Sprintf("%s: %d", row.Date, row.Count) }
-							></div>
-						}
-					</div>
-				} else {
-					<p class="text-muted text-sm">No data for this period.</p>
-				}
+				<div class="chart-wrapper">
+					@barChart(data.OverTime, data.Period, data.Since)
+				</div>
 			</div>
 			<div class="card">
 				<h3 class="text-sm text-muted mb-1" style="text-transform:uppercase;letter-spacing:0.05em">Top Domains</h3>
@@ -58,7 +49,9 @@ templ AdminDashboardPage(data DashboardData) {
 						for _, d := range data.TopDomains {
 							<div class="bar-row">
 								<span class="bar-label">{ d.Domain }</span>
-								<div class="bar-fill" style={ fmt.Sprintf("width:calc(%d / %d * 100%%)", d.Count, maxDomainCount(data.TopDomains)) }></div>
+								<div class="bar-track">
+									<div class="bar-fill" style={ fmt.Sprintf("width:%.1f%%", float64(d.Count)/float64(maxDomainCount(data.TopDomains))*100) }></div>
+								</div>
 								<span class="bar-value">{ fmt.Sprintf("%d", d.Count) }</span>
 							</div>
 						}
