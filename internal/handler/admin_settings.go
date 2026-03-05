@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -58,7 +58,7 @@ func (h *Handler) AdminUpdateSettings(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		if err := model.SetSetting(ctx, h.Store, s.Key, val, s.Encrypted, h.EncKey); err != nil {
-			log.Printf("failed to save setting %s: %v", s.Key, err)
+			slog.Error("failed to save setting", "key", s.Key, "error", err)
 		}
 	}
 

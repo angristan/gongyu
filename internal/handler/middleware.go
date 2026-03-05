@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"log"
+	"log/slog"
 	"net/http"
 	"time"
 )
@@ -11,7 +11,12 @@ func logMiddleware(next http.Handler) http.Handler {
 		start := time.Now()
 		sw := &statusWriter{ResponseWriter: w, status: 200}
 		next.ServeHTTP(sw, r)
-		log.Printf("%s %s %d %s", r.Method, r.URL.Path, sw.status, time.Since(start).Round(time.Millisecond))
+		slog.Info("request",
+			"method", r.Method,
+			"path", r.URL.Path,
+			"status", sw.status,
+			"duration", time.Since(start).Round(time.Millisecond),
+		)
 	})
 }
 
@@ -29,7 +34,7 @@ func recoverMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if err := recover(); err != nil {
-				log.Printf("panic: %v", err)
+				slog.Error("panic recovered", "error", err)
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			}
 		}()

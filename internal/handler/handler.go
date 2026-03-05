@@ -3,8 +3,9 @@ package handler
 import (
 	"embed"
 	"encoding/json"
+	"fmt"
 	"io/fs"
-	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -27,7 +28,7 @@ type Handler struct {
 func New(store model.Store, encKey []byte, baseURL string, staticFS embed.FS) *Handler {
 	staticSub, err := fs.Sub(staticFS, "static")
 	if err != nil {
-		log.Fatalf("static fs: %v", err)
+		panic(fmt.Sprintf("static fs: %v", err))
 	}
 
 	return &Handler{
@@ -48,7 +49,7 @@ func (h *Handler) layoutData(w http.ResponseWriter, r *http.Request) view.Layout
 
 func (h *Handler) render(w http.ResponseWriter, r *http.Request, component templ.Component) {
 	if err := component.Render(r.Context(), w); err != nil {
-		log.Printf("render error: %v", err)
+		slog.Error("render failed", "error", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }
@@ -60,7 +61,7 @@ func (h *Handler) jsonResponse(w http.ResponseWriter, status int, data any) {
 		enc := json.NewEncoder(w)
 		enc.SetEscapeHTML(false)
 		if err := enc.Encode(data); err != nil {
-			log.Printf("json encode error: %v", err)
+			slog.Error("json encode failed", "error", err)
 		}
 	}
 }

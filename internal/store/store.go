@@ -4,12 +4,15 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
+	"log/slog"
 	"strings"
 	"time"
 
+	"github.com/XSAM/otelsql"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
+	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
+
 	"github.com/angristan/gongyu/internal/model"
 	"github.com/angristan/gongyu/internal/store/postgres"
 )
@@ -22,7 +25,7 @@ type Store struct {
 
 // Open opens a PostgreSQL database, runs migrations, and returns a Store.
 func Open(connStr string) (*Store, error) {
-	sqlDB, err := sql.Open("pgx", connStr)
+	sqlDB, err := otelsql.Open("pgx", connStr, otelsql.WithAttributes(semconv.DBSystemPostgreSQL))
 	if err != nil {
 		return nil, fmt.Errorf("open database: %w", err)
 	}
@@ -38,6 +41,10 @@ func Open(connStr string) (*Store, error) {
 		return nil, closeOnErr(fmt.Errorf("ping database: %w", err))
 	}
 
+	if _, err := otelsql.RegisterDBStatsMetrics(sqlDB, otelsql.WithAttributes(semconv.DBSystemPostgreSQL)); err != nil {
+		slog.Warn("failed to register db stats metrics", "error", err)
+	}
+
 	goose.SetBaseFS(migrationsFS)
 	if err := goose.SetDialect("postgres"); err != nil {
 		return nil, closeOnErr(fmt.Errorf("set dialect: %w", err))
@@ -45,7 +52,7 @@ func Open(connStr string) (*Store, error) {
 	if err := goose.Up(sqlDB, "migrations", goose.WithAllowMissing()); err != nil {
 		return nil, closeOnErr(fmt.Errorf("run migrations: %w", err))
 	}
-	log.Println("database migrations applied")
+	slog.Info("database migrations applied")
 
 	return &Store{sqlDB: sqlDB, q: postgres.New(sqlDB)}, nil
 }
@@ -149,7 +156,7 @@ func (s *Store) BulkImportBookmarks(ctx context.Context, bookmarks []model.Bookm
 	}
 	defer func() {
 		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
-			log.Printf("failed to rollback transaction: %v", err)
+			slog.Error("failed to rollback transaction", "error", err)
 		}
 	}()
 
@@ -256,7 +263,7 @@ func (s *Store) SearchBookmarks(ctx context.Context, query string, page, perPage
 	}
 	defer func() {
 		if err := rows.Close(); err != nil {
-			log.Printf("failed to close rows: %v", err)
+			slog.Error("failed to close rows", "error", err)
 		}
 	}()
 
@@ -308,7 +315,7 @@ func (s *Store) searchILike(ctx context.Context, query string, page, perPage int
 	}
 	defer func() {
 		if err := rows.Close(); err != nil {
-			log.Printf("failed to close rows: %v", err)
+			slog.Error("failed to close rows", "error", err)
 		}
 	}()
 

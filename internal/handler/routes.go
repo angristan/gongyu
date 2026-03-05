@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/angristan/gongyu/internal/auth"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 // Routes returns the configured HTTP router.
@@ -55,6 +56,7 @@ func (h *Handler) Routes() http.Handler {
 	handler = auth.Middleware(h.Store)(handler)
 	handler = recoverMiddleware(handler)
 	handler = logMiddleware(handler)
+	handler = otelhttp.NewHandler(handler, "gongyu")
 
 	return handler
 }

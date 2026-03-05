@@ -2,7 +2,7 @@ package handler
 
 import (
 	"encoding/json"
-	"log"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -117,7 +117,7 @@ func (h *Handler) AdminCreateBookmark(w http.ResponseWriter, r *http.Request) {
 				ThumbnailUrl: meta.OGImage, ShaarliShortUrl: b.ShaarliShortUrl,
 				UpdatedAt: time.Now().UTC(),
 			}); err != nil {
-				log.Printf("failed to update thumbnail: %v", err)
+				slog.Error("failed to update thumbnail", "error", err)
 			}
 		}
 	}()

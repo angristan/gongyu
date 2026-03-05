@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -168,6 +168,6 @@ func bskyRequest(session *bskySession, method string, body any) error {
 
 func closeBody(resp *http.Response) {
 	if err := resp.Body.Close(); err != nil {
-		log.Printf("failed to close response body: %v", err)
+		slog.Error("failed to close response body", "error", err)
 	}
 }

@@ -3,7 +3,7 @@ package handler
 import (
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -110,7 +110,7 @@ func readUploadedFile(r *http.Request, fieldName string) (string, error) {
 	}
 	defer func() {
 		if err := file.Close(); err != nil {
-			log.Printf("failed to close uploaded file: %v", err)
+			slog.Error("failed to close uploaded file", "error", err)
 		}
 	}()
 	data, err := io.ReadAll(file)

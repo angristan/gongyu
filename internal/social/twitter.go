@@ -6,7 +6,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"maps"
 	"math/rand"
 	"net/http"
@@ -63,7 +63,7 @@ func PostToTwitter(apiKey, apiSecret, accessToken, accessSecret, title, bookmark
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
-			log.Printf("failed to close response body: %v", err)
+			slog.Error("failed to close response body", "error", err)
 		}
 	}()
 	if resp.StatusCode >= 300 {

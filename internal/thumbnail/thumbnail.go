@@ -4,7 +4,7 @@ import (
 	"context"
 	"html"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -47,7 +47,7 @@ func FetchMetadata(ctx context.Context, rawURL string) (*Metadata, error) {
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
-			log.Printf("failed to close response body: %v", err)
+			slog.Error("failed to close response body", "error", err)
 		}
 	}()
 

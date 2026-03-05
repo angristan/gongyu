@@ -3,7 +3,7 @@ package social
 import (
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -39,7 +39,7 @@ func PostToMastodon(instance, accessToken, title, bookmarkURL string) error {
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
-			log.Printf("failed to close response body: %v", err)
+			slog.Error("failed to close response body", "error", err)
 		}
 	}()
 	if resp.StatusCode >= 300 {
