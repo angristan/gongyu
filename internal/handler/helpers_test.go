@@ -8,6 +8,7 @@ import (
 	"time"
 
 	gongyu "github.com/angristan/gongyu"
+	"github.com/angristan/gongyu/internal/background"
 	"github.com/angristan/gongyu/internal/model"
 )
 
@@ -139,7 +140,7 @@ func closeTestBody(t *testing.T, resp *http.Response) {
 }
 
 func newTestHandler(store model.Store) http.Handler {
-	h := New(store, testEncKey, "http://localhost", gongyu.StaticFS)
+	h := New(store, testEncKey, "http://localhost", gongyu.StaticFS, background.New(1))
 	return h.Routes()
 }
 

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -108,11 +109,12 @@ func (h *Handler) AdminCreateBookmark(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Fetch thumbnail in background
-	go func() {
-		meta, err := thumbnail.FetchMetadata(r.Context(), bookmarkURL)
+	// Fetch thumbnail in background (detached from request context)
+	h.Background.Do(func() {
+		ctx := context.Background()
+		meta, err := thumbnail.FetchMetadata(ctx, bookmarkURL)
 		if err == nil && meta.OGImage != "" {
-			if err := h.Store.UpdateBookmark(r.Context(), model.UpdateBookmarkParams{
+			if err := h.Store.UpdateBookmark(ctx, model.UpdateBookmarkParams{
 				ID: b.ID, Url: b.Url, Title: b.Title, Description: b.Description,
 				ThumbnailUrl: meta.OGImage, ShaarliShortUrl: b.ShaarliShortUrl,
 				UpdatedAt: time.Now().UTC(),
@@ -120,10 +122,10 @@ func (h *Handler) AdminCreateBookmark(w http.ResponseWriter, r *http.Request) {
 				slog.Error("failed to update thumbnail", "error", err)
 			}
 		}
-	}()
+	})
 
 	if shareToSocial {
-		social.ShareBookmark(r.Context(), h.Store, h.EncKey, &b)
+		social.ShareBookmark(h.Background, h.Store, h.EncKey, &b)
 	}
 
 	if r.FormValue("source") == "bookmarklet" {

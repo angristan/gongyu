@@ -13,22 +13,24 @@ import (
 
 	"github.com/a-h/templ"
 	"github.com/angristan/gongyu/internal/auth"
+	"github.com/angristan/gongyu/internal/background"
 	"github.com/angristan/gongyu/internal/model"
 	"github.com/angristan/gongyu/internal/view"
 )
 
 // Handler holds dependencies shared across all HTTP handlers.
 type Handler struct {
-	Store   model.Store
-	EncKey  []byte
-	BaseURL string
+	Store      model.Store
+	EncKey     []byte
+	BaseURL    string
+	Background *background.Runner
 
 	StaticFS      fs.FS
 	StaticVersion string // content hash for cache busting
 }
 
 // New creates a Handler.
-func New(store model.Store, encKey []byte, baseURL string, staticFS embed.FS) *Handler {
+func New(store model.Store, encKey []byte, baseURL string, staticFS embed.FS, bg *background.Runner) *Handler {
 	staticSub, err := fs.Sub(staticFS, "static")
 	if err != nil {
 		panic(fmt.Sprintf("static fs: %v", err))
@@ -38,6 +40,7 @@ func New(store model.Store, encKey []byte, baseURL string, staticFS embed.FS) *H
 		Store:         store,
 		EncKey:        encKey,
 		BaseURL:       strings.TrimRight(baseURL, "/"),
+		Background:    bg,
 		StaticFS:      staticSub,
 		StaticVersion: hashFS(staticSub),
 	}

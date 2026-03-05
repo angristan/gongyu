@@ -12,6 +12,7 @@ import (
 	"time"
 
 	gongyu "github.com/angristan/gongyu"
+	"github.com/angristan/gongyu/internal/background"
 	"github.com/angristan/gongyu/internal/handler"
 	"github.com/angristan/gongyu/internal/store"
 	"github.com/angristan/gongyu/internal/telemetry"
@@ -52,7 +53,9 @@ func main() {
 		}
 	}()
 
-	h := handler.New(db, encKey, baseURL, gongyu.StaticFS)
+	bg := background.New(1)
+
+	h := handler.New(db, encKey, baseURL, gongyu.StaticFS, bg)
 
 	srv := &http.Server{
 		Addr:    addr,
@@ -79,6 +82,9 @@ func main() {
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		slog.Error("server shutdown error", "error", err)
 	}
+
+	// Drain background tasks after HTTP server stops
+	bg.Shutdown()
 }
 
 func envOr(key, fallback string) string {
