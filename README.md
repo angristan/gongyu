@@ -22,7 +22,7 @@ A modern, self-hosted, single-tenant bookmark manager inspired by [Shaarli](http
 
 ## Tech Stack
 
-- **Backend**: Go 1.26+, [chi](https://github.com/go-chi/chi) router, [sqlc](https://sqlc.dev) for type-safe SQL
+- **Backend**: Go 1.26+, stdlib `net/http` router, [sqlc](https://sqlc.dev) for type-safe SQL
 - **Frontend**: Server-rendered HTML (`html/template`), [htmx](https://htmx.org)
 - **Database**: PostgreSQL with full-text search (tsvector + GIN index)
 - **Migrations**: [goose](https://github.com/pressly/goose) (embedded, run automatically on startup)
@@ -70,7 +70,7 @@ docker run -d --name gongyu-pg -e POSTGRES_DB=gongyu -e POSTGRES_HOST_AUTH_METHO
 go run ./cmd/gongyu
 
 # Regenerate sqlc queries after editing queries/*.sql
-sqlc generate
+go tool sqlc generate
 ```
 
 ## Setup
