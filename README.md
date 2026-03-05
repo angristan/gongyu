@@ -23,9 +23,10 @@ A modern, self-hosted, single-tenant bookmark manager inspired by [Shaarli](http
 ## Tech Stack
 
 - **Backend**: Go 1.26+, stdlib `net/http` router, [sqlc](https://sqlc.dev) for type-safe SQL
-- **Frontend**: Server-rendered HTML (`html/template`), [htmx](https://htmx.org)
+- **Frontend**: Server-rendered HTML with [templ](https://templ.guide), [htmx](https://htmx.org)
 - **Database**: PostgreSQL with full-text search (tsvector + GIN index)
 - **Migrations**: [goose](https://github.com/pressly/goose) (embedded, run automatically on startup)
+- **Observability**: Optional [OpenTelemetry](https://opentelemetry.io) traces and metrics (enable with `OTEL_EXPORTER_OTLP_ENDPOINT`)
 - **Assets**: Embedded via `go:embed` — single binary, no external files needed
 
 ## Quick Start
@@ -49,6 +50,7 @@ All configuration is via environment variables:
 | `LISTEN_ADDR` | `:8080` | HTTP listen address |
 | `BASE_URL` | `http://localhost:8080` | Public URL (for feeds, bookmarklet) |
 | `APP_KEY` | (insecure default) | Secret key for encrypting settings (e.g. API tokens) |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | (disabled) | OpenTelemetry collector endpoint (e.g. `http://localhost:4318`) |
 
 ## Docker
 
@@ -62,15 +64,31 @@ docker run -p 8080:8080 \
 
 ## Development
 
+The easiest way to get started is with Docker Compose, which runs PostgreSQL and the app with live reload ([air](https://github.com/air-verse/air)):
+
 ```bash
-# Start PostgreSQL (e.g. via Docker)
-docker run -d --name gongyu-pg -e POSTGRES_DB=gongyu -e POSTGRES_HOST_AUTH_METHOD=trust -p 5432:5432 postgres:17
+make dev        # start postgres + app with live reload
+make dev-down   # stop and remove volumes
+```
 
-# Run the app
-go run ./cmd/gongyu
+The app watches `.go`, `.templ`, `.css`, and `.sql` files. On change it re-runs `templ generate`, `sqlc generate`, and rebuilds.
 
-# Regenerate sqlc queries after editing queries/*.sql
-go tool sqlc generate
+Other useful targets:
+
+```bash
+make build      # generate code + build binary
+make test       # generate code + run tests with race detector
+make lint       # generate code + run golangci-lint
+make generate   # run templ + sqlc code generation
+```
+
+### Without Docker
+
+Requires a running PostgreSQL instance:
+
+```bash
+make build
+DATABASE_URL=postgres://localhost:5432/gongyu?sslmode=disable ./gongyu
 ```
 
 ## Setup

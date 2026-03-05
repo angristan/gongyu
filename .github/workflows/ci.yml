@@ -54,4 +54,4 @@ jobs:
           name: generated
           path: internal/view
 
-      - run: go test ./... -count=1 -race
+      - run: go test ./... -race
