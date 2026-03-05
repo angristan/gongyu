@@ -57,10 +57,10 @@ func TestAdminUpdateSettings(t *testing.T) {
 	srv := httptest.NewServer(newTestHandler(store))
 	defer srv.Close()
 
-	form := url.Values{
+	form := withCsrf(url.Values{
 		"mastodon_instance": {"https://mastodon.social"},
 		"bluesky_handle":    {"user.bsky.social"},
-	}
+	}, cookie)
 	req, _ := http.NewRequest("POST", srv.URL+"/admin/settings", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.AddCookie(cookie)

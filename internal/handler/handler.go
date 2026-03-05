@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"crypto/hmac"
 	"crypto/sha256"
 	"embed"
 	"encoding/hex"
@@ -47,12 +48,24 @@ func New(store model.Store, encKey []byte, baseURL string, staticFS embed.FS, bg
 }
 
 func (h *Handler) layoutData(w http.ResponseWriter, r *http.Request) view.LayoutData {
+	var csrf string
+	if c, err := r.Cookie("gongyu_session"); err == nil {
+		csrf = csrfToken(c.Value, h.EncKey)
+	}
 	return view.LayoutData{
 		User:          auth.UserFromContext(r.Context()),
 		BaseURL:       h.BaseURL,
 		Flash:         getFlash(w, r),
 		StaticVersion: h.StaticVersion,
+		CsrfToken:     csrf,
 	}
+}
+
+// csrfToken derives a CSRF token from the session token using HMAC.
+func csrfToken(sessionToken string, key []byte) string {
+	mac := hmac.New(sha256.New, key)
+	mac.Write([]byte(sessionToken))
+	return hex.EncodeToString(mac.Sum(nil))[:32]
 }
 
 // hashFS computes a short content hash of all files in the FS.

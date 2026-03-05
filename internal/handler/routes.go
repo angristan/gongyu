@@ -56,6 +56,7 @@ func (h *Handler) Routes() http.Handler {
 
 	// Wrap with global middleware
 	var handler http.Handler = mux
+	handler = h.csrfProtect(handler)
 	handler = auth.Middleware(h.Store)(handler)
 	handler = recoverMiddleware(handler)
 	handler = logMiddleware(handler)

@@ -3,7 +3,7 @@ package view
 import "fmt"
 
 templ HomePage(data HomeData) {
-	@Layout("Gongyu", data.User, data.BaseURL, data.Flash, data.StaticVersion) {
+	@Layout("Gongyu", data.LayoutData) {
 		<div class="search-bar">
 			<form method="GET" action="/" style="display:flex;gap:0.5rem;width:100%">
 				<input type="search" name="q" value={ data.Query } placeholder="Search bookmarks..." autofocus/>

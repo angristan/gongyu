@@ -135,7 +135,7 @@ func TestAdminCreateBookmarkValidation(t *testing.T) {
 	srv := httptest.NewServer(newTestHandler(store))
 	defer srv.Close()
 
-	form := url.Values{"url": {""}, "title": {""}}
+	form := withCsrf(url.Values{"url": {""}, "title": {""}}, cookie)
 	req, _ := http.NewRequest("POST", srv.URL+"/admin/bookmarks", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.AddCookie(cookie)
@@ -162,7 +162,7 @@ func TestAdminCreateBookmarkDuplicate(t *testing.T) {
 	srv := httptest.NewServer(newTestHandler(store))
 	defer srv.Close()
 
-	form := url.Values{"url": {"https://example.com"}, "title": {"Test"}}
+	form := withCsrf(url.Values{"url": {"https://example.com"}, "title": {"Test"}}, cookie)
 	req, _ := http.NewRequest("POST", srv.URL+"/admin/bookmarks", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.AddCookie(cookie)
@@ -203,7 +203,7 @@ func TestAdminCreateBookmarkSuccess(t *testing.T) {
 	srv := httptest.NewServer(newTestHandler(store))
 	defer srv.Close()
 
-	form := url.Values{"url": {"https://example.com"}, "title": {"My Bookmark"}}
+	form := withCsrf(url.Values{"url": {"https://example.com"}, "title": {"My Bookmark"}}, cookie)
 	req, _ := http.NewRequest("POST", srv.URL+"/admin/bookmarks", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.AddCookie(cookie)
@@ -266,7 +266,7 @@ func TestAdminUpdateBookmark(t *testing.T) {
 	srv := httptest.NewServer(newTestHandler(store))
 	defer srv.Close()
 
-	form := url.Values{"url": {"https://example.com"}, "title": {"Updated Title"}, "description": {"desc"}}
+	form := withCsrf(url.Values{"url": {"https://example.com"}, "title": {"Updated Title"}, "description": {"desc"}}, cookie)
 	req, _ := http.NewRequest("POST", srv.URL+"/admin/bookmarks/1", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.AddCookie(cookie)
@@ -298,7 +298,9 @@ func TestAdminDeleteBookmark(t *testing.T) {
 	srv := httptest.NewServer(newTestHandler(store))
 	defer srv.Close()
 
-	req, _ := http.NewRequest("POST", srv.URL+"/admin/bookmarks/42/delete", nil)
+	form := withCsrf(nil, cookie)
+	req, _ := http.NewRequest("POST", srv.URL+"/admin/bookmarks/42/delete", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.AddCookie(cookie)
 	resp, err := noRedirectClient().Do(req)
 	if err != nil {
@@ -326,7 +328,7 @@ func TestAdminDeleteAllBookmarks(t *testing.T) {
 	srv := httptest.NewServer(newTestHandler(store))
 	defer srv.Close()
 
-	form := url.Values{"confirmation": {"DELETE ALL BOOKMARKS"}}
+	form := withCsrf(url.Values{"confirmation": {"DELETE ALL BOOKMARKS"}}, cookie)
 	req, _ := http.NewRequest("POST", srv.URL+"/admin/bookmarks/delete-all", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.AddCookie(cookie)
@@ -349,7 +351,7 @@ func TestAdminDeleteAllBookmarksBadConfirmation(t *testing.T) {
 	srv := httptest.NewServer(newTestHandler(store))
 	defer srv.Close()
 
-	form := url.Values{"confirmation": {"wrong text"}}
+	form := withCsrf(url.Values{"confirmation": {"wrong text"}}, cookie)
 	req, _ := http.NewRequest("POST", srv.URL+"/admin/bookmarks/delete-all", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.AddCookie(cookie)

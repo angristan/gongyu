@@ -180,7 +180,7 @@ func AdminSettingsPage(data SettingsData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			if data.Tab == "" || data.Tab == "import" {
-				templ_7745c5c3_Err = settingsImport().Render(ctx, templ_7745c5c3_Buffer)
+				templ_7745c5c3_Err = settingsImport(data.CsrfToken).Render(ctx, templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -190,29 +190,29 @@ func AdminSettingsPage(data SettingsData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			} else if data.Tab == "twitter" {
-				templ_7745c5c3_Err = settingsTwitter(data.Settings).Render(ctx, templ_7745c5c3_Buffer)
+				templ_7745c5c3_Err = settingsTwitter(data.Settings, data.CsrfToken).Render(ctx, templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			} else if data.Tab == "mastodon" {
-				templ_7745c5c3_Err = settingsMastodon(data.Settings).Render(ctx, templ_7745c5c3_Buffer)
+				templ_7745c5c3_Err = settingsMastodon(data.Settings, data.CsrfToken).Render(ctx, templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			} else if data.Tab == "bluesky" {
-				templ_7745c5c3_Err = settingsBluesky(data.Settings).Render(ctx, templ_7745c5c3_Buffer)
+				templ_7745c5c3_Err = settingsBluesky(data.Settings, data.CsrfToken).Render(ctx, templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			} else if data.Tab == "danger" {
-				templ_7745c5c3_Err = settingsDanger(data.TotalBookmarks).Render(ctx, templ_7745c5c3_Buffer)
+				templ_7745c5c3_Err = settingsDanger(data.TotalBookmarks, data.CsrfToken).Render(ctx, templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
 			return nil
 		})
-		templ_7745c5c3_Err = Layout("Settings", data.User, data.BaseURL, data.Flash, data.StaticVersion).Render(templ.WithChildren(ctx, templ_7745c5c3_Var2), templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = Layout("Settings", data.LayoutData).Render(templ.WithChildren(ctx, templ_7745c5c3_Var2), templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -220,7 +220,7 @@ func AdminSettingsPage(data SettingsData) templ.Component {
 	})
 }
 
-func settingsImport() templ.Component {
+func settingsImport(csrf string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -241,7 +241,39 @@ func settingsImport() templ.Component {
 			templ_7745c5c3_Var15 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "<div class=\"card\"><h2>Import from Shaarli (API)</h2><p class=\"text-sm text-muted mb-2\">Enter your Shaarli instance URL and API secret to import bookmarks.</p><form method=\"POST\" action=\"/admin/import\" enctype=\"multipart/form-data\"><input type=\"hidden\" name=\"type\" value=\"shaarli_api\"><div class=\"form-group\"><label for=\"shaarli_url\">Shaarli URL</label> <input type=\"url\" id=\"shaarli_url\" name=\"shaarli_url\" placeholder=\"https://shaarli.example.com\"></div><div class=\"form-group\"><label for=\"shaarli_secret\">API Secret</label> <input type=\"password\" id=\"shaarli_secret\" name=\"shaarli_secret\"></div><button type=\"submit\" class=\"btn btn-primary\">Import from API</button></form></div><div class=\"card\"><h2>Import from Shaarli (Datastore)</h2><p class=\"text-sm text-muted mb-2\">Upload your Shaarli <code>data/datastore.php</code> file.</p><form method=\"POST\" action=\"/admin/import\" enctype=\"multipart/form-data\"><input type=\"hidden\" name=\"type\" value=\"shaarli_datastore\"><div class=\"form-group\"><label for=\"datastore_file\">Datastore File</label> <input type=\"file\" id=\"datastore_file\" name=\"file\" accept=\".php\"></div><button type=\"submit\" class=\"btn btn-primary\">Import Datastore</button></form></div><div class=\"card\"><h2>Import from HTML (Netscape)</h2><p class=\"text-sm text-muted mb-2\">Upload a Netscape bookmark HTML file (exported from Shaarli or any browser).</p><form method=\"POST\" action=\"/admin/import\" enctype=\"multipart/form-data\"><input type=\"hidden\" name=\"type\" value=\"netscape\"><div class=\"form-group\"><label for=\"html_file\">HTML File</label> <input type=\"file\" id=\"html_file\" name=\"file\" accept=\".html,.htm\"></div><button type=\"submit\" class=\"btn btn-primary\">Import HTML</button></form></div><div class=\"card\"><h2>Restore from Gongyu Backup</h2><p class=\"text-sm text-muted mb-2\">Upload a Gongyu JSON export file to restore bookmarks.</p><form method=\"POST\" action=\"/admin/import\" enctype=\"multipart/form-data\"><input type=\"hidden\" name=\"type\" value=\"gongyu\"><div class=\"form-group\"><label for=\"json_file\">JSON File</label> <input type=\"file\" id=\"json_file\" name=\"file\" accept=\".json\"></div><button type=\"submit\" class=\"btn btn-primary\">Restore Backup</button></form></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "<div class=\"card\"><h2>Import from Shaarli (API)</h2><p class=\"text-sm text-muted mb-2\">Enter your Shaarli instance URL and API secret to import bookmarks.</p><form method=\"POST\" action=\"/admin/import\" enctype=\"multipart/form-data\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = csrfField(csrf).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<input type=\"hidden\" name=\"type\" value=\"shaarli_api\"><div class=\"form-group\"><label for=\"shaarli_url\">Shaarli URL</label> <input type=\"url\" id=\"shaarli_url\" name=\"shaarli_url\" placeholder=\"https://shaarli.example.com\"></div><div class=\"form-group\"><label for=\"shaarli_secret\">API Secret</label> <input type=\"password\" id=\"shaarli_secret\" name=\"shaarli_secret\"></div><button type=\"submit\" class=\"btn btn-primary\">Import from API</button></form></div><div class=\"card\"><h2>Import from Shaarli (Datastore)</h2><p class=\"text-sm text-muted mb-2\">Upload your Shaarli <code>data/datastore.php</code> file.</p><form method=\"POST\" action=\"/admin/import\" enctype=\"multipart/form-data\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = csrfField(csrf).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "<input type=\"hidden\" name=\"type\" value=\"shaarli_datastore\"><div class=\"form-group\"><label for=\"datastore_file\">Datastore File</label> <input type=\"file\" id=\"datastore_file\" name=\"file\" accept=\".php\"></div><button type=\"submit\" class=\"btn btn-primary\">Import Datastore</button></form></div><div class=\"card\"><h2>Import from HTML (Netscape)</h2><p class=\"text-sm text-muted mb-2\">Upload a Netscape bookmark HTML file (exported from Shaarli or any browser).</p><form method=\"POST\" action=\"/admin/import\" enctype=\"multipart/form-data\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = csrfField(csrf).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "<input type=\"hidden\" name=\"type\" value=\"netscape\"><div class=\"form-group\"><label for=\"html_file\">HTML File</label> <input type=\"file\" id=\"html_file\" name=\"file\" accept=\".html,.htm\"></div><button type=\"submit\" class=\"btn btn-primary\">Import HTML</button></form></div><div class=\"card\"><h2>Restore from Gongyu Backup</h2><p class=\"text-sm text-muted mb-2\">Upload a Gongyu JSON export file to restore bookmarks.</p><form method=\"POST\" action=\"/admin/import\" enctype=\"multipart/form-data\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = csrfField(csrf).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "<input type=\"hidden\" name=\"type\" value=\"gongyu\"><div class=\"form-group\"><label for=\"json_file\">JSON File</label> <input type=\"file\" id=\"json_file\" name=\"file\" accept=\".json\"></div><button type=\"submit\" class=\"btn btn-primary\">Restore Backup</button></form></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -270,7 +302,7 @@ func settingsExport() templ.Component {
 			templ_7745c5c3_Var16 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<div class=\"card\"><h2>Export Bookmarks</h2><p class=\"text-muted text-sm mb-2\">Download your bookmarks in different formats.</p><div class=\"flex gap-1\"><a href=\"/admin/export?format=html\" class=\"btn btn-primary\">Download HTML (Netscape)</a> <a href=\"/admin/export?format=json\" class=\"btn btn-secondary\">Download JSON</a></div><p class=\"text-sm text-muted mt-2\"><strong>HTML</strong>: Compatible with browsers and Shaarli. | <strong>JSON</strong>: Full backup with all fields for Gongyu restore.</p></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "<div class=\"card\"><h2>Export Bookmarks</h2><p class=\"text-muted text-sm mb-2\">Download your bookmarks in different formats.</p><div class=\"flex gap-1\"><a href=\"/admin/export?format=html\" class=\"btn btn-primary\">Download HTML (Netscape)</a> <a href=\"/admin/export?format=json\" class=\"btn btn-secondary\">Download JSON</a></div><p class=\"text-sm text-muted mt-2\"><strong>HTML</strong>: Compatible with browsers and Shaarli. | <strong>JSON</strong>: Full backup with all fields for Gongyu restore.</p></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -278,7 +310,7 @@ func settingsExport() templ.Component {
 	})
 }
 
-func settingsTwitter(settings map[string]string) templ.Component {
+func settingsTwitter(settings map[string]string, csrf string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -299,59 +331,67 @@ func settingsTwitter(settings map[string]string) templ.Component {
 			templ_7745c5c3_Var17 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "<div class=\"card\"><h2>Twitter / X Settings</h2><p class=\"text-sm text-muted mb-2\">Configure Twitter API credentials to auto-post bookmarks.</p><form method=\"POST\" action=\"/admin/settings\"><input type=\"hidden\" name=\"tab\" value=\"twitter\"><div class=\"form-group\"><label for=\"twitter_api_key\">API Key</label> <input type=\"text\" id=\"twitter_api_key\" name=\"twitter_api_key\" value=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "<div class=\"card\"><h2>Twitter / X Settings</h2><p class=\"text-sm text-muted mb-2\">Configure Twitter API credentials to auto-post bookmarks.</p><form method=\"POST\" action=\"/admin/settings\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = csrfField(csrf).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "<input type=\"hidden\" name=\"tab\" value=\"twitter\"><div class=\"form-group\"><label for=\"twitter_api_key\">API Key</label> <input type=\"text\" id=\"twitter_api_key\" name=\"twitter_api_key\" value=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var18 string
 		templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(settings["twitter_api_key"])
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/admin_settings.templ`, Line: 113, Col: 102}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/admin_settings.templ`, Line: 118, Col: 102}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "\"></div><div class=\"form-group\"><label for=\"twitter_api_secret\">API Secret</label> <input type=\"password\" id=\"twitter_api_secret\" name=\"twitter_api_secret\" value=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "\"></div><div class=\"form-group\"><label for=\"twitter_api_secret\">API Secret</label> <input type=\"password\" id=\"twitter_api_secret\" name=\"twitter_api_secret\" value=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var19 string
 		templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(settings["twitter_api_secret"])
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/admin_settings.templ`, Line: 117, Col: 115}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/admin_settings.templ`, Line: 122, Col: 115}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "\"></div><div class=\"form-group\"><label for=\"twitter_access_token\">Access Token</label> <input type=\"text\" id=\"twitter_access_token\" name=\"twitter_access_token\" value=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "\"></div><div class=\"form-group\"><label for=\"twitter_access_token\">Access Token</label> <input type=\"text\" id=\"twitter_access_token\" name=\"twitter_access_token\" value=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var20 string
 		templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs(settings["twitter_access_token"])
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/admin_settings.templ`, Line: 121, Col: 117}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/admin_settings.templ`, Line: 126, Col: 117}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "\"></div><div class=\"form-group\"><label for=\"twitter_access_secret\">Access Token Secret</label> <input type=\"password\" id=\"twitter_access_secret\" name=\"twitter_access_secret\" value=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "\"></div><div class=\"form-group\"><label for=\"twitter_access_secret\">Access Token Secret</label> <input type=\"password\" id=\"twitter_access_secret\" name=\"twitter_access_secret\" value=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var21 string
 		templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(settings["twitter_access_secret"])
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/admin_settings.templ`, Line: 125, Col: 124}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/admin_settings.templ`, Line: 130, Col: 124}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "\"></div><button type=\"submit\" class=\"btn btn-primary\">Save</button></form></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "\"></div><button type=\"submit\" class=\"btn btn-primary\">Save</button></form></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -359,7 +399,7 @@ func settingsTwitter(settings map[string]string) templ.Component {
 	})
 }
 
-func settingsMastodon(settings map[string]string) templ.Component {
+func settingsMastodon(settings map[string]string, csrf string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -380,33 +420,41 @@ func settingsMastodon(settings map[string]string) templ.Component {
 			templ_7745c5c3_Var22 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "<div class=\"card\"><h2>Mastodon Settings</h2><p class=\"text-sm text-muted mb-2\">Configure Mastodon to auto-post bookmarks.</p><form method=\"POST\" action=\"/admin/settings\"><input type=\"hidden\" name=\"tab\" value=\"mastodon\"><div class=\"form-group\"><label for=\"mastodon_instance\">Instance URL</label> <input type=\"text\" id=\"mastodon_instance\" name=\"mastodon_instance\" value=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "<div class=\"card\"><h2>Mastodon Settings</h2><p class=\"text-sm text-muted mb-2\">Configure Mastodon to auto-post bookmarks.</p><form method=\"POST\" action=\"/admin/settings\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = csrfField(csrf).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "<input type=\"hidden\" name=\"tab\" value=\"mastodon\"><div class=\"form-group\"><label for=\"mastodon_instance\">Instance URL</label> <input type=\"text\" id=\"mastodon_instance\" name=\"mastodon_instance\" value=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var23 string
 		templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(settings["mastodon_instance"])
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/admin_settings.templ`, Line: 140, Col: 108}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/admin_settings.templ`, Line: 146, Col: 108}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "\" placeholder=\"mastodon.social\"></div><div class=\"form-group\"><label for=\"mastodon_access_token\">Access Token</label> <input type=\"password\" id=\"mastodon_access_token\" name=\"mastodon_access_token\" value=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "\" placeholder=\"mastodon.social\"></div><div class=\"form-group\"><label for=\"mastodon_access_token\">Access Token</label> <input type=\"password\" id=\"mastodon_access_token\" name=\"mastodon_access_token\" value=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var24 string
 		templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinStringErrs(settings["mastodon_access_token"])
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/admin_settings.templ`, Line: 144, Col: 124}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/admin_settings.templ`, Line: 150, Col: 124}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var24))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "\"></div><button type=\"submit\" class=\"btn btn-primary\">Save</button></form></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "\"></div><button type=\"submit\" class=\"btn btn-primary\">Save</button></form></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -414,7 +462,7 @@ func settingsMastodon(settings map[string]string) templ.Component {
 	})
 }
 
-func settingsBluesky(settings map[string]string) templ.Component {
+func settingsBluesky(settings map[string]string, csrf string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -435,33 +483,41 @@ func settingsBluesky(settings map[string]string) templ.Component {
 			templ_7745c5c3_Var25 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "<div class=\"card\"><h2>Bluesky Settings</h2><p class=\"text-sm text-muted mb-2\">Configure Bluesky to auto-post bookmarks.</p><form method=\"POST\" action=\"/admin/settings\"><input type=\"hidden\" name=\"tab\" value=\"bluesky\"><div class=\"form-group\"><label for=\"bluesky_handle\">Handle</label> <input type=\"text\" id=\"bluesky_handle\" name=\"bluesky_handle\" value=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "<div class=\"card\"><h2>Bluesky Settings</h2><p class=\"text-sm text-muted mb-2\">Configure Bluesky to auto-post bookmarks.</p><form method=\"POST\" action=\"/admin/settings\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = csrfField(csrf).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "<input type=\"hidden\" name=\"tab\" value=\"bluesky\"><div class=\"form-group\"><label for=\"bluesky_handle\">Handle</label> <input type=\"text\" id=\"bluesky_handle\" name=\"bluesky_handle\" value=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var26 string
 		templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.JoinStringErrs(settings["bluesky_handle"])
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/admin_settings.templ`, Line: 159, Col: 99}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/admin_settings.templ`, Line: 166, Col: 99}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var26))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "\" placeholder=\"you.bsky.social\"></div><div class=\"form-group\"><label for=\"bluesky_app_password\">App Password</label> <input type=\"password\" id=\"bluesky_app_password\" name=\"bluesky_app_password\" value=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "\" placeholder=\"you.bsky.social\"></div><div class=\"form-group\"><label for=\"bluesky_app_password\">App Password</label> <input type=\"password\" id=\"bluesky_app_password\" name=\"bluesky_app_password\" value=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var27 string
 		templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.JoinStringErrs(settings["bluesky_app_password"])
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/admin_settings.templ`, Line: 163, Col: 121}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/admin_settings.templ`, Line: 170, Col: 121}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var27))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "\"></div><button type=\"submit\" class=\"btn btn-primary\">Save</button></form></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, "\"></div><button type=\"submit\" class=\"btn btn-primary\">Save</button></form></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -469,7 +525,7 @@ func settingsBluesky(settings map[string]string) templ.Component {
 	})
 }
 
-func settingsDanger(totalBookmarks int64) templ.Component {
+func settingsDanger(totalBookmarks int64, csrf string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -490,20 +546,28 @@ func settingsDanger(totalBookmarks int64) templ.Component {
 			templ_7745c5c3_Var28 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "<div class=\"card\" style=\"border-color:var(--danger)\"><h2 style=\"color:var(--danger)\">Danger Zone</h2><p class=\"text-sm text-muted mb-2\">Delete all ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 34, "<div class=\"card\" style=\"border-color:var(--danger)\"><h2 style=\"color:var(--danger)\">Danger Zone</h2><p class=\"text-sm text-muted mb-2\">Delete all ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var29 string
 		templ_7745c5c3_Var29, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", totalBookmarks))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/admin_settings.templ`, Line: 174, Col: 49}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/admin_settings.templ`, Line: 181, Col: 49}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var29))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, " bookmarks. This cannot be undone.</p><form method=\"POST\" action=\"/admin/bookmarks/delete-all\" onsubmit=\"return confirm('Are you absolutely sure?')\"><div class=\"form-group\"><label for=\"confirmation\">Type <strong>DELETE ALL BOOKMARKS</strong> to confirm</label> <input type=\"text\" id=\"confirmation\" name=\"confirmation\" placeholder=\"DELETE ALL BOOKMARKS\"></div><button type=\"submit\" class=\"btn btn-danger\">Delete All Bookmarks</button></form></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 35, " bookmarks. This cannot be undone.</p><form method=\"POST\" action=\"/admin/bookmarks/delete-all\" onsubmit=\"return confirm('Are you absolutely sure?')\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = csrfField(csrf).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 36, "<div class=\"form-group\"><label for=\"confirmation\">Type <strong>DELETE ALL BOOKMARKS</strong> to confirm</label> <input type=\"text\" id=\"confirmation\" name=\"confirmation\" placeholder=\"DELETE ALL BOOKMARKS\"></div><button type=\"submit\" class=\"btn btn-danger\">Delete All Bookmarks</button></form></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

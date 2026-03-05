@@ -3,7 +3,7 @@ package view
 import "fmt"
 
 templ AdminBookmarkFormPage(data BookmarkFormData) {
-	@Layout(formTitle(data.IsCreate), data.User, data.BaseURL, data.Flash, data.StaticVersion) {
+	@Layout(formTitle(data.IsCreate), data.LayoutData) {
 		<div class="mb-2">
 			<a href="/admin/bookmarks">&larr; Back to bookmarks</a>
 		</div>
@@ -37,6 +37,7 @@ templ AdminBookmarkFormPage(data BookmarkFormData) {
 				}
 				id="bookmark-form"
 			>
+				@csrfField(data.CsrfToken)
 				<div class="form-group">
 					<label for="url">URL</label>
 					<input
@@ -76,6 +77,7 @@ templ AdminBookmarkFormPage(data BookmarkFormData) {
 					</button>
 					if !data.IsCreate && data.Bookmark != nil {
 						<form method="POST" action={ fmt.Sprintf("/admin/bookmarks/%d/delete", data.Bookmark.ID) } class="inline-form" onsubmit="return confirm('Delete this bookmark?')">
+							@csrfField(data.CsrfToken)
 							<button type="submit" class="btn btn-danger">Delete</button>
 						</form>
 					}

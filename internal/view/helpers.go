@@ -15,6 +15,7 @@ type LayoutData struct {
 	BaseURL       string
 	Flash         string
 	StaticVersion string
+	CsrfToken     string
 }
 
 type HomeData struct {

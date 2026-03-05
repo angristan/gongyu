@@ -1,7 +1,7 @@
 package view
 
 templ BookmarkletPage(data BookmarkletData) {
-	@Layout("Add Bookmark", data.User, data.BaseURL, data.Flash, data.StaticVersion) {
+	@Layout("Add Bookmark", data.LayoutData) {
 		<div class="card" style="max-width:500px;margin:0 auto">
 			<h1>Add Bookmark</h1>
 			if data.Existing != nil {
@@ -10,6 +10,7 @@ templ BookmarkletPage(data BookmarkletData) {
 				</div>
 			}
 			<form method="POST" action="/admin/bookmarks" id="bookmarklet-form">
+				@csrfField(data.CsrfToken)
 				<input type="hidden" name="source" value={ data.Source }/>
 				<div class="form-group">
 					<label for="url">URL</label>

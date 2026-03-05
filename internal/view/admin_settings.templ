@@ -3,7 +3,7 @@ package view
 import "fmt"
 
 templ AdminSettingsPage(data SettingsData) {
-	@Layout("Settings", data.User, data.BaseURL, data.Flash, data.StaticVersion) {
+	@Layout("Settings", data.LayoutData) {
 		<div class="flex-between mb-2">
 			<h1 style="margin-bottom:0">Settings</h1>
 			<a href="/admin/dashboard" class="btn btn-secondary btn-sm">&larr; Dashboard</a>
@@ -17,26 +17,27 @@ templ AdminSettingsPage(data SettingsData) {
 			<a href="/admin/settings?tab=danger" class={ tabClass("danger", data.Tab, false) }>Danger Zone</a>
 		</div>
 		if data.Tab == "" || data.Tab == "import" {
-			@settingsImport()
+			@settingsImport(data.CsrfToken)
 		} else if data.Tab == "export" {
 			@settingsExport()
 		} else if data.Tab == "twitter" {
-			@settingsTwitter(data.Settings)
+			@settingsTwitter(data.Settings, data.CsrfToken)
 		} else if data.Tab == "mastodon" {
-			@settingsMastodon(data.Settings)
+			@settingsMastodon(data.Settings, data.CsrfToken)
 		} else if data.Tab == "bluesky" {
-			@settingsBluesky(data.Settings)
+			@settingsBluesky(data.Settings, data.CsrfToken)
 		} else if data.Tab == "danger" {
-			@settingsDanger(data.TotalBookmarks)
+			@settingsDanger(data.TotalBookmarks, data.CsrfToken)
 		}
 	}
 }
 
-templ settingsImport() {
+templ settingsImport(csrf string) {
 	<div class="card">
 		<h2>Import from Shaarli (API)</h2>
 		<p class="text-sm text-muted mb-2">Enter your Shaarli instance URL and API secret to import bookmarks.</p>
 		<form method="POST" action="/admin/import" enctype="multipart/form-data">
+			@csrfField(csrf)
 			<input type="hidden" name="type" value="shaarli_api"/>
 			<div class="form-group">
 				<label for="shaarli_url">Shaarli URL</label>
@@ -53,6 +54,7 @@ templ settingsImport() {
 		<h2>Import from Shaarli (Datastore)</h2>
 		<p class="text-sm text-muted mb-2">Upload your Shaarli <code>data/datastore.php</code> file.</p>
 		<form method="POST" action="/admin/import" enctype="multipart/form-data">
+			@csrfField(csrf)
 			<input type="hidden" name="type" value="shaarli_datastore"/>
 			<div class="form-group">
 				<label for="datastore_file">Datastore File</label>
@@ -65,6 +67,7 @@ templ settingsImport() {
 		<h2>Import from HTML (Netscape)</h2>
 		<p class="text-sm text-muted mb-2">Upload a Netscape bookmark HTML file (exported from Shaarli or any browser).</p>
 		<form method="POST" action="/admin/import" enctype="multipart/form-data">
+			@csrfField(csrf)
 			<input type="hidden" name="type" value="netscape"/>
 			<div class="form-group">
 				<label for="html_file">HTML File</label>
@@ -77,6 +80,7 @@ templ settingsImport() {
 		<h2>Restore from Gongyu Backup</h2>
 		<p class="text-sm text-muted mb-2">Upload a Gongyu JSON export file to restore bookmarks.</p>
 		<form method="POST" action="/admin/import" enctype="multipart/form-data">
+			@csrfField(csrf)
 			<input type="hidden" name="type" value="gongyu"/>
 			<div class="form-group">
 				<label for="json_file">JSON File</label>
@@ -102,11 +106,12 @@ templ settingsExport() {
 	</div>
 }
 
-templ settingsTwitter(settings map[string]string) {
+templ settingsTwitter(settings map[string]string, csrf string) {
 	<div class="card">
 		<h2>Twitter / X Settings</h2>
 		<p class="text-sm text-muted mb-2">Configure Twitter API credentials to auto-post bookmarks.</p>
 		<form method="POST" action="/admin/settings">
+			@csrfField(csrf)
 			<input type="hidden" name="tab" value="twitter"/>
 			<div class="form-group">
 				<label for="twitter_api_key">API Key</label>
@@ -129,11 +134,12 @@ templ settingsTwitter(settings map[string]string) {
 	</div>
 }
 
-templ settingsMastodon(settings map[string]string) {
+templ settingsMastodon(settings map[string]string, csrf string) {
 	<div class="card">
 		<h2>Mastodon Settings</h2>
 		<p class="text-sm text-muted mb-2">Configure Mastodon to auto-post bookmarks.</p>
 		<form method="POST" action="/admin/settings">
+			@csrfField(csrf)
 			<input type="hidden" name="tab" value="mastodon"/>
 			<div class="form-group">
 				<label for="mastodon_instance">Instance URL</label>
@@ -148,11 +154,12 @@ templ settingsMastodon(settings map[string]string) {
 	</div>
 }
 
-templ settingsBluesky(settings map[string]string) {
+templ settingsBluesky(settings map[string]string, csrf string) {
 	<div class="card">
 		<h2>Bluesky Settings</h2>
 		<p class="text-sm text-muted mb-2">Configure Bluesky to auto-post bookmarks.</p>
 		<form method="POST" action="/admin/settings">
+			@csrfField(csrf)
 			<input type="hidden" name="tab" value="bluesky"/>
 			<div class="form-group">
 				<label for="bluesky_handle">Handle</label>
@@ -167,13 +174,14 @@ templ settingsBluesky(settings map[string]string) {
 	</div>
 }
 
-templ settingsDanger(totalBookmarks int64) {
+templ settingsDanger(totalBookmarks int64, csrf string) {
 	<div class="card" style="border-color:var(--danger)">
 		<h2 style="color:var(--danger)">Danger Zone</h2>
 		<p class="text-sm text-muted mb-2">
 			Delete all { fmt.Sprintf("%d", totalBookmarks) } bookmarks. This cannot be undone.
 		</p>
 		<form method="POST" action="/admin/bookmarks/delete-all" onsubmit="return confirm('Are you absolutely sure?')">
+			@csrfField(csrf)
 			<div class="form-group">
 				<label for="confirmation">
 					Type <strong>DELETE ALL BOOKMARKS</strong> to confirm

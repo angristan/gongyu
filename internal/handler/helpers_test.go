@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"net/http"
+	"net/url"
 	"testing"
 	"time"
 
@@ -167,6 +168,15 @@ func noSessionStore() func(ctx context.Context, token string) (model.Session, er
 	return func(ctx context.Context, token string) (model.Session, error) {
 		return model.Session{}, sql.ErrNoRows
 	}
+}
+
+// withCsrf adds the CSRF token to a form for the given session cookie.
+func withCsrf(form url.Values, cookie *http.Cookie) url.Values {
+	if form == nil {
+		form = url.Values{}
+	}
+	form.Set("_csrf", csrfToken(cookie.Value, testEncKey))
+	return form
 }
 
 // noRedirectClient returns an HTTP client that does not follow redirects.

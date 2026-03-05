@@ -3,7 +3,7 @@ package view
 import "fmt"
 
 templ AdminBookmarksPage(data AdminBookmarksData) {
-	@Layout("Bookmarks", data.User, data.BaseURL, data.Flash, data.StaticVersion) {
+	@Layout("Bookmarks", data.LayoutData) {
 		<div class="flex-between mb-2">
 			<h1 style="margin-bottom:0">Bookmarks</h1>
 			<a href="/admin/bookmarks/create" class="btn btn-primary btn-sm">+ Add Bookmark</a>
@@ -40,6 +40,7 @@ templ AdminBookmarksPage(data AdminBookmarksData) {
 									<div class="flex gap-1">
 										<a href={ templ.SafeURL(fmt.Sprintf("/admin/bookmarks/%d/edit", b.ID)) } class="btn btn-secondary btn-sm">Edit</a>
 										<form method="POST" action={ templ.SafeURL(fmt.Sprintf("/admin/bookmarks/%d/delete", b.ID)) } class="inline-form" onsubmit="return confirm('Delete this bookmark?')">
+											@csrfField(data.CsrfToken)
 											<button type="submit" class="btn btn-danger btn-sm">Del</button>
 										</form>
 									</div>
