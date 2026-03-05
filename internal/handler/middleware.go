@@ -3,9 +3,13 @@ package handler
 import (
 	"crypto/hmac"
 	"log/slog"
+	"net"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
+
+	"golang.org/x/time/rate"
 )
 
 func logMiddleware(next http.Handler) http.Handler {
@@ -67,6 +71,65 @@ func (h *Handler) csrfProtect(next http.Handler) http.Handler {
 			return
 		}
 
+		next.ServeHTTP(w, r)
+	})
+}
+
+// ipLimiter tracks per-IP rate limiters.
+type ipLimiter struct {
+	mu       sync.Mutex
+	limiters map[string]*entry
+}
+
+type entry struct {
+	limiter  *rate.Limiter
+	lastSeen time.Time
+}
+
+func newIPLimiter() *ipLimiter {
+	l := &ipLimiter{limiters: make(map[string]*entry)}
+	go l.cleanup()
+	return l
+}
+
+// allow returns true if the request from ip is within the rate limit.
+// Allows 5 attempts per minute with a burst of 5.
+func (l *ipLimiter) allow(ip string) bool {
+	l.mu.Lock()
+	e, ok := l.limiters[ip]
+	if !ok {
+		e = &entry{limiter: rate.NewLimiter(rate.Every(time.Minute/5), 5)}
+		l.limiters[ip] = e
+	}
+	e.lastSeen = time.Now()
+	l.mu.Unlock()
+	return e.limiter.Allow()
+}
+
+// cleanup removes entries not seen for 10 minutes.
+func (l *ipLimiter) cleanup() {
+	for {
+		time.Sleep(time.Minute)
+		l.mu.Lock()
+		for ip, e := range l.limiters {
+			if time.Since(e.lastSeen) > 10*time.Minute {
+				delete(l.limiters, ip)
+			}
+		}
+		l.mu.Unlock()
+	}
+}
+
+func loginRateLimit(limiter *ipLimiter, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ip, _, _ := net.SplitHostPort(r.RemoteAddr)
+		if ip == "" {
+			ip = r.RemoteAddr
+		}
+		if !limiter.allow(ip) {
+			http.Error(w, "Too many login attempts. Please try again later.", http.StatusTooManyRequests)
+			return
+		}
 		next.ServeHTTP(w, r)
 	})
 }

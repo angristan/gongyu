@@ -26,7 +26,7 @@ func (h *Handler) Routes() http.Handler {
 
 	// Auth routes (guest-only)
 	mux.Handle("GET /login", auth.RequireGuest(http.HandlerFunc(h.LoginPage)))
-	mux.Handle("POST /login", auth.RequireGuest(http.HandlerFunc(h.LoginSubmit)))
+	mux.Handle("POST /login", auth.RequireGuest(loginRateLimit(h.loginLimiter, http.HandlerFunc(h.LoginSubmit))))
 
 	mux.HandleFunc("GET /setup", h.SetupPage)
 	mux.HandleFunc("POST /setup", h.SetupSubmit)

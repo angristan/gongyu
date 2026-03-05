@@ -151,6 +151,45 @@ func TestLogout(t *testing.T) {
 	}
 }
 
+func TestLoginRateLimit(t *testing.T) {
+	store := &mockStore{
+		getUserByEmail: func(ctx context.Context, email string) (model.User, error) {
+			return model.User{}, sql.ErrNoRows
+		},
+		getSession: noSessionStore(),
+	}
+
+	srv := httptest.NewServer(newTestHandler(store))
+	defer srv.Close()
+
+	client := noRedirectClient()
+
+	// Exhaust the burst (5 requests)
+	for i := range 5 {
+		form := url.Values{"email": {"bad@example.com"}, "password": {"wrong"}}
+		resp, err := client.PostForm(srv.URL+"/login", form)
+		if err != nil {
+			t.Fatal(err)
+		}
+		closeTestBody(t, resp)
+		if resp.StatusCode == http.StatusTooManyRequests {
+			t.Fatalf("rate limited too early on attempt %d", i+1)
+		}
+	}
+
+	// 6th request should be rate limited
+	form := url.Values{"email": {"bad@example.com"}, "password": {"wrong"}}
+	resp, err := client.PostForm(srv.URL+"/login", form)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer closeTestBody(t, resp)
+
+	if resp.StatusCode != http.StatusTooManyRequests {
+		t.Errorf("status = %d, want %d", resp.StatusCode, http.StatusTooManyRequests)
+	}
+}
+
 func TestSetupPageShowsFormWhenNoUsers(t *testing.T) {
 	store := &mockStore{
 		countUsers: func(ctx context.Context) (int64, error) {

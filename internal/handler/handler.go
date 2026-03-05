@@ -28,6 +28,7 @@ type Handler struct {
 
 	StaticFS      fs.FS
 	StaticVersion string // content hash for cache busting
+	loginLimiter  *ipLimiter
 }
 
 // New creates a Handler.
@@ -44,6 +45,7 @@ func New(store model.Store, encKey []byte, baseURL string, staticFS embed.FS, bg
 		Background:    bg,
 		StaticFS:      staticSub,
 		StaticVersion: hashFS(staticSub),
+		loginLimiter:  newIPLimiter(),
 	}
 }
 
