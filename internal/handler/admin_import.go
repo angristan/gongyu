@@ -7,8 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/stanislas/gongyu/internal/database"
-	"github.com/stanislas/gongyu/internal/db"
+	"github.com/stanislas/gongyu/internal/model"
 	"github.com/stanislas/gongyu/internal/importer"
 )
 
@@ -20,7 +19,7 @@ func (h *Handler) AdminImport(w http.ResponseWriter, r *http.Request) {
 	r.ParseMultipartForm(10 << 20)
 	importType := r.FormValue("type")
 
-	var bookmarks []db.Bookmark
+	var bookmarks []model.Bookmark
 	var err error
 
 	switch importType {
@@ -82,7 +81,7 @@ func (h *Handler) AdminImport(w http.ResponseWriter, r *http.Request) {
 	// Fill in short URLs and timestamps for import
 	for i := range bookmarks {
 		if bookmarks[i].ShortUrl == "" {
-			bookmarks[i].ShortUrl = database.GenerateShortURL()
+			bookmarks[i].ShortUrl = model.GenerateShortURL()
 		}
 		if bookmarks[i].CreatedAt.IsZero() {
 			bookmarks[i].CreatedAt = time.Now().UTC()

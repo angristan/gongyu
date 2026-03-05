@@ -11,11 +11,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/stanislas/gongyu/internal/db"
+	"github.com/stanislas/gongyu/internal/model"
 )
 
 // FetchFromShaarliAPI fetches bookmarks from a Shaarli instance's REST API.
-func FetchFromShaarliAPI(instanceURL, apiSecret string) ([]db.Bookmark, error) {
+func FetchFromShaarliAPI(instanceURL, apiSecret string) ([]model.Bookmark, error) {
 	instanceURL = strings.TrimRight(instanceURL, "/")
 	token, err := generateShaarliJWT(apiSecret)
 	if err != nil {
@@ -51,9 +51,9 @@ func FetchFromShaarliAPI(instanceURL, apiSecret string) ([]db.Bookmark, error) {
 		return nil, fmt.Errorf("decode response: %w", err)
 	}
 
-	var bookmarks []db.Bookmark
+	var bookmarks []model.Bookmark
 	for _, l := range links {
-		b := db.Bookmark{
+		b := model.Bookmark{
 			Url:             l.URL,
 			Title:           l.Title,
 			Description:     l.Description,

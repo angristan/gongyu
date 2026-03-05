@@ -5,10 +5,10 @@ import (
 	"html"
 	"strings"
 
-	"github.com/stanislas/gongyu/internal/db"
+	"github.com/stanislas/gongyu/internal/model"
 )
 
-func GenerateNetscape(bookmarks []db.Bookmark) string {
+func GenerateNetscape(bookmarks []model.Bookmark) string {
 	var sb strings.Builder
 	sb.WriteString("<!DOCTYPE NETSCAPE-Bookmark-file-1>\n")
 	sb.WriteString("<!-- This is an automatically generated file.\n     It will be read and overwritten.\n     DO NOT EDIT! -->\n")

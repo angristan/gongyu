@@ -3,7 +3,7 @@
 //   sqlc v1.30.0
 // source: sessions.sql
 
-package pgdb
+package postgres
 
 import (
 	"context"

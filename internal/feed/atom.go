@@ -4,7 +4,7 @@ import (
 	"encoding/xml"
 	"time"
 
-	"github.com/stanislas/gongyu/internal/db"
+	"github.com/stanislas/gongyu/internal/model"
 )
 
 type atomFeed struct {
@@ -31,7 +31,7 @@ type atomEntry struct {
 	Summary *string  `xml:"summary,omitempty"`
 }
 
-func GenerateAtom(baseURL string, bookmarks []db.Bookmark) ([]byte, error) {
+func GenerateAtom(baseURL string, bookmarks []model.Bookmark) ([]byte, error) {
 	feed := atomFeed{
 		XMLNS:   "http://www.w3.org/2005/Atom",
 		Title:   "Gongyu Bookmarks",

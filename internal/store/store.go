@@ -1,9 +1,8 @@
-package postgres
+package store
 
 import (
 	"context"
 	"database/sql"
-	"embed"
 	"fmt"
 	"log"
 	"strings"
@@ -11,18 +10,18 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
-	"github.com/stanislas/gongyu/internal/db"
-	"github.com/stanislas/gongyu/internal/store/postgres/pgdb"
+	"github.com/stanislas/gongyu/internal/model"
+	"github.com/stanislas/gongyu/internal/store/postgres"
 )
 
-// Store implements db.Store for PostgreSQL using sqlc-generated queries.
+// Store implements model.Store for PostgreSQL using sqlc-generated queries.
 type Store struct {
 	sqlDB *sql.DB
-	q     *pgdb.Queries
+	q     *postgres.Queries
 }
 
 // Open opens a PostgreSQL database, runs migrations, and returns a Store.
-func Open(connStr string, migrationsFS embed.FS) (*Store, error) {
+func Open(connStr string) (*Store, error) {
 	sqlDB, err := sql.Open("pgx", connStr)
 	if err != nil {
 		return nil, fmt.Errorf("open database: %w", err)
@@ -44,26 +43,26 @@ func Open(connStr string, migrationsFS embed.FS) (*Store, error) {
 	}
 	log.Println("database migrations applied")
 
-	return &Store{sqlDB: sqlDB, q: pgdb.New(sqlDB)}, nil
+	return &Store{sqlDB: sqlDB, q: postgres.New(sqlDB)}, nil
 }
 
 func (s *Store) Close() error { return s.sqlDB.Close() }
 
 // --- Bookmark conversions ---
 
-func convertBookmark(b pgdb.Bookmark) db.Bookmark { return db.Bookmark(b) }
+func convertBookmark(b postgres.Bookmark) model.Bookmark { return model.Bookmark(b) }
 
-func convertBookmarks(bs []pgdb.Bookmark) []db.Bookmark {
-	result := make([]db.Bookmark, len(bs))
+func convertBookmarks(bs []postgres.Bookmark) []model.Bookmark {
+	result := make([]model.Bookmark, len(bs))
 	for i, b := range bs {
-		result[i] = db.Bookmark(b)
+		result[i] = model.Bookmark(b)
 	}
 	return result
 }
 
 // --- Bookmarks (sqlc-delegated) ---
 
-func (s *Store) AllBookmarks(ctx context.Context) ([]db.Bookmark, error) {
+func (s *Store) AllBookmarks(ctx context.Context) ([]model.Bookmark, error) {
 	bs, err := s.q.AllBookmarks(ctx)
 	if err != nil {
 		return nil, err
@@ -71,28 +70,28 @@ func (s *Store) AllBookmarks(ctx context.Context) ([]db.Bookmark, error) {
 	return convertBookmarks(bs), nil
 }
 
-func (s *Store) GetBookmarkByID(ctx context.Context, id int64) (db.Bookmark, error) {
+func (s *Store) GetBookmarkByID(ctx context.Context, id int64) (model.Bookmark, error) {
 	b, err := s.q.GetBookmarkByID(ctx, id)
 	return convertBookmark(b), err
 }
 
-func (s *Store) GetBookmarkByShortURL(ctx context.Context, shortUrl string) (db.Bookmark, error) {
+func (s *Store) GetBookmarkByShortURL(ctx context.Context, shortUrl string) (model.Bookmark, error) {
 	b, err := s.q.GetBookmarkByShortURL(ctx, shortUrl)
 	return convertBookmark(b), err
 }
 
-func (s *Store) GetBookmarkByURL(ctx context.Context, url string) (db.Bookmark, error) {
+func (s *Store) GetBookmarkByURL(ctx context.Context, url string) (model.Bookmark, error) {
 	b, err := s.q.GetBookmarkByURL(ctx, url)
 	return convertBookmark(b), err
 }
 
-func (s *Store) GetBookmarkByShaarliHash(ctx context.Context, hash string) (db.Bookmark, error) {
+func (s *Store) GetBookmarkByShaarliHash(ctx context.Context, hash string) (model.Bookmark, error) {
 	b, err := s.q.GetBookmarkByShaarliHash(ctx, hash)
 	return convertBookmark(b), err
 }
 
-func (s *Store) ListBookmarks(ctx context.Context, limit, offset int64) ([]db.Bookmark, error) {
-	bs, err := s.q.ListBookmarks(ctx, pgdb.ListBookmarksParams{
+func (s *Store) ListBookmarks(ctx context.Context, limit, offset int64) ([]model.Bookmark, error) {
+	bs, err := s.q.ListBookmarks(ctx, postgres.ListBookmarksParams{
 		Limit:  int32(limit),
 		Offset: int32(offset),
 	})
@@ -102,7 +101,7 @@ func (s *Store) ListBookmarks(ctx context.Context, limit, offset int64) ([]db.Bo
 	return convertBookmarks(bs), nil
 }
 
-func (s *Store) RecentBookmarks(ctx context.Context, limit int64) ([]db.Bookmark, error) {
+func (s *Store) RecentBookmarks(ctx context.Context, limit int64) ([]model.Bookmark, error) {
 	bs, err := s.q.RecentBookmarks(ctx, int32(limit))
 	if err != nil {
 		return nil, err
@@ -122,13 +121,13 @@ func (s *Store) ShortURLExists(ctx context.Context, shortUrl string) (bool, erro
 	return s.q.ShortURLExists(ctx, shortUrl)
 }
 
-func (s *Store) CreateBookmark(ctx context.Context, arg db.CreateBookmarkParams) (db.Bookmark, error) {
-	b, err := s.q.CreateBookmark(ctx, pgdb.CreateBookmarkParams(arg))
+func (s *Store) CreateBookmark(ctx context.Context, arg model.CreateBookmarkParams) (model.Bookmark, error) {
+	b, err := s.q.CreateBookmark(ctx, postgres.CreateBookmarkParams(arg))
 	return convertBookmark(b), err
 }
 
-func (s *Store) UpdateBookmark(ctx context.Context, arg db.UpdateBookmarkParams) error {
-	return s.q.UpdateBookmark(ctx, pgdb.UpdateBookmarkParams(arg))
+func (s *Store) UpdateBookmark(ctx context.Context, arg model.UpdateBookmarkParams) error {
+	return s.q.UpdateBookmark(ctx, postgres.UpdateBookmarkParams(arg))
 }
 
 func (s *Store) DeleteBookmark(ctx context.Context, id int64) error {
@@ -139,7 +138,7 @@ func (s *Store) DeleteAllBookmarks(ctx context.Context) (int64, error) {
 	return s.q.DeleteAllBookmarks(ctx)
 }
 
-func (s *Store) BulkImportBookmarks(ctx context.Context, bookmarks []db.Bookmark) (imported, skipped int, err error) {
+func (s *Store) BulkImportBookmarks(ctx context.Context, bookmarks []model.Bookmark) (imported, skipped int, err error) {
 	tx, err := s.sqlDB.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, 0, err
@@ -148,7 +147,7 @@ func (s *Store) BulkImportBookmarks(ctx context.Context, bookmarks []db.Bookmark
 
 	qtx := s.q.WithTx(tx)
 	for _, b := range bookmarks {
-		rows, err := qtx.InsertBookmarkIgnore(ctx, pgdb.InsertBookmarkIgnoreParams{
+		rows, err := qtx.InsertBookmarkIgnore(ctx, postgres.InsertBookmarkIgnoreParams{
 			ShortUrl:        b.ShortUrl,
 			Url:             b.Url,
 			Title:           b.Title,
@@ -171,29 +170,29 @@ func (s *Store) BulkImportBookmarks(ctx context.Context, bookmarks []db.Bookmark
 	return imported, skipped, tx.Commit()
 }
 
-func (s *Store) BookmarksOverTime(ctx context.Context, since time.Time) ([]db.BookmarksOverTimeRow, error) {
+func (s *Store) BookmarksOverTime(ctx context.Context, since time.Time) ([]model.BookmarksOverTimeRow, error) {
 	rows, err := s.q.BookmarksOverTime(ctx, since)
 	if err != nil {
 		return nil, err
 	}
-	result := make([]db.BookmarksOverTimeRow, len(rows))
+	result := make([]model.BookmarksOverTimeRow, len(rows))
 	for i, r := range rows {
-		result[i] = db.BookmarksOverTimeRow{Date: r.Date, Count: int(r.Count)}
+		result[i] = model.BookmarksOverTimeRow{Date: r.Date, Count: int(r.Count)}
 	}
 	return result, nil
 }
 
-func (s *Store) TopDomains(ctx context.Context, since time.Time, limit int) ([]db.TopDomainsRow, error) {
-	rows, err := s.q.TopDomains(ctx, pgdb.TopDomainsParams{
+func (s *Store) TopDomains(ctx context.Context, since time.Time, limit int) ([]model.TopDomainsRow, error) {
+	rows, err := s.q.TopDomains(ctx, postgres.TopDomainsParams{
 		CreatedAt: since,
 		Limit:     int32(limit),
 	})
 	if err != nil {
 		return nil, err
 	}
-	result := make([]db.TopDomainsRow, len(rows))
+	result := make([]model.TopDomainsRow, len(rows))
 	for i, r := range rows {
-		result[i] = db.TopDomainsRow{Domain: r.Domain, Count: int(r.Count)}
+		result[i] = model.TopDomainsRow{Domain: r.Domain, Count: int(r.Count)}
 	}
 	return result, nil
 }
@@ -205,22 +204,22 @@ const (
 	ftsExpr      = `to_tsvector('english', coalesce(title, '') || ' ' || coalesce(description, '') || ' ' || coalesce(url, ''))`
 )
 
-func scanBookmarks(rows *sql.Rows) ([]db.Bookmark, error) {
-	var bookmarks []db.Bookmark
+func scanBookmarks(rows *sql.Rows) ([]model.Bookmark, error) {
+	var bookmarks []model.Bookmark
 	for rows.Next() {
-		var b db.Bookmark
+		var b model.Bookmark
 		if err := rows.Scan(&b.ID, &b.ShortUrl, &b.Url, &b.Title, &b.Description, &b.ThumbnailUrl, &b.ShaarliShortUrl, &b.CreatedAt, &b.UpdatedAt); err != nil {
 			return nil, err
 		}
 		bookmarks = append(bookmarks, b)
 	}
 	if bookmarks == nil {
-		bookmarks = []db.Bookmark{}
+		bookmarks = []model.Bookmark{}
 	}
 	return bookmarks, rows.Err()
 }
 
-func (s *Store) SearchBookmarks(ctx context.Context, query string, page, perPage int) (*db.PaginatedBookmarks, error) {
+func (s *Store) SearchBookmarks(ctx context.Context, query string, page, perPage int) (*model.PaginatedBookmarks, error) {
 	if query == "" {
 		return s.paginateBookmarks(ctx, page, perPage)
 	}
@@ -254,12 +253,12 @@ func (s *Store) SearchBookmarks(ctx context.Context, query string, page, perPage
 		return nil, err
 	}
 
-	return &db.PaginatedBookmarks{
+	return &model.PaginatedBookmarks{
 		Bookmarks: bookmarks, CurrentPage: p.page, LastPage: p.lastPage, PerPage: perPage, Total: total,
 	}, nil
 }
 
-func (s *Store) paginateBookmarks(ctx context.Context, page, perPage int) (*db.PaginatedBookmarks, error) {
+func (s *Store) paginateBookmarks(ctx context.Context, page, perPage int) (*model.PaginatedBookmarks, error) {
 	total, err := s.CountBookmarks(ctx)
 	if err != nil {
 		return nil, err
@@ -269,12 +268,12 @@ func (s *Store) paginateBookmarks(ctx context.Context, page, perPage int) (*db.P
 	if err != nil {
 		return nil, err
 	}
-	return &db.PaginatedBookmarks{
+	return &model.PaginatedBookmarks{
 		Bookmarks: bookmarks, CurrentPage: p.page, LastPage: p.lastPage, PerPage: perPage, Total: int(total),
 	}, nil
 }
 
-func (s *Store) searchILike(ctx context.Context, query string, page, perPage int) (*db.PaginatedBookmarks, error) {
+func (s *Store) searchILike(ctx context.Context, query string, page, perPage int) (*model.PaginatedBookmarks, error) {
 	like := "%" + query + "%"
 
 	var total int
@@ -302,7 +301,7 @@ func (s *Store) searchILike(ctx context.Context, query string, page, perPage int
 		return nil, err
 	}
 
-	return &db.PaginatedBookmarks{
+	return &model.PaginatedBookmarks{
 		Bookmarks: bookmarks, CurrentPage: p.page, LastPage: p.lastPage, PerPage: perPage, Total: total,
 	}, nil
 }
@@ -346,19 +345,19 @@ func pageBounds(total, page, perPage int) pageInfo {
 
 // --- Users (sqlc-delegated) ---
 
-func (s *Store) CreateUser(ctx context.Context, arg db.CreateUserParams) (db.User, error) {
-	u, err := s.q.CreateUser(ctx, pgdb.CreateUserParams(arg))
-	return db.User(u), err
+func (s *Store) CreateUser(ctx context.Context, arg model.CreateUserParams) (model.User, error) {
+	u, err := s.q.CreateUser(ctx, postgres.CreateUserParams(arg))
+	return model.User(u), err
 }
 
-func (s *Store) GetUserByEmail(ctx context.Context, email string) (db.User, error) {
+func (s *Store) GetUserByEmail(ctx context.Context, email string) (model.User, error) {
 	u, err := s.q.GetUserByEmail(ctx, email)
-	return db.User(u), err
+	return model.User(u), err
 }
 
-func (s *Store) GetUserByID(ctx context.Context, id int64) (db.User, error) {
+func (s *Store) GetUserByID(ctx context.Context, id int64) (model.User, error) {
 	u, err := s.q.GetUserByID(ctx, id)
-	return db.User(u), err
+	return model.User(u), err
 }
 
 func (s *Store) CountUsers(ctx context.Context) (int64, error) {
@@ -367,13 +366,13 @@ func (s *Store) CountUsers(ctx context.Context) (int64, error) {
 
 // --- Settings (sqlc-delegated) ---
 
-func (s *Store) GetSetting(ctx context.Context, key string) (db.Setting, error) {
+func (s *Store) GetSetting(ctx context.Context, key string) (model.Setting, error) {
 	st, err := s.q.GetSetting(ctx, key)
-	return db.Setting(st), err
+	return model.Setting(st), err
 }
 
 func (s *Store) UpsertSetting(ctx context.Context, key, value string, encrypted int64) error {
-	return s.q.UpsertSetting(ctx, pgdb.UpsertSettingParams{
+	return s.q.UpsertSetting(ctx, postgres.UpsertSettingParams{
 		Key:       key,
 		Value:     value,
 		Encrypted: encrypted,
@@ -382,13 +381,13 @@ func (s *Store) UpsertSetting(ctx context.Context, key, value string, encrypted 
 
 // --- Sessions (sqlc-delegated) ---
 
-func (s *Store) CreateSession(ctx context.Context, arg db.CreateSessionParams) error {
-	return s.q.CreateSession(ctx, pgdb.CreateSessionParams(arg))
+func (s *Store) CreateSession(ctx context.Context, arg model.CreateSessionParams) error {
+	return s.q.CreateSession(ctx, postgres.CreateSessionParams(arg))
 }
 
-func (s *Store) GetSession(ctx context.Context, token string) (db.Session, error) {
+func (s *Store) GetSession(ctx context.Context, token string) (model.Session, error) {
 	sess, err := s.q.GetSession(ctx, token)
-	return db.Session(sess), err
+	return model.Session(sess), err
 }
 
 func (s *Store) DeleteSession(ctx context.Context, token string) error {

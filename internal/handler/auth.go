@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/stanislas/gongyu/internal/auth"
-	"github.com/stanislas/gongyu/internal/db"
+	"github.com/stanislas/gongyu/internal/model"
 )
 
 func (h *Handler) LoginPage(w http.ResponseWriter, r *http.Request) {
@@ -91,7 +91,7 @@ func (h *Handler) SetupSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	now := time.Now().UTC()
-	user, err := h.Store.CreateUser(r.Context(), db.CreateUserParams{
+	user, err := h.Store.CreateUser(r.Context(), model.CreateUserParams{
 		Name: name, Email: email, Password: hash, CreatedAt: now, UpdatedAt: now,
 	})
 	if err != nil {

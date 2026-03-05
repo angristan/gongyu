@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/stanislas/gongyu/internal/database"
+	"github.com/stanislas/gongyu/internal/model"
 )
 
 var settingsKeys = []struct {
@@ -25,7 +25,7 @@ func (h *Handler) AdminSettings(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	settings := map[string]string{}
 	for _, s := range settingsKeys {
-		val := database.GetSetting(ctx, h.Store, s.Key, h.EncKey)
+		val := model.GetSetting(ctx, h.Store, s.Key, h.EncKey)
 		if s.Encrypted && val != "" {
 			settings[s.Key] = "••••••••"
 		} else {
@@ -52,7 +52,7 @@ func (h *Handler) AdminUpdateSettings(w http.ResponseWriter, r *http.Request) {
 		if s.Encrypted && val == "••••••••" {
 			continue
 		}
-		database.SetSetting(ctx, h.Store, s.Key, val, s.Encrypted, h.EncKey)
+		model.SetSetting(ctx, h.Store, s.Key, val, s.Encrypted, h.EncKey)
 	}
 
 	setFlash(w, "Settings saved")

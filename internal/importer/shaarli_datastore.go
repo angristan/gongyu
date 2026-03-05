@@ -10,12 +10,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/stanislas/gongyu/internal/db"
+	"github.com/stanislas/gongyu/internal/model"
 )
 
 // ParseShaarliDatastore parses a Shaarli datastore.php file.
 // The format is: <?php /* base64(gzdeflate(serialize(data))) */ ?>
-func ParseShaarliDatastore(content string) ([]db.Bookmark, error) {
+func ParseShaarliDatastore(content string) ([]model.Bookmark, error) {
 	// Strip PHP wrapper
 	content = strings.TrimSpace(content)
 	content = strings.TrimPrefix(content, "<?php /* ")
@@ -54,7 +54,7 @@ var (
 	reCreatedTS   = regexp.MustCompile(`s:\d+:"created";i:(\d+)`)
 )
 
-func parseSerializedPHP(data string) ([]db.Bookmark, error) {
+func parseSerializedPHP(data string) ([]model.Bookmark, error) {
 	urls := reURL.FindAllStringSubmatch(data, -1)
 	titles := reTitlePHP.FindAllStringSubmatch(data, -1)
 	descriptions := reDescription.FindAllStringSubmatch(data, -1)
@@ -63,10 +63,10 @@ func parseSerializedPHP(data string) ([]db.Bookmark, error) {
 	createdTimestamps := reCreatedTS.FindAllStringSubmatch(data, -1)
 
 	n := len(urls)
-	var bookmarks []db.Bookmark
+	var bookmarks []model.Bookmark
 
 	for i := range n {
-		b := db.Bookmark{
+		b := model.Bookmark{
 			Url: urls[i][1],
 		}
 		if i < len(titles) {

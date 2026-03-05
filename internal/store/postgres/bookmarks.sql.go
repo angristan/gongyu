@@ -3,7 +3,7 @@
 //   sqlc v1.30.0
 // source: bookmarks.sql
 
-package pgdb
+package postgres
 
 import (
 	"context"

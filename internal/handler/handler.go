@@ -13,12 +13,12 @@ import (
 	"time"
 
 	"github.com/stanislas/gongyu/internal/auth"
-	"github.com/stanislas/gongyu/internal/db"
+	"github.com/stanislas/gongyu/internal/model"
 )
 
 // Handler holds dependencies shared across all HTTP handlers.
 type Handler struct {
-	Store   db.Store
+	Store   model.Store
 	EncKey  []byte
 	BaseURL string
 
@@ -27,7 +27,7 @@ type Handler struct {
 }
 
 // New creates a Handler and parses templates.
-func New(store db.Store, encKey []byte, baseURL string, templateFS embed.FS, staticFS embed.FS) *Handler {
+func New(store model.Store, encKey []byte, baseURL string, templateFS embed.FS, staticFS embed.FS) *Handler {
 	funcMap := template.FuncMap{
 		"domain": extractDomain,
 		"timeago": func(t time.Time) string {

@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/stanislas/gongyu/internal/db"
+	"github.com/stanislas/gongyu/internal/model"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -38,7 +38,7 @@ func generateToken() (string, error) {
 	return hex.EncodeToString(b), nil
 }
 
-func Login(w http.ResponseWriter, r *http.Request, store db.Store, user *db.User, remember bool) error {
+func Login(w http.ResponseWriter, r *http.Request, store model.Store, user *model.User, remember bool) error {
 	token, err := generateToken()
 	if err != nil {
 		return err
@@ -47,7 +47,7 @@ func Login(w http.ResponseWriter, r *http.Request, store db.Store, user *db.User
 	if !remember {
 		maxAge = 24 * time.Hour
 	}
-	err = store.CreateSession(r.Context(), db.CreateSessionParams{
+	err = store.CreateSession(r.Context(), model.CreateSessionParams{
 		Token:     token,
 		UserID:    user.ID,
 		ExpiresAt: time.Now().Add(maxAge),
@@ -68,7 +68,7 @@ func Login(w http.ResponseWriter, r *http.Request, store db.Store, user *db.User
 	return nil
 }
 
-func Logout(w http.ResponseWriter, r *http.Request, store db.Store) {
+func Logout(w http.ResponseWriter, r *http.Request, store model.Store) {
 	cookie, err := r.Cookie(cookieName)
 	if err == nil {
 		store.DeleteSession(r.Context(), cookie.Value)
@@ -78,12 +78,12 @@ func Logout(w http.ResponseWriter, r *http.Request, store db.Store) {
 	})
 }
 
-func UserFromContext(ctx context.Context) *db.User {
-	u, _ := ctx.Value(userKey).(*db.User)
+func UserFromContext(ctx context.Context) *model.User {
+	u, _ := ctx.Value(userKey).(*model.User)
 	return u
 }
 
-func Middleware(store db.Store) func(http.Handler) http.Handler {
+func Middleware(store model.Store) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			cookie, err := r.Cookie(cookieName)
@@ -133,7 +133,7 @@ func RequireGuest(next http.Handler) http.Handler {
 	})
 }
 
-func Authenticate(ctx context.Context, store db.Store, email, password string) (*db.User, error) {
+func Authenticate(ctx context.Context, store model.Store, email, password string) (*model.User, error) {
 	user, err := store.GetUserByEmail(ctx, email)
 	if err != nil {
 		return nil, errors.New("invalid credentials")

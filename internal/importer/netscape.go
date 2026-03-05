@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/stanislas/gongyu/internal/db"
+	"github.com/stanislas/gongyu/internal/model"
 )
 
 var (
@@ -18,9 +18,9 @@ var (
 )
 
 // ParseNetscapeBookmarks parses a Netscape HTML bookmark file.
-func ParseNetscapeBookmarks(content string) []db.Bookmark {
+func ParseNetscapeBookmarks(content string) []model.Bookmark {
 	matches := reBookmark.FindAllStringSubmatch(content, -1)
-	var bookmarks []db.Bookmark
+	var bookmarks []model.Bookmark
 
 	for _, m := range matches {
 		attrs := m[1]
@@ -52,7 +52,7 @@ func ParseNetscapeBookmarks(content string) []db.Bookmark {
 			shaarliHash = hashMatch[1]
 		}
 
-		bookmarks = append(bookmarks, db.Bookmark{
+		bookmarks = append(bookmarks, model.Bookmark{
 			Url:             href,
 			Title:           title,
 			Description:     description,

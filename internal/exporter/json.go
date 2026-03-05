@@ -4,17 +4,17 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/stanislas/gongyu/internal/db"
+	"github.com/stanislas/gongyu/internal/model"
 )
 
 type jsonExport struct {
 	ExportedAt string        `json:"exported_at"`
 	Version    string        `json:"version"`
 	Count      int           `json:"count"`
-	Bookmarks  []db.Bookmark `json:"bookmarks"`
+	Bookmarks  []model.Bookmark `json:"bookmarks"`
 }
 
-func GenerateJSON(bookmarks []db.Bookmark) ([]byte, error) {
+func GenerateJSON(bookmarks []model.Bookmark) ([]byte, error) {
 	export := jsonExport{
 		ExportedAt: time.Now().UTC().Format(time.RFC3339),
 		Version:    "1.0",

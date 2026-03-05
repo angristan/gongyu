@@ -7,8 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/stanislas/gongyu/internal/database"
-	"github.com/stanislas/gongyu/internal/db"
+	"github.com/stanislas/gongyu/internal/model"
 	"github.com/stanislas/gongyu/internal/social"
 	"github.com/stanislas/gongyu/internal/thumbnail"
 	"github.com/stanislas/gongyu/internal/title"
@@ -80,10 +79,10 @@ func (h *Handler) AdminCreateBookmark(w http.ResponseWriter, r *http.Request) {
 	}
 
 	bookmarkTitle = title.Clean(bookmarkTitle)
-	shortURL, _ := database.UniqueShortURL(r.Context(), h.Store)
+	shortURL, _ := model.UniqueShortURL(r.Context(), h.Store)
 	now := time.Now().UTC()
 
-	b, err := h.Store.CreateBookmark(r.Context(), db.CreateBookmarkParams{
+	b, err := h.Store.CreateBookmark(r.Context(), model.CreateBookmarkParams{
 		ShortUrl:    shortURL,
 		Url:         bookmarkURL,
 		Title:       bookmarkTitle,
@@ -104,7 +103,7 @@ func (h *Handler) AdminCreateBookmark(w http.ResponseWriter, r *http.Request) {
 	go func() {
 		meta, err := thumbnail.FetchMetadata(r.Context(), bookmarkURL)
 		if err == nil && meta.OGImage != "" {
-			h.Store.UpdateBookmark(r.Context(), db.UpdateBookmarkParams{
+			h.Store.UpdateBookmark(r.Context(), model.UpdateBookmarkParams{
 				ID: b.ID, Url: b.Url, Title: b.Title, Description: b.Description,
 				ThumbnailUrl: meta.OGImage, ShaarliShortUrl: b.ShaarliShortUrl,
 				UpdatedAt: time.Now().UTC(),
@@ -148,7 +147,7 @@ func (h *Handler) AdminUpdateBookmark(w http.ResponseWriter, r *http.Request) {
 	}
 
 	r.ParseForm()
-	err = h.Store.UpdateBookmark(r.Context(), db.UpdateBookmarkParams{
+	err = h.Store.UpdateBookmark(r.Context(), model.UpdateBookmarkParams{
 		ID:              b.ID,
 		Url:             strings.TrimSpace(r.FormValue("url")),
 		Title:           strings.TrimSpace(r.FormValue("title")),

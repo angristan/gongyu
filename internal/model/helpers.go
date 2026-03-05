@@ -1,4 +1,4 @@
-package database
+package model
 
 import (
 	"context"
@@ -10,8 +10,6 @@ import (
 	"fmt"
 	"io"
 	"math/big"
-
-	"github.com/stanislas/gongyu/internal/db"
 )
 
 const shortURLChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
@@ -25,7 +23,7 @@ func GenerateShortURL() string {
 	return string(b)
 }
 
-func UniqueShortURL(ctx context.Context, store db.Store) (string, error) {
+func UniqueShortURL(ctx context.Context, store Store) (string, error) {
 	for {
 		s := GenerateShortURL()
 		exists, err := store.ShortURLExists(ctx, s)
@@ -39,7 +37,7 @@ func UniqueShortURL(ctx context.Context, store db.Store) (string, error) {
 }
 
 // GetSetting retrieves a setting value, decrypting if needed.
-func GetSetting(ctx context.Context, store db.Store, key string, encKey []byte) string {
+func GetSetting(ctx context.Context, store Store, key string, encKey []byte) string {
 	s, err := store.GetSetting(ctx, key)
 	if err != nil {
 		return ""
@@ -58,7 +56,7 @@ func GetSetting(ctx context.Context, store db.Store, key string, encKey []byte) 
 }
 
 // SetSetting stores a setting, encrypting if requested.
-func SetSetting(ctx context.Context, store db.Store, key, value string, encrypted bool, encKey []byte) error {
+func SetSetting(ctx context.Context, store Store, key, value string, encrypted bool, encKey []byte) error {
 	storeValue := value
 	if encrypted && len(encKey) > 0 && value != "" {
 		enc, err := encrypt(value, encKey)

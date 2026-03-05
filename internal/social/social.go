@@ -4,13 +4,12 @@ import (
 	"context"
 	"log"
 
-	"github.com/stanislas/gongyu/internal/database"
-	"github.com/stanislas/gongyu/internal/db"
+	"github.com/stanislas/gongyu/internal/model"
 )
 
-func ShareBookmark(ctx context.Context, store db.Store, encKey []byte, b *db.Bookmark) {
+func ShareBookmark(ctx context.Context, store model.Store, encKey []byte, b *model.Bookmark) {
 	get := func(key string) string {
-		return database.GetSetting(ctx, store, key, encKey)
+		return model.GetSetting(ctx, store, key, encKey)
 	}
 
 	if apiKey := get("twitter_api_key"); apiKey != "" {
@@ -38,9 +37,9 @@ func ShareBookmark(ctx context.Context, store db.Store, encKey []byte, b *db.Boo
 	}
 }
 
-func HasSocialProviders(ctx context.Context, store db.Store, encKey []byte) bool {
+func HasSocialProviders(ctx context.Context, store model.Store, encKey []byte) bool {
 	get := func(key string) string {
-		return database.GetSetting(ctx, store, key, encKey)
+		return model.GetSetting(ctx, store, key, encKey)
 	}
 	return get("twitter_api_key") != "" || get("mastodon_instance") != "" || get("bluesky_handle") != ""
 }

@@ -2,9 +2,6 @@ package gongyu
 
 import "embed"
 
-//go:embed migrations/*.sql
-var MigrationsFS embed.FS
-
 //go:embed templates/*.html
 var TemplateFS embed.FS
 
