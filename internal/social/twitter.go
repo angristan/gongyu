@@ -8,7 +8,7 @@ import (
 	"io"
 	"log/slog"
 	"maps"
-	"math/rand"
+	"crypto/rand"
 	"net/http"
 	"net/url"
 	"slices"
@@ -85,12 +85,11 @@ func oauthSignatureBase(method, endpoint string, params map[string]string) strin
 }
 
 func generateNonce() string {
-	const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	b := make([]byte, 32)
-	for i := range b {
-		b[i] = chars[rand.Intn(len(chars))]
+	if _, err := rand.Read(b); err != nil {
+		panic("crypto/rand: " + err.Error())
 	}
-	return string(b)
+	return fmt.Sprintf("%x", b)
 }
 
 func jsonString(s string) string {
