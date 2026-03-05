@@ -1,6 +1,9 @@
 package social
 
-import "testing"
+import (
+	"encoding/json"
+	"testing"
+)
 
 func TestOAuthSignatureBase(t *testing.T) {
 	params := map[string]string{
@@ -26,22 +29,32 @@ func TestOAuthSignatureBase(t *testing.T) {
 	}
 }
 
-func TestJsonString(t *testing.T) {
+func TestTweetBodyJSON(t *testing.T) {
 	tests := []struct {
-		input, want string
+		input string
 	}{
-		{"hello", `"hello"`},
-		{`say "hi"`, `"say \"hi\""`},
-		{"line\nbreak", `"line\nbreak"`},
-		{"tab\there", `"tab\there"`},
-		{"back\\slash", `"back\\slash"`},
-		{"return\rhere", `"return\rhere"`},
+		{"hello"},
+		{`say "hi"`},
+		{"line\nbreak"},
+		{"tab\there"},
+		{"back\\slash"},
+		{"return\rhere"},
+		{"null\x00byte"},
 	}
 
 	for _, tt := range tests {
-		got := jsonString(tt.input)
-		if got != tt.want {
-			t.Errorf("jsonString(%q) = %q, want %q", tt.input, got, tt.want)
+		body, err := json.Marshal(map[string]string{"text": tt.input})
+		if err != nil {
+			t.Errorf("json.Marshal failed for %q: %v", tt.input, err)
+			continue
+		}
+		var decoded map[string]string
+		if err := json.Unmarshal(body, &decoded); err != nil {
+			t.Errorf("json.Unmarshal failed for %q: %v", tt.input, err)
+			continue
+		}
+		if decoded["text"] != tt.input {
+			t.Errorf("round-trip failed for %q: got %q", tt.input, decoded["text"])
 		}
 	}
 }

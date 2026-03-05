@@ -1,14 +1,16 @@
 package social
 
 import (
+	"bytes"
 	"crypto/hmac"
+	"crypto/rand"
 	"crypto/sha1"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
 	"maps"
-	"crypto/rand"
 	"net/http"
 	"net/url"
 	"slices"
@@ -26,9 +28,12 @@ func PostToTwitter(apiKey, apiSecret, accessToken, accessSecret, title, bookmark
 	tweetText := title + "\n" + bookmarkURL
 
 	endpoint := "https://api.twitter.com/2/tweets"
-	body := `{"text":` + jsonString(tweetText) + `}`
+	body, err := json.Marshal(map[string]string{"text": tweetText})
+	if err != nil {
+		return fmt.Errorf("marshal tweet: %w", err)
+	}
 
-	req, err := http.NewRequest("POST", endpoint, strings.NewReader(body))
+	req, err := http.NewRequest("POST", endpoint, bytes.NewReader(body))
 	if err != nil {
 		return err
 	}
@@ -92,11 +97,3 @@ func generateNonce() string {
 	return fmt.Sprintf("%x", b)
 }
 
-func jsonString(s string) string {
-	s = strings.ReplaceAll(s, `\`, `\\`)
-	s = strings.ReplaceAll(s, `"`, `\"`)
-	s = strings.ReplaceAll(s, "\n", `\n`)
-	s = strings.ReplaceAll(s, "\r", `\r`)
-	s = strings.ReplaceAll(s, "\t", `\t`)
-	return `"` + s + `"`
-}
