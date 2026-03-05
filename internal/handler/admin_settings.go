@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log"
 	"net/http"
 	"strings"
 
@@ -44,7 +45,10 @@ func (h *Handler) AdminSettings(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) AdminUpdateSettings(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
 	ctx := r.Context()
 
 	for _, s := range settingsKeys {
@@ -52,7 +56,9 @@ func (h *Handler) AdminUpdateSettings(w http.ResponseWriter, r *http.Request) {
 		if s.Encrypted && val == "••••••••" {
 			continue
 		}
-		model.SetSetting(ctx, h.Store, s.Key, val, s.Encrypted, h.EncKey)
+		if err := model.SetSetting(ctx, h.Store, s.Key, val, s.Encrypted, h.EncKey); err != nil {
+			log.Printf("failed to save setting %s: %v", s.Key, err)
+		}
 	}
 
 	setFlash(w, "Settings saved")

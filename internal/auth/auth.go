@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"log"
 	"net/http"
 	"time"
 
@@ -71,7 +72,9 @@ func Login(w http.ResponseWriter, r *http.Request, store model.Store, user *mode
 func Logout(w http.ResponseWriter, r *http.Request, store model.Store) {
 	cookie, err := r.Cookie(cookieName)
 	if err == nil {
-		store.DeleteSession(r.Context(), cookie.Value)
+		if err := store.DeleteSession(r.Context(), cookie.Value); err != nil {
+			log.Printf("failed to delete session: %v", err)
+		}
 	}
 	http.SetCookie(w, &http.Cookie{
 		Name: cookieName, Value: "", Path: "/", HttpOnly: true, MaxAge: -1,
@@ -95,7 +98,9 @@ func Middleware(store model.Store) func(http.Handler) http.Handler {
 			session, err := store.GetSession(r.Context(), cookie.Value)
 			if err != nil || time.Now().After(session.ExpiresAt) {
 				if err == nil {
-					store.DeleteSession(r.Context(), cookie.Value)
+					if delErr := store.DeleteSession(r.Context(), cookie.Value); delErr != nil {
+						log.Printf("failed to delete expired session: %v", delErr)
+					}
 				}
 				next.ServeHTTP(w, r)
 				return

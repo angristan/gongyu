@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"log"
 	"regexp"
 	"strconv"
 	"strings"
@@ -33,7 +34,11 @@ func ParseShaarliDatastore(content string) ([]model.Bookmark, error) {
 	if err != nil {
 		return nil, fmt.Errorf("zlib decompress: %w", err)
 	}
-	defer r.Close()
+	defer func() {
+		if cerr := r.Close(); cerr != nil {
+			log.Printf("failed to close zlib reader: %v", cerr)
+		}
+	}()
 
 	data, err := io.ReadAll(r)
 	if err != nil {

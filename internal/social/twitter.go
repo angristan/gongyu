@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"log"
 	"maps"
 	"math/rand"
 	"net/http"
@@ -60,7 +61,11 @@ func PostToTwitter(apiKey, apiSecret, accessToken, accessSecret, title, bookmark
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("failed to close response body: %v", err)
+		}
+	}()
 	if resp.StatusCode >= 300 {
 		respBody, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("twitter API error %d: %s", resp.StatusCode, string(respBody))

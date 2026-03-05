@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -89,7 +90,7 @@ func bskyLogin(handle, appPassword string) (*bskySession, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer closeBody(resp)
 	if resp.StatusCode != 200 {
 		b, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("login failed %d: %s", resp.StatusCode, string(b))
@@ -103,7 +104,7 @@ func bskyUploadBlob(session *bskySession, imageURL string) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer closeBody(resp)
 
 	contentType := resp.Header.Get("Content-Type")
 	if contentType == "" {
@@ -130,7 +131,7 @@ func bskyUploadBlob(session *bskySession, imageURL string) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer uploadResp.Body.Close()
+	defer closeBody(uploadResp)
 	if uploadResp.StatusCode != 200 {
 		return nil, fmt.Errorf("upload failed: %d", uploadResp.StatusCode)
 	}
@@ -157,10 +158,16 @@ func bskyRequest(session *bskySession, method string, body any) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer closeBody(resp)
 	if resp.StatusCode >= 300 {
 		b, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("bluesky API error %d: %s", resp.StatusCode, string(b))
 	}
 	return nil
+}
+
+func closeBody(resp *http.Response) {
+	if err := resp.Body.Close(); err != nil {
+		log.Printf("failed to close response body: %v", err)
+	}
 }

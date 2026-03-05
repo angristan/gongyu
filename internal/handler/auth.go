@@ -14,7 +14,10 @@ func (h *Handler) LoginPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) LoginSubmit(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
 	email := strings.TrimSpace(r.FormValue("email"))
 	password := r.FormValue("password")
 	remember := r.FormValue("remember") == "on"
@@ -58,7 +61,10 @@ func (h *Handler) SetupSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	r.ParseForm()
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
 	name := strings.TrimSpace(r.FormValue("name"))
 	email := strings.TrimSpace(r.FormValue("email"))
 	password := r.FormValue("password")
@@ -101,6 +107,9 @@ func (h *Handler) SetupSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	auth.Login(w, r, h.Store, &user, false)
+	if err := auth.Login(w, r, h.Store, &user, false); err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 	http.Redirect(w, r, "/admin/dashboard", http.StatusFound)
 }

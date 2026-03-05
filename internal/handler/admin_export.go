@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -28,7 +29,9 @@ func (h *Handler) AdminExport(w http.ResponseWriter, r *http.Request) {
 		content := exporter.GenerateNetscape(bookmarks)
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="bookmarks_%s.html"`, timestamp))
-		w.Write([]byte(content))
+		if _, err := w.Write([]byte(content)); err != nil {
+			log.Printf("failed to write export: %v", err)
+		}
 
 	case "json":
 		content, err := exporter.GenerateJSON(bookmarks)
@@ -38,6 +41,8 @@ func (h *Handler) AdminExport(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="bookmarks_%s.json"`, timestamp))
-		w.Write(content)
+		if _, err := w.Write(content); err != nil {
+			log.Printf("failed to write export: %v", err)
+		}
 	}
 }

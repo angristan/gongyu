@@ -161,7 +161,9 @@ func (h *Handler) jsonResponse(w http.ResponseWriter, status int, data any) {
 	if data != nil {
 		enc := json.NewEncoder(w)
 		enc.SetEscapeHTML(false)
-		enc.Encode(data)
+		if err := enc.Encode(data); err != nil {
+			log.Printf("json encode error: %v", err)
+		}
 	}
 }
 

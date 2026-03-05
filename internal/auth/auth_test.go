@@ -123,7 +123,7 @@ func (m *mockStore) GetUserByID(_ context.Context, id int64) (model.User, error)
 }
 
 func (m *mockStore) CreateSession(_ context.Context, arg model.CreateSessionParams) error {
-	m.sessions[arg.Token] = model.Session{Token: arg.Token, UserID: arg.UserID, ExpiresAt: arg.ExpiresAt}
+	m.sessions[arg.Token] = model.Session(arg)
 	return nil
 }
 

@@ -11,7 +11,7 @@ func TestGenerateShortURL(t *testing.T) {
 		t.Errorf("GenerateShortURL() length = %d, want 8", len(url))
 	}
 	for _, c := range url {
-		if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')) {
+		if (c < 'a' || c > 'z') && (c < 'A' || c > 'Z') && (c < '0' || c > '9') {
 			t.Errorf("GenerateShortURL() contains invalid char %c", c)
 		}
 	}

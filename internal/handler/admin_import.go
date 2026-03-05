@@ -3,6 +3,7 @@ package handler
 import (
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -16,7 +17,10 @@ func (h *Handler) AdminImportPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) AdminImport(w http.ResponseWriter, r *http.Request) {
-	r.ParseMultipartForm(10 << 20)
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
 	importType := r.FormValue("type")
 
 	var bookmarks []model.Bookmark
@@ -108,7 +112,11 @@ func readUploadedFile(r *http.Request, fieldName string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			log.Printf("failed to close uploaded file: %v", err)
+		}
+	}()
 	data, err := io.ReadAll(file)
 	if err != nil {
 		return "", err

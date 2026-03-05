@@ -4,6 +4,7 @@ import (
 	"context"
 	"html"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -44,7 +45,11 @@ func FetchMetadata(ctx context.Context, rawURL string) (*Metadata, error) {
 	if err != nil {
 		return &Metadata{}, nil
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("failed to close response body: %v", err)
+		}
+	}()
 
 	// Read at most 1MB
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))

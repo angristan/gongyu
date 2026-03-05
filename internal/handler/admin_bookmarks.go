@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -48,7 +49,10 @@ func (h *Handler) AdminCreateBookmarkPage(w http.ResponseWriter, r *http.Request
 }
 
 func (h *Handler) AdminCreateBookmark(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
 	bookmarkURL := strings.TrimSpace(r.FormValue("url"))
 	bookmarkTitle := strings.TrimSpace(r.FormValue("title"))
 	description := strings.TrimSpace(r.FormValue("description"))
@@ -103,11 +107,13 @@ func (h *Handler) AdminCreateBookmark(w http.ResponseWriter, r *http.Request) {
 	go func() {
 		meta, err := thumbnail.FetchMetadata(r.Context(), bookmarkURL)
 		if err == nil && meta.OGImage != "" {
-			h.Store.UpdateBookmark(r.Context(), model.UpdateBookmarkParams{
+			if err := h.Store.UpdateBookmark(r.Context(), model.UpdateBookmarkParams{
 				ID: b.ID, Url: b.Url, Title: b.Title, Description: b.Description,
 				ThumbnailUrl: meta.OGImage, ShaarliShortUrl: b.ShaarliShortUrl,
 				UpdatedAt: time.Now().UTC(),
-			})
+			}); err != nil {
+				log.Printf("failed to update thumbnail: %v", err)
+			}
 		}
 	}()
 
@@ -146,7 +152,10 @@ func (h *Handler) AdminUpdateBookmark(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	r.ParseForm()
+	if err = r.ParseForm(); err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
 	err = h.Store.UpdateBookmark(r.Context(), model.UpdateBookmarkParams{
 		ID:              b.ID,
 		Url:             strings.TrimSpace(r.FormValue("url")),
@@ -171,13 +180,19 @@ func (h *Handler) AdminUpdateBookmark(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) AdminDeleteBookmark(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	h.Store.DeleteBookmark(r.Context(), id)
+	if err := h.Store.DeleteBookmark(r.Context(), id); err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 	setFlash(w, "Bookmark deleted")
 	http.Redirect(w, r, "/admin/bookmarks", http.StatusFound)
 }
 
 func (h *Handler) AdminDeleteAllBookmarks(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
 	if r.FormValue("confirmation") != "DELETE ALL BOOKMARKS" {
 		setFlash(w, "Confirmation text did not match")
 		http.Redirect(w, r, "/admin/settings?tab=danger", http.StatusFound)

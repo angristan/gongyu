@@ -7,10 +7,17 @@ import (
 	"testing"
 )
 
-func TestFetchMetadata(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func serveHTML(html string) *httptest.Server {
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
-		w.Write([]byte(`<!DOCTYPE html>
+		if _, err := w.Write([]byte(html)); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	}))
+}
+
+func TestFetchMetadata(t *testing.T) {
+	srv := serveHTML(`<!DOCTYPE html>
 <html>
 <head>
 	<title>Page Title</title>
@@ -20,8 +27,7 @@ func TestFetchMetadata(t *testing.T) {
 	<meta name="description" content="Meta description">
 </head>
 <body></body>
-</html>`))
-	}))
+</html>`)
 	defer srv.Close()
 
 	meta, err := FetchMetadata(context.Background(), srv.URL)
@@ -41,9 +47,7 @@ func TestFetchMetadata(t *testing.T) {
 }
 
 func TestFetchMetadataFallbackToTitle(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`<html><head><title>Fallback Title</title></head></html>`))
-	}))
+	srv := serveHTML(`<html><head><title>Fallback Title</title></head></html>`)
 	defer srv.Close()
 
 	meta, err := FetchMetadata(context.Background(), srv.URL)
@@ -57,9 +61,7 @@ func TestFetchMetadataFallbackToTitle(t *testing.T) {
 }
 
 func TestFetchMetadataFallbackToMetaDescription(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`<html><head><meta name="description" content="Meta desc"></head></html>`))
-	}))
+	srv := serveHTML(`<html><head><meta name="description" content="Meta desc"></head></html>`)
 	defer srv.Close()
 
 	meta, err := FetchMetadata(context.Background(), srv.URL)
@@ -73,9 +75,7 @@ func TestFetchMetadataFallbackToMetaDescription(t *testing.T) {
 }
 
 func TestFetchMetadataRelativeOGImage(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`<html><head><meta property="og:image" content="/images/thumb.png"></head></html>`))
-	}))
+	srv := serveHTML(`<html><head><meta property="og:image" content="/images/thumb.png"></head></html>`)
 	defer srv.Close()
 
 	meta, err := FetchMetadata(context.Background(), srv.URL)
@@ -90,9 +90,7 @@ func TestFetchMetadataRelativeOGImage(t *testing.T) {
 }
 
 func TestFetchMetadataEmptyPage(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(""))
-	}))
+	srv := serveHTML("")
 	defer srv.Close()
 
 	meta, err := FetchMetadata(context.Background(), srv.URL)
@@ -106,9 +104,7 @@ func TestFetchMetadataEmptyPage(t *testing.T) {
 }
 
 func TestFetchMetadataHTMLEntityDecoding(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`<html><head><title>Tom &amp; Jerry</title></head></html>`))
-	}))
+	srv := serveHTML(`<html><head><title>Tom &amp; Jerry</title></head></html>`)
 	defer srv.Close()
 
 	meta, err := FetchMetadata(context.Background(), srv.URL)

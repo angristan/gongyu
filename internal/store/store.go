@@ -27,19 +27,23 @@ func Open(connStr string) (*Store, error) {
 		return nil, fmt.Errorf("open database: %w", err)
 	}
 
+	closeOnErr := func(origErr error) error {
+		if cerr := sqlDB.Close(); cerr != nil {
+			return fmt.Errorf("%w (also failed to close db: %v)", origErr, cerr)
+		}
+		return origErr
+	}
+
 	if err := sqlDB.Ping(); err != nil {
-		sqlDB.Close()
-		return nil, fmt.Errorf("ping database: %w", err)
+		return nil, closeOnErr(fmt.Errorf("ping database: %w", err))
 	}
 
 	goose.SetBaseFS(migrationsFS)
 	if err := goose.SetDialect("postgres"); err != nil {
-		sqlDB.Close()
-		return nil, fmt.Errorf("set dialect: %w", err)
+		return nil, closeOnErr(fmt.Errorf("set dialect: %w", err))
 	}
 	if err := goose.Up(sqlDB, "migrations", goose.WithAllowMissing()); err != nil {
-		sqlDB.Close()
-		return nil, fmt.Errorf("run migrations: %w", err)
+		return nil, closeOnErr(fmt.Errorf("run migrations: %w", err))
 	}
 	log.Println("database migrations applied")
 
@@ -143,7 +147,11 @@ func (s *Store) BulkImportBookmarks(ctx context.Context, bookmarks []model.Bookm
 	if err != nil {
 		return 0, 0, err
 	}
-	defer tx.Rollback()
+	defer func() {
+		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
+			log.Printf("failed to rollback transaction: %v", err)
+		}
+	}()
 
 	qtx := s.q.WithTx(tx)
 	for _, b := range bookmarks {
@@ -246,7 +254,11 @@ func (s *Store) SearchBookmarks(ctx context.Context, query string, page, perPage
 	if err != nil {
 		return s.searchILike(ctx, query, page, perPage)
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("failed to close rows: %v", err)
+		}
+	}()
 
 	bookmarks, err := scanBookmarks(rows)
 	if err != nil {
@@ -294,7 +306,11 @@ func (s *Store) searchILike(ctx context.Context, query string, page, perPage int
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("failed to close rows: %v", err)
+		}
+	}()
 
 	bookmarks, err := scanBookmarks(rows)
 	if err != nil {
