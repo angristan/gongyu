@@ -11,9 +11,10 @@ import (
 
 // LayoutData holds common data rendered by the layout wrapper.
 type LayoutData struct {
-	User    *model.User
-	BaseURL string
-	Flash   string
+	User          *model.User
+	BaseURL       string
+	Flash         string
+	StaticVersion string
 }
 
 type HomeData struct {

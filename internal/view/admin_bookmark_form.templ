@@ -3,7 +3,7 @@ package view
 import "fmt"
 
 templ AdminBookmarkFormPage(data BookmarkFormData) {
-	@Layout(formTitle(data.IsCreate), data.User, data.BaseURL, data.Flash) {
+	@Layout(formTitle(data.IsCreate), data.User, data.BaseURL, data.Flash, data.StaticVersion) {
 		<div class="mb-2">
 			<a href="/admin/bookmarks">&larr; Back to bookmarks</a>
 		</div>

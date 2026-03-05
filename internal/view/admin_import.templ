@@ -1,7 +1,7 @@
 package view
 
 templ AdminImportPage(data ImportData) {
-	@Layout("Import", data.User, data.BaseURL, data.Flash) {
+	@Layout("Import", data.User, data.BaseURL, data.Flash, data.StaticVersion) {
 		<div class="mb-2">
 			<a href="/admin/settings?tab=import">&larr; Back to settings</a>
 		</div>

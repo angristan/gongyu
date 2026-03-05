@@ -11,8 +11,8 @@ import (
 func (h *Handler) Routes() http.Handler {
 	mux := http.NewServeMux()
 
-	// Static files
-	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.FS(h.StaticFS))))
+	// Static files with immutable cache headers (cache-busted via ?v= query param)
+	mux.Handle("GET /static/", cacheControl(http.StripPrefix("/static/", http.FileServer(http.FS(h.StaticFS)))))
 
 	// Health check
 	mux.HandleFunc("GET /healthz", h.Healthz)

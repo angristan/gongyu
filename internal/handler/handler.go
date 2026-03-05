@@ -1,7 +1,9 @@
 package handler
 
 import (
+	"crypto/sha256"
 	"embed"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/fs"
@@ -21,7 +23,8 @@ type Handler struct {
 	EncKey  []byte
 	BaseURL string
 
-	StaticFS fs.FS
+	StaticFS      fs.FS
+	StaticVersion string // content hash for cache busting
 }
 
 // New creates a Handler.
@@ -32,19 +35,39 @@ func New(store model.Store, encKey []byte, baseURL string, staticFS embed.FS) *H
 	}
 
 	return &Handler{
-		Store:    store,
-		EncKey:   encKey,
-		BaseURL:  strings.TrimRight(baseURL, "/"),
-		StaticFS: staticSub,
+		Store:         store,
+		EncKey:        encKey,
+		BaseURL:       strings.TrimRight(baseURL, "/"),
+		StaticFS:      staticSub,
+		StaticVersion: hashFS(staticSub),
 	}
 }
 
 func (h *Handler) layoutData(w http.ResponseWriter, r *http.Request) view.LayoutData {
 	return view.LayoutData{
-		User:    auth.UserFromContext(r.Context()),
-		BaseURL: h.BaseURL,
-		Flash:   getFlash(w, r),
+		User:          auth.UserFromContext(r.Context()),
+		BaseURL:       h.BaseURL,
+		Flash:         getFlash(w, r),
+		StaticVersion: h.StaticVersion,
 	}
+}
+
+// hashFS computes a short content hash of all files in the FS.
+func hashFS(fsys fs.FS) string {
+	h := sha256.New()
+	fs.WalkDir(fsys, ".", func(path string, d fs.DirEntry, err error) error { //nolint:errcheck
+		if err != nil || d.IsDir() {
+			return nil
+		}
+		data, err := fs.ReadFile(fsys, path)
+		if err != nil {
+			return nil
+		}
+		h.Write([]byte(path))
+		h.Write(data)
+		return nil
+	})
+	return hex.EncodeToString(h.Sum(nil))[:12]
 }
 
 func (h *Handler) render(w http.ResponseWriter, r *http.Request, component templ.Component) {

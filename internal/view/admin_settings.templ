@@ -3,7 +3,7 @@ package view
 import "fmt"
 
 templ AdminSettingsPage(data SettingsData) {
-	@Layout("Settings", data.User, data.BaseURL, data.Flash) {
+	@Layout("Settings", data.User, data.BaseURL, data.Flash, data.StaticVersion) {
 		<div class="flex-between mb-2">
 			<h1 style="margin-bottom:0">Settings</h1>
 			<a href="/admin/dashboard" class="btn btn-secondary btn-sm">&larr; Dashboard</a>

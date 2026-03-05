@@ -3,7 +3,7 @@ package view
 import "fmt"
 
 templ AdminBookmarksPage(data AdminBookmarksData) {
-	@Layout("Bookmarks", data.User, data.BaseURL, data.Flash) {
+	@Layout("Bookmarks", data.User, data.BaseURL, data.Flash, data.StaticVersion) {
 		<div class="flex-between mb-2">
 			<h1 style="margin-bottom:0">Bookmarks</h1>
 			<a href="/admin/bookmarks/create" class="btn btn-primary btn-sm">+ Add Bookmark</a>

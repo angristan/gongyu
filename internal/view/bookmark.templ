@@ -3,7 +3,7 @@ package view
 import "fmt"
 
 templ BookmarkPage(data BookmarkPageData) {
-	@Layout(data.Bookmark.Title, data.User, data.BaseURL, data.Flash) {
+	@Layout(data.Bookmark.Title, data.User, data.BaseURL, data.Flash, data.StaticVersion) {
 		<div class="mb-2">
 			<a href="/">&larr; All bookmarks</a>
 		</div>

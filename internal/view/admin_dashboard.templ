@@ -3,7 +3,7 @@ package view
 import "fmt"
 
 templ AdminDashboardPage(data DashboardData) {
-	@Layout("Dashboard", data.User, data.BaseURL, data.Flash) {
+	@Layout("Dashboard", data.User, data.BaseURL, data.Flash, data.StaticVersion) {
 		<div class="flex-between mb-2">
 			<h1 style="margin-bottom:0">Dashboard</h1>
 			<div class="flex gap-1">
