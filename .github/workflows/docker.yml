@@ -1,6 +1,6 @@
 name: Docker image
 
-on: push
+on: [push]
 
 env:
   REGISTRY: ghcr.io
