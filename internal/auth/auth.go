@@ -63,10 +63,18 @@ func Login(w http.ResponseWriter, r *http.Request, store model.Store, user *mode
 		Path:     "/",
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
-		Secure:   r.TLS != nil,
+		Secure:   isHTTPS(r),
 		MaxAge:   int(maxAge.Seconds()),
 	})
 	return nil
+}
+
+func isHTTPS(r *http.Request) bool {
+	if r.TLS != nil {
+		return true
+	}
+	proto := r.Header.Get("X-Forwarded-Proto")
+	return proto == "https"
 }
 
 func Logout(w http.ResponseWriter, r *http.Request, store model.Store) {
