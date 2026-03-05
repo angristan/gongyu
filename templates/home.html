@@ -1,0 +1,63 @@
+{{define "content"}}
+<div class="search-bar">
+    <form method="GET" action="/" style="display:flex;gap:0.5rem;width:100%">
+        <input type="search" name="q" value="{{.Query}}" placeholder="Search bookmarks..." autofocus>
+        <button type="submit" class="btn btn-primary">Search</button>
+    </form>
+</div>
+
+{{if .Query}}
+    <p class="text-muted text-sm mb-2">{{.Total}} result{{if ne .Total 1}}s{{end}} for "{{.Query}}"</p>
+{{end}}
+
+<div class="card" style="padding:0">
+    {{if .Bookmarks}}
+        {{range .Bookmarks}}
+        <div class="bookmark-card">
+            {{if .ThumbnailUrl}}
+                <img src="{{.ThumbnailUrl}}" alt="" class="bookmark-thumb" loading="lazy">
+            {{end}}
+            <div class="bookmark-info">
+                <a href="{{.Url}}" class="bookmark-title" target="_blank" rel="noopener">{{.Title}}</a>
+                {{if .Description}}
+                    <p class="bookmark-desc">{{.Description}}</p>
+                {{end}}
+                <div class="bookmark-meta">
+                    <span class="badge">{{domain .Url}}</span>
+                    <span>{{timeago .CreatedAt}}</span>
+                    <a href="/b/{{.ShortUrl}}" style="font-size:0.8rem">permalink</a>
+                </div>
+            </div>
+        </div>
+        {{end}}
+    {{else}}
+        <div style="padding:2rem;text-align:center">
+            <p class="text-muted">No bookmarks found.</p>
+        </div>
+    {{end}}
+</div>
+
+{{if gt .LastPage 1}}
+<div class="pagination">
+    {{if gt .Page 1}}
+        <a href="?q={{queryEscape .Query}}&page={{sub .Page 1}}">&laquo; Prev</a>
+    {{end}}
+
+    {{$currentPage := .Page}}
+    {{$query := .Query}}
+    {{range seq 1 .LastPage}}
+        {{if eq . $currentPage}}
+            <span class="active">{{.}}</span>
+        {{else}}
+            <a href="?q={{queryEscape $query}}&page={{.}}">{{.}}</a>
+        {{end}}
+    {{end}}
+
+    {{if lt .Page .LastPage}}
+        <a href="?q={{queryEscape .Query}}&page={{add .Page 1}}">Next &raquo;</a>
+    {{end}}
+</div>
+{{end}}
+{{end}}
+
+{{template "layout" .}}

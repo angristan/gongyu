@@ -1,0 +1,85 @@
+{{define "content"}}
+<div class="mb-2">
+    <a href="/admin/bookmarks">&larr; Back to bookmarks</a>
+</div>
+
+<div class="card" style="max-width:600px">
+    <h1>{{if .IsCreate}}Add Bookmark{{else}}Edit Bookmark{{end}}</h1>
+
+    {{if .Errors}}
+        <ul class="error-list">
+            {{range .Errors}}<li>{{.}}</li>{{end}}
+        </ul>
+    {{end}}
+
+    {{if .Existing}}
+        <div class="flash" style="background:#fffff0;border-color:#fefcbf;color:#975a16">
+            This URL already exists: <a href="/b/{{.Existing.ShortUrl}}">{{.Existing.Title}}</a>
+            (<a href="/admin/bookmarks/{{.Existing.ID}}/edit">edit</a>)
+        </div>
+    {{end}}
+
+    <form method="POST" action="{{if .IsCreate}}/admin/bookmarks{{else}}/admin/bookmarks/{{.Bookmark.ID}}{{end}}" id="bookmark-form">
+        <div class="form-group">
+            <label for="url">URL</label>
+            <input type="url" id="url" name="url" value="{{if .Form}}{{index .Form "url"}}{{end}}" required
+                   placeholder="https://example.com"
+                   hx-post="/admin/bookmarks/fetch-metadata"
+                   hx-trigger="blur changed delay:300ms"
+                   hx-target="#metadata-result"
+                   hx-vals='js:{"url": document.getElementById("url").value}'
+                   hx-headers='{"Content-Type": "application/json"}'
+                   hx-ext="json-enc">
+        </div>
+
+        <div class="form-group">
+            <label for="title">Title</label>
+            <input type="text" id="title" name="title" value="{{if .Form}}{{index .Form "title"}}{{end}}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="description">Description</label>
+            <textarea id="description" name="description">{{if .Form}}{{index .Form "description"}}{{end}}</textarea>
+        </div>
+
+        {{if and .IsCreate .HasSocial}}
+        <div class="form-group checkbox-group">
+            <input type="checkbox" id="share" name="share">
+            <label for="share" style="margin-bottom:0">Share to social media</label>
+        </div>
+        {{end}}
+
+        <div class="flex gap-1">
+            <button type="submit" class="btn btn-primary">
+                {{if .IsCreate}}Save Bookmark{{else}}Update Bookmark{{end}}
+            </button>
+
+            {{if not .IsCreate}}
+            <form method="POST" action="/admin/bookmarks/{{.Bookmark.ID}}/delete" class="inline-form"
+                  onsubmit="return confirm('Delete this bookmark?')">
+                <button type="submit" class="btn btn-danger">Delete</button>
+            </form>
+            {{end}}
+        </div>
+    </form>
+
+    <div id="metadata-result"></div>
+</div>
+
+<script>
+// Auto-fill title and description from metadata fetch
+document.body.addEventListener('htmx:afterRequest', function(e) {
+    if (e.detail.pathInfo && e.detail.pathInfo.requestPath === '/admin/bookmarks/fetch-metadata') {
+        try {
+            const data = JSON.parse(e.detail.xhr.responseText);
+            const titleInput = document.getElementById('title');
+            const descInput = document.getElementById('description');
+            if (data.title && !titleInput.value) titleInput.value = data.title;
+            if (data.description && !descInput.value) descInput.value = data.description;
+        } catch(e) {}
+    }
+});
+</script>
+{{end}}
+
+{{template "layout" .}}

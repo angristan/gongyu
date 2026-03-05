@@ -1,0 +1,11 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    queries: "queries"
+    schema: "migrations"
+    gen:
+      go:
+        package: "pgdb"
+        out: "internal/store/postgres/pgdb"
+        emit_json_tags: true
+        emit_empty_slices: true
