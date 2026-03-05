@@ -1,0 +1,396 @@
+package view
+
+import "gongyu/internal/model"
+
+templ layout(app AppInfo, title string, user *model.User, flash Flash, body templ.Component) {
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>{ title } - { app.Name }</title>
+        <link rel="icon" href="/static/favicon.ico" />
+        <link rel="stylesheet" href="/static/app.css" />
+        <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    </head>
+    <body>
+        <div class="page-grain"></div>
+        <div class="page-bg page-bg-one"></div>
+        <div class="page-bg page-bg-two"></div>
+        <header class="site-header">
+            <div class="container header-row">
+                <a class="brand" href="/">
+                    <span class="brand-mark"></span>
+                    <img class="brand-logo" src="/static/logo.png" alt={ app.Name + " logo" } />
+                    <span>{ app.Name }</span>
+                </a>
+                <nav class="header-nav">
+                    if user == nil {
+                        <a class="nav-pill" href="/login">Login</a>
+                    } else {
+                        <a class="nav-pill" href="/admin/dashboard">Dashboard</a>
+                        <a class="nav-pill" href="/admin/bookmarks">Bookmarks</a>
+                        <a class="nav-pill" href="/admin/settings">Settings</a>
+                        <a class="nav-pill danger-pill" href="/logout">Logout</a>
+                    }
+                </nav>
+            </div>
+        </header>
+
+        <main class="container main-shell">
+            if flash.Success != "" {
+                <div class="flash success">{ flash.Success }</div>
+            }
+            if flash.Error != "" {
+                <div class="flash error">{ flash.Error }</div>
+            }
+            @body
+        </main>
+        <footer class="container site-footer">
+            <span>Powered by Gongyu</span>
+            <a href="/feed">Atom Feed</a>
+        </footer>
+    </body>
+</html>
+}
+
+templ PublicIndex(data PublicIndexData) {
+    @layout(data.App, "Bookmarks", data.User, data.Flash, publicIndexBody(data))
+}
+
+templ publicIndexBody(data PublicIndexData) {
+    <section class="card hero-card">
+        <span class="eyebrow">Public Library</span>
+        <h1>Bookmarks</h1>
+        <p class="hero-subtitle">Curated links, archived with context and ready to revisit.</p>
+        <div class="hero-stats">
+            <div class="hero-stat">
+                <strong>{ int64ToString(data.Bookmarks.Total) }</strong>
+                <span>Total bookmarks</span>
+            </div>
+            <div class="hero-stat">
+                <strong>{ intToString(maxInt(data.Bookmarks.TotalPages, 1)) }</strong>
+                <span>Pages</span>
+            </div>
+        </div>
+        <form method="get" action="/search" class="search-form" hx-get="/partials/public-bookmarks" hx-target="#public-bookmark-list" hx-push-url="true" hx-trigger="input delay:300ms from:#q, submit">
+            <input id="q" name="q" value={ data.Bookmarks.Search } placeholder="Search bookmarks..." />
+            <button type="submit">Search</button>
+        </form>
+    </section>
+    <div id="public-bookmark-list">
+        @BookmarkListPartial(data.Bookmarks, false, "")
+    </div>
+}
+
+templ PublicBookmark(data PublicBookmarkData) {
+    @layout(data.App, data.Bookmark.Title, data.User, data.Flash, publicBookmarkBody(data.Bookmark))
+}
+
+templ publicBookmarkBody(bookmark model.Bookmark) {
+    <article class="card spotlight-card">
+        <h1>{ bookmark.Title }</h1>
+        if bookmark.Description != "" {
+            <p>{ bookmark.Description }</p>
+        }
+        <p><a class="external-link" href={ bookmark.URL } target="_blank" rel="noopener noreferrer">{ bookmark.URL }</a></p>
+        if bookmark.ThumbnailURL != "" {
+            <img src={ bookmark.ThumbnailURL } alt={ bookmark.Title } class="bookmark-thumb" />
+        }
+    </article>
+}
+
+templ Login(data LoginData) {
+    @layout(data.App, "Login", nil, data.Flash, loginBody(data))
+}
+
+templ loginBody(data LoginData) {
+    <section class="card narrow">
+        <h1>Login</h1>
+        if data.ErrorText != "" {
+            <div class="field-error">{ data.ErrorText }</div>
+        }
+        <form method="post" action="/login" class="stack-form">
+            <input type="hidden" name="_csrf" value={ data.CSRFToken } />
+            <label>Email
+                <input type="email" name="email" value={ data.Email } required />
+            </label>
+            <label>Password
+                <input type="password" name="password" required />
+            </label>
+            <label class="checkbox-row"><input type="checkbox" name="remember" value="1" /> Remember me</label>
+            <button type="submit">Login</button>
+        </form>
+    </section>
+}
+
+templ Setup(data SetupData) {
+    @layout(data.App, "Setup", nil, data.Flash, setupBody(data))
+}
+
+templ setupBody(data SetupData) {
+    <section class="card narrow">
+        <h1>Setup Admin Account</h1>
+        if data.ErrorText != "" {
+            <div class="field-error">{ data.ErrorText }</div>
+        }
+        <form method="post" action="/setup" class="stack-form">
+            <input type="hidden" name="_csrf" value={ data.CSRFToken } />
+            <label>Name
+                <input type="text" name="name" required />
+            </label>
+            <label>Email
+                <input type="email" name="email" required />
+            </label>
+            <label>Password
+                <input type="password" name="password" minlength="8" required />
+            </label>
+            <label>Confirm password
+                <input type="password" name="password_confirmation" minlength="8" required />
+            </label>
+            <button type="submit">Create Admin</button>
+        </form>
+    </section>
+}
+
+templ AdminBookmarks(data AdminBookmarksData) {
+    @layout(data.App, "Admin Bookmarks", data.User, data.Flash, adminBookmarksBody(data))
+}
+
+templ adminBookmarksBody(data AdminBookmarksData) {
+    <section class="card hero-card">
+        <span class="eyebrow">Admin</span>
+        <div class="card-row">
+            <h1>Bookmarks</h1>
+            <a class="button-link" href="/admin/bookmarks/create">New Bookmark</a>
+        </div>
+        <form method="get" action="/admin/bookmarks" class="search-form" hx-get="/partials/admin-bookmarks" hx-target="#admin-bookmark-list" hx-push-url="true" hx-trigger="input delay:300ms from:#admin-q, submit">
+            <input id="admin-q" name="q" value={ data.Bookmarks.Search } placeholder="Search bookmarks..." />
+            <button type="submit">Search</button>
+        </form>
+    </section>
+    <div id="admin-bookmark-list">
+        @BookmarkListPartial(data.Bookmarks, true, data.CSRFToken)
+    </div>
+}
+
+templ BookmarkListPartial(page model.BookmarkPage, admin bool, csrfToken string) {
+    <section class="card">
+        if len(page.Items) == 0 {
+            <div class="empty-state">
+                <h3>No bookmarks found</h3>
+                <p>Try a different search term or clear filters.</p>
+            </div>
+        } else {
+            <div class="bookmark-grid">
+                for _, bookmark := range page.Items {
+                    <article class="bookmark-item">
+                        <div class="bookmark-layout">
+                            if bookmark.ThumbnailURL != "" {
+                                <img src={ bookmark.ThumbnailURL } alt={ bookmark.Title } class="bookmark-list-thumb" />
+                            } else {
+                                <div class="bookmark-list-thumb thumb-fallback">
+                                    <img src={ faviconURL(bookmark.URL) } alt={ domainFromURL(bookmark.URL) + " favicon" } class="bookmark-favicon" />
+                                    <span>{ domainFromURL(bookmark.URL) }</span>
+                                </div>
+                            }
+                            <div class="bookmark-main">
+                                <h3><a class="bookmark-title-link" href={ bookmark.URL } target="_blank" rel="noopener noreferrer">{ bookmark.Title }</a></h3>
+                                if bookmark.Description != "" {
+                                    <p>{ bookmark.Description }</p>
+                                }
+                            </div>
+                        </div>
+                        <div class="bookmark-meta">
+                            <span class="chip-link">{ domainFromURL(bookmark.URL) }</span>
+                            <a class="chip-link subtle" href={ "/b/" + bookmark.ShortURL }>/b/{ bookmark.ShortURL }</a>
+                            <span>{ formatDate(bookmark.CreatedAt) }</span>
+                        </div>
+                        if admin {
+                            <div class="bookmark-actions">
+                                <a href={ "/admin/bookmarks/" + bookmark.ShortURL + "/edit" }>Edit</a>
+                                <form method="post" action={ "/admin/bookmarks/" + bookmark.ShortURL + "/delete" }>
+                                    <input type="hidden" name="_csrf" value={ csrfToken } />
+                                    <button type="submit" class="btn-link danger">Delete</button>
+                                </form>
+                            </div>
+                        }
+                    </article>
+                }
+            </div>
+        }
+        <div class="pagination">
+            <span>Page { intToString(page.Page) } / { intToString(maxInt(page.TotalPages, 1)) }</span>
+            if page.Page > 1 {
+                if admin {
+                    <a href={ paginationURL("/admin/bookmarks", page.Search, page.Page-1) }>Previous</a>
+                } else {
+                    <a href={ paginationURL("/", page.Search, page.Page-1) }>Previous</a>
+                }
+            }
+            if page.Page < page.TotalPages {
+                if admin {
+                    <a href={ paginationURL("/admin/bookmarks", page.Search, page.Page+1) }>Next</a>
+                } else {
+                    <a href={ paginationURL("/", page.Search, page.Page+1) }>Next</a>
+                }
+            }
+        </div>
+    </section>
+}
+
+templ BookmarkForm(data BookmarkFormData) {
+    @layout(data.App, data.SubmitLabel, data.User, data.Flash, bookmarkFormBody(data))
+}
+
+templ bookmarkFormBody(data BookmarkFormData) {
+    <section class="card narrow">
+        <h1>{ data.SubmitLabel }</h1>
+        <form method="post" action={ data.Action } class="stack-form">
+            <input type="hidden" name="_csrf" value={ data.CSRFToken } />
+            <label>URL
+                <input type="url" name="url" value={ valueFromBookmarkOrPrefill(data.Bookmark, "url", data.PrefillURL) } required maxlength="2048" />
+            </label>
+            <label>Title
+                <input type="text" name="title" value={ valueFromBookmarkOrPrefill(data.Bookmark, "title", data.PrefillTitle) } required maxlength="500" />
+            </label>
+            <label>Description
+                <textarea name="description" rows="4">{ valueFromBookmarkOrPrefill(data.Bookmark, "description", data.PrefillDesc) }</textarea>
+            </label>
+            if data.HasSocialShare {
+                <label class="checkbox-row"><input type="checkbox" name="share_social" value="1" /> Share to social media</label>
+            }
+            <button type="submit">{ data.SubmitLabel }</button>
+        </form>
+    </section>
+}
+
+templ Dashboard(data DashboardData) {
+    @layout(data.App, "Dashboard", data.User, data.Flash, dashboardBody(data))
+}
+
+templ dashboardBody(data DashboardData) {
+    <section class="card hero-card">
+        <span class="eyebrow">Admin</span>
+        <h1>Dashboard</h1>
+        <div class="stats-grid">
+            <div><strong>{ int64ToString(data.Stats.TotalBookmarks) }</strong><span>Total</span></div>
+            <div><strong>{ int64ToString(data.Stats.BookmarksThisMonth) }</strong><span>This month</span></div>
+            <div><strong>{ int64ToString(data.Stats.BookmarksThisWeek) }</strong><span>This week</span></div>
+        </div>
+    </section>
+    <section class="card">
+        <h2>Bookmarks Over Time</h2>
+        if len(data.Stats.BookmarksOverTime) == 0 {
+            <p class="muted">No activity data yet.</p>
+        } else {
+            <div class="trend-chart">
+                for _, point := range data.Stats.BookmarksOverTime {
+                    <div class="trend-column" title={ point.Date + ": " + int64ToString(point.Count) }>
+                        <div class="trend-bar" style={ barHeightStyle(point.Count, maxTimeBucketCount(data.Stats.BookmarksOverTime)) }></div>
+                    </div>
+                }
+            </div>
+            <div class="trend-axis">
+                <span>{ firstBucketLabel(data.Stats.BookmarksOverTime) }</span>
+                <span>{ lastBucketLabel(data.Stats.BookmarksOverTime) }</span>
+            </div>
+        }
+    </section>
+    <section class="card">
+        <h2>Top Domains</h2>
+        if len(data.Stats.BookmarksByDomain) == 0 {
+            <p class="muted">No domains yet.</p>
+        } else {
+            <div class="domain-chart">
+                for _, item := range data.Stats.BookmarksByDomain {
+                    <div class="domain-row">
+                        <span class="domain-label">{ item.Domain }</span>
+                        <div class="domain-track">
+                            <div class="domain-fill" style={ barWidthStyle(item.Count, maxDomainCount(data.Stats.BookmarksByDomain)) }></div>
+                        </div>
+                        <span class="domain-value">{ int64ToString(item.Count) }</span>
+                    </div>
+                }
+            </div>
+        }
+    </section>
+    <section class="card">
+        <h2>Recent</h2>
+        <ul>
+            for _, bookmark := range data.Stats.RecentBookmarks {
+                <li><a href={ bookmark.URL } target="_blank" rel="noopener noreferrer">{ bookmark.Title }</a> ({ formatDate(bookmark.CreatedAt) })</li>
+            }
+        </ul>
+    </section>
+}
+
+templ Settings(data SettingsData) {
+    @layout(data.App, "Settings", data.User, data.Flash, settingsBody(data))
+}
+
+templ settingsBody(data SettingsData) {
+    <section class="card hero-card">
+        <span class="eyebrow">Admin</span>
+        <h1>Settings</h1>
+        <form method="post" action="/admin/settings" class="stack-form">
+            <input type="hidden" name="_csrf" value={ data.CSRFToken } />
+            <h3>Twitter</h3>
+            <input name="twitter_api_key" value={ data.Settings["twitter_api_key"] } placeholder="API key" />
+            <input name="twitter_api_secret" value={ data.Settings["twitter_api_secret"] } placeholder="API secret" />
+            <input name="twitter_access_token" value={ data.Settings["twitter_access_token"] } placeholder="Access token" />
+            <input name="twitter_access_secret" value={ data.Settings["twitter_access_secret"] } placeholder="Access secret" />
+            <h3>Mastodon</h3>
+            <input name="mastodon_instance" value={ data.Settings["mastodon_instance"] } placeholder="https://mastodon.social" />
+            <input name="mastodon_access_token" value={ data.Settings["mastodon_access_token"] } placeholder="Access token" />
+            <h3>Bluesky</h3>
+            <input name="bluesky_handle" value={ data.Settings["bluesky_handle"] } placeholder="handle.bsky.social" />
+            <input name="bluesky_app_password" value={ data.Settings["bluesky_app_password"] } placeholder="App password" />
+            <button type="submit">Save Settings</button>
+        </form>
+    </section>
+
+    <section class="card">
+        <h2>Import</h2>
+        <form method="post" action="/admin/import" enctype="multipart/form-data" class="stack-form">
+            <input type="hidden" name="_csrf" value={ data.CSRFToken } />
+            <input type="hidden" name="import_type" value="html" />
+            <label>HTML bookmarks file<input type="file" name="file" required /></label>
+            <button type="submit">Import HTML</button>
+        </form>
+        <form method="post" action="/admin/import" enctype="multipart/form-data" class="stack-form">
+            <input type="hidden" name="_csrf" value={ data.CSRFToken } />
+            <input type="hidden" name="import_type" value="datastore" />
+            <label>Shaarli datastore file<input type="file" name="file" required /></label>
+            <button type="submit">Import Datastore</button>
+        </form>
+        <form method="post" action="/admin/import" class="stack-form">
+            <input type="hidden" name="_csrf" value={ data.CSRFToken } />
+            <input type="hidden" name="import_type" value="api" />
+            <input name="shaarli_url" placeholder="https://links.example.com" required />
+            <input name="api_secret" placeholder="API secret" required />
+            <button type="submit">Import from API</button>
+        </form>
+        <form method="post" action="/admin/import" enctype="multipart/form-data" class="stack-form">
+            <input type="hidden" name="_csrf" value={ data.CSRFToken } />
+            <input type="hidden" name="import_type" value="gongyu" />
+            <label>Gongyu JSON backup<input type="file" name="file" required /></label>
+            <button type="submit">Restore JSON</button>
+        </form>
+    </section>
+
+    <section class="card">
+        <h2>Export</h2>
+        <a class="button-link" href="/admin/export?format=html">Download HTML</a>
+        <a class="button-link" href="/admin/export?format=json">Download JSON</a>
+    </section>
+
+    <section class="card danger-zone">
+        <h2>Danger Zone</h2>
+        <p>Delete all bookmarks ({ int64ToString(data.BookmarkCount) } total).</p>
+        <form method="post" action="/admin/bookmarks/all/delete">
+            <input type="hidden" name="_csrf" value={ data.CSRFToken } />
+            <button type="submit" class="danger">Delete All Bookmarks</button>
+        </form>
+    </section>
+}

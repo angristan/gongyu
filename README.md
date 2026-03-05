@@ -1,143 +1,86 @@
 <p align="center">
-  <img src="public/images/logo.png" alt="Gongyu" width="120" height="120">
+  <img src="static/logo.png" alt="Gongyu" width="120" height="120">
 </p>
 
-# Gongyu
+# Gongyu (Go Rewrite)
 
-A modern, self-hosted, single-tenant bookmark manager inspired by [Shaarli](https://github.com/shaarli/Shaarli). Built with Laravel 12, React, Mantine UI, and Inertia.js.
+A full Go rewrite of Gongyu using:
+
+- Go 1.26
+- stdlib `net/http` router/middleware
+- SQL (`database/sql`) with SQLite or PostgreSQL
+- `templ` for server-side UI components
+- `htmx` for progressive interactivity
 
 ## Features
 
-- **Bookmark Management** - Save, organize, and search your bookmarks
-- **Full-Text Search** - Fast search powered by SQLite FTS5 or PostgreSQL tsvector
-- **OpenGraph Thumbnails** - Automatically fetches og:image from bookmarked URLs for visual previews
-- **Bookmarklet** - Quick-add bookmarks from any page with a browser bookmarklet
-- **Shaarli Migration** - Three import methods: API, Database file, or HTML export
-- **Export** - Download bookmarks as HTML (Netscape format) or JSON
-- **Legacy URL Support** - 301 redirects from old Shaarli URLs (`/shaare/{hash}`)
-- **Atom Feed** - Subscribe to your bookmarks at `/feed`
-- **Social Sharing** - Optional auto-posting to Twitter, Mastodon, and Bluesky
-- **Dashboard** - Stats and visualizations of your bookmark collection
-- **Cozy Theme** - Warm, paper-textured aesthetic with automatic dark/light mode
-
-## Tech Stack
-
-- **Backend**: Laravel 12, PHP 8.4+, [Laravel Actions](https://laravelactions.com/)
-- **Frontend**: React 18, TypeScript, [Mantine 8](https://mantine.dev/), Inertia.js with SSR
-- **Database**: SQLite or PostgreSQL (both fully supported)
+- Public bookmarks index/search (`/`, `/search`)
+- Single bookmark pages (`/b/{shortUrl}`)
+- Legacy Shaarli redirects (`/shaare/{hash}`)
+- Atom feed (`/feed`)
+- Setup flow (`/setup`)
+- Session auth (`/login`, `/logout`)
+- Admin dashboard/bookmark CRUD/settings/import/export
+- Metadata fetching + OG thumbnail extraction
+- Social posting (Twitter, Mastodon, Bluesky)
+- Shaarli imports (HTML/API/datastore) + Gongyu JSON restore
 
 ## Requirements
 
-- PHP 8.4+
-- Node.js 20+
-- Composer
-- SQLite or PostgreSQL
+- Go 1.26+
+- SQLite (default) or PostgreSQL
 
-## Installation
+## Quick Start
 
 ```bash
-# Clone the repository
-git clone https://github.com/your-username/gongyu.git
-cd gongyu
+go mod tidy
 
-# Install dependencies
-composer install
-npm install
+echo 'SESSION_SECRET=replace-me-with-a-long-random-string' > .env
+echo 'SETTING_SECRET=replace-me-with-a-different-long-random-string' >> .env
 
-# Configure environment
-cp .env.example .env
-php artisan key:generate
+# Optional overrides
+# echo 'DATABASE_URL=sqlite://gongyu.db' >> .env
+# echo 'APP_ADDR=:8080' >> .env
+# echo 'APP_URL=http://localhost:8080' >> .env
 
-# Run migrations
-php artisan migrate
+set -a
+source .env
+set +a
 
-# Build frontend assets
-npm run build
-
-# Start the server
-php artisan serve
+go run ./cmd/server
 ```
+
+Then open `http://localhost:8080`.
+
+## Environment Variables
+
+- `APP_ENV` (default: `development`)
+- `APP_ADDR` (default: `:8080`)
+- `APP_NAME` (default: `Gongyu`)
+- `APP_URL` (default: `http://localhost:8080`)
+- `DATABASE_URL` (default: `sqlite://gongyu.db`)
+- `SESSION_SECRET` (required)
+- `SETTING_SECRET` (required)
+- `ALLOW_INSECURE_COOKIES` (default: `true`)
+- `UMAMI_URL` (optional)
+- `UMAMI_WEBSITE_ID` (optional)
+
+## Database
+
+Migrations run automatically at startup.
+
+- SQLite: tables + FTS5 index + sync triggers
+- PostgreSQL: tables + `search_vector` + trigger-based updates
 
 ## Development
 
-Run all services concurrently:
-
 ```bash
-composer run dev
+# Regenerate templ components
+$(go env GOPATH)/bin/templ generate ./internal/view
+
+# Build
+go build ./...
+
+# Test
+go test ./...
 ```
-
-This starts:
-- Laravel development server
-- Queue worker
-- Log viewer (Pail)
-- Vite dev server with HMR
-
-### Git Hooks
-
-This project uses [Husky](https://typicode.github.io/husky/) for Git hooks. After running `npm install`, a pre-commit hook is automatically set up that runs `composer check`:
-
-- **Pint** - PHP code style (Laravel preset)
-- **PHPStan** - PHP static analysis
-- **Biome** - TypeScript/React linting and formatting
-
-To manually run checks:
-
-```bash
-# Check for issues
-composer check
-
-# Auto-fix formatting
-composer lint
-```
-
-## Setup
-
-1. Visit `/setup` to create your admin account (only available when no users exist)
-2. Log in at `/login`
-3. Configure your bookmarklet in Settings
-4. Optionally configure social media credentials for auto-sharing
-
-## Importing from Shaarli
-
-Go to Settings > Import to migrate your bookmarks. Three methods are available:
-
-### API Import (Recommended)
-1. In Shaarli, go to Tools > Configure your Shaarli > REST API
-2. Copy your API secret
-3. Enter your Shaarli URL and API secret in Gongyu
-4. Click Import
-
-### Database Import
-1. Locate `data/datastore.php` in your Shaarli installation
-2. Upload the file in Gongyu
-
-### HTML Import
-1. In Shaarli, go to Tools > Export
-2. Export as HTML (Netscape bookmark format)
-3. Upload the HTML file in Gongyu
-
-> **Note**: API and Database imports preserve legacy Shaarli URLs (`/shaare/{hash}`), enabling automatic redirects. HTML import does not preserve these URLs.
-
-## Restoring from Backup
-
-Go to Settings > Import > Restore from Backup to restore bookmarks from a Gongyu JSON export. This preserves all data including short URLs, Shaarli legacy URLs, and thumbnails.
-
-## Exporting Bookmarks
-
-Go to Settings > Export to download your bookmarks:
-- **HTML**: Netscape bookmark format (compatible with browsers and Shaarli)
-- **JSON**: Full data backup with all fields
-
-## Self-Hosting
-
-See [docs/self-hosting.md](docs/self-hosting.md) for Docker deployment instructions.
-
-## API / Feeds
-
-- **Atom Feed**: `/feed` - All public bookmarks in Atom format
-- **Single Bookmark**: `/b/{shortUrl}` - View a single bookmark
-- **Legacy Shaarli**: `/shaare/{hash}` - Redirects to new URL
-
-## License
-
-MIT

@@ -24,6 +24,9 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 .secrets
+gongyu.db
+gongyu.db-shm
+gongyu.db-wal
 
 **/caddy
 frankenphp
