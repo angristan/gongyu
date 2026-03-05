@@ -8,7 +8,8 @@ import (
 	"io"
 	"log/slog"
 	"maps"
-	"math/rand"
+	"crypto/rand"
+	"math/big"
 	"net/http"
 	"net/url"
 	"slices"
@@ -88,7 +89,11 @@ func generateNonce() string {
 	const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	b := make([]byte, 32)
 	for i := range b {
-		b[i] = chars[rand.Intn(len(chars))]
+		n, err := rand.Int(rand.Reader, big.NewInt(int64(len(chars))))
+		if err != nil {
+			panic("crypto/rand failed: " + err.Error())
+		}
+		b[i] = chars[n.Int64()]
 	}
 	return string(b)
 }
