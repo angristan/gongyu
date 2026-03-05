@@ -57,7 +57,8 @@ func Open(connStr string) (*Store, error) {
 	return &Store{sqlDB: sqlDB, q: postgres.New(sqlDB)}, nil
 }
 
-func (s *Store) Close() error { return s.sqlDB.Close() }
+func (s *Store) Ping(ctx context.Context) error { return s.sqlDB.PingContext(ctx) }
+func (s *Store) Close() error                   { return s.sqlDB.Close() }
 
 // --- Bookmark conversions ---
 

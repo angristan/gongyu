@@ -42,6 +42,7 @@ type mockStore struct {
 	createSession            func(ctx context.Context, arg model.CreateSessionParams) error
 	getSession               func(ctx context.Context, token string) (model.Session, error)
 	deleteSession            func(ctx context.Context, token string) error
+	ping                     func(ctx context.Context) error
 }
 
 func (m *mockStore) AllBookmarks(ctx context.Context) ([]model.Bookmark, error) {
@@ -125,7 +126,8 @@ func (m *mockStore) GetSession(ctx context.Context, token string) (model.Session
 func (m *mockStore) DeleteSession(ctx context.Context, token string) error {
 	return m.deleteSession(ctx, token)
 }
-func (m *mockStore) Close() error { return nil }
+func (m *mockStore) Ping(ctx context.Context) error { return m.ping(ctx) }
+func (m *mockStore) Close() error                   { return nil }
 
 var testEncKey = []byte("0123456789abcdef") // 16 bytes for AES-128
 

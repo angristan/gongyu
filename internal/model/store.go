@@ -105,5 +105,6 @@ type Store interface {
 	DeleteSession(ctx context.Context, token string) error
 
 	// Lifecycle
+	Ping(ctx context.Context) error
 	Close() error
 }
