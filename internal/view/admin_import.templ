@@ -1,0 +1,20 @@
+package view
+
+templ AdminImportPage(data ImportData) {
+	@Layout("Import", data.User, data.BaseURL, data.Flash) {
+		<div class="mb-2">
+			<a href="/admin/settings?tab=import">&larr; Back to settings</a>
+		</div>
+		<div class="card">
+			<h1>Import Bookmarks</h1>
+			if len(data.Errors) > 0 {
+				<ul class="error-list">
+					for _, e := range data.Errors {
+						<li>{ e }</li>
+					}
+				</ul>
+			}
+			<p class="text-muted">Select an import method from the Settings page.</p>
+		</div>
+	}
+}

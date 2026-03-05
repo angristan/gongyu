@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/angristan/gongyu/internal/model"
+	"github.com/angristan/gongyu/internal/view"
 )
 
 var settingsKeys = []struct {
@@ -36,12 +37,12 @@ func (h *Handler) AdminSettings(w http.ResponseWriter, r *http.Request) {
 
 	total, _ := h.Store.CountBookmarks(ctx)
 
-	h.render(w, r, "admin_settings.html", map[string]any{
-		"Title":          "Settings",
-		"Settings":       settings,
-		"Tab":            r.URL.Query().Get("tab"),
-		"TotalBookmarks": total,
-	})
+	h.render(w, r, view.AdminSettingsPage(view.SettingsData{
+		LayoutData:     h.layoutData(w, r),
+		Settings:       settings,
+		Tab:            r.URL.Query().Get("tab"),
+		TotalBookmarks: total,
+	}))
 }
 
 func (h *Handler) AdminUpdateSettings(w http.ResponseWriter, r *http.Request) {

@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/angristan/gongyu/internal/feed"
+	"github.com/angristan/gongyu/internal/view"
 )
 
 func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
@@ -22,14 +23,14 @@ func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.render(w, r, "home.html", map[string]any{
-		"Title":     "Gongyu",
-		"Bookmarks": result.Bookmarks,
-		"Page":      result.CurrentPage,
-		"LastPage":  result.LastPage,
-		"Total":     result.Total,
-		"Query":     query,
-	})
+	h.render(w, r, view.HomePage(view.HomeData{
+		LayoutData: h.layoutData(w, r),
+		Bookmarks:  result.Bookmarks,
+		Page:       result.CurrentPage,
+		LastPage:   result.LastPage,
+		Total:      result.Total,
+		Query:      query,
+	}))
 }
 
 func (h *Handler) ShowBookmark(w http.ResponseWriter, r *http.Request) {
@@ -44,10 +45,10 @@ func (h *Handler) ShowBookmark(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.render(w, r, "bookmark.html", map[string]any{
-		"Title":    b.Title,
-		"Bookmark": b,
-	})
+	h.render(w, r, view.BookmarkPage(view.BookmarkPageData{
+		LayoutData: h.layoutData(w, r),
+		Bookmark:   b,
+	}))
 }
 
 func (h *Handler) HandleLegacyShaarliURL(w http.ResponseWriter, r *http.Request) {

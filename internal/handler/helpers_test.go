@@ -137,7 +137,7 @@ func closeTestBody(t *testing.T, resp *http.Response) {
 }
 
 func newTestHandler(store model.Store) http.Handler {
-	h := New(store, testEncKey, "http://localhost", gongyu.TemplateFS, gongyu.StaticFS)
+	h := New(store, testEncKey, "http://localhost", gongyu.StaticFS)
 	return h.Routes()
 }
 

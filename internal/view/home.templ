@@ -1,0 +1,64 @@
+package view
+
+import "fmt"
+
+templ HomePage(data HomeData) {
+	@Layout("Gongyu", data.User, data.BaseURL, data.Flash) {
+		<div class="search-bar">
+			<form method="GET" action="/" style="display:flex;gap:0.5rem;width:100%">
+				<input type="search" name="q" value={ data.Query } placeholder="Search bookmarks..." autofocus/>
+				<button type="submit" class="btn btn-primary">Search</button>
+			</form>
+		</div>
+		if data.Query != "" {
+			<p class="text-muted text-sm mb-2">{ searchSummary(data.Total, data.Query) }</p>
+		}
+		<div class="card" style="padding:0">
+			if len(data.Bookmarks) > 0 {
+				for _, b := range data.Bookmarks {
+					<div class="bookmark-card">
+						if b.ThumbnailUrl != "" {
+							<img src={ b.ThumbnailUrl } alt="" class="bookmark-thumb" loading="lazy"/>
+						}
+						<div class="bookmark-info">
+							<a href={ templ.URL(b.Url) } class="bookmark-title" target="_blank" rel="noopener">{ b.Title }</a>
+							if b.Description != "" {
+								<p class="bookmark-desc">{ b.Description }</p>
+							}
+							<div class="bookmark-meta">
+								<span class="badge">{ Domain(b.Url) }</span>
+								<span>{ Timeago(b.CreatedAt) }</span>
+								<a href={ templ.SafeURL("/b/" + b.ShortUrl) } style="font-size:0.8rem">permalink</a>
+							</div>
+						</div>
+					</div>
+				}
+			} else {
+				<div style="padding:2rem;text-align:center">
+					<p class="text-muted">No bookmarks found.</p>
+				</div>
+			}
+		</div>
+		if data.LastPage > 1 {
+			@Pagination(data.Page, data.LastPage, data.Query)
+		}
+	}
+}
+
+templ Pagination(page, lastPage int, query string) {
+	<div class="pagination">
+		if page > 1 {
+			<a href={ templ.SafeURL(fmt.Sprintf("?q=%s&page=%d", QueryEscape(query), page-1)) }>&laquo; Prev</a>
+		}
+		for i := 1; i <= lastPage; i++ {
+			if i == page {
+				<span class="active">{ fmt.Sprintf("%d", i) }</span>
+			} else {
+				<a href={ templ.SafeURL(fmt.Sprintf("?q=%s&page=%d", QueryEscape(query), i)) }>{ fmt.Sprintf("%d", i) }</a>
+			}
+		}
+		if page < lastPage {
+			<a href={ templ.SafeURL(fmt.Sprintf("?q=%s&page=%d", QueryEscape(query), page+1)) }>Next &raquo;</a>
+		}
+	</div>
+}

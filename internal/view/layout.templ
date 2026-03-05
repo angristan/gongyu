@@ -1,0 +1,48 @@
+package view
+
+import "github.com/angristan/gongyu/internal/model"
+
+templ Layout(title string, user *model.User, baseURL string, flash string) {
+	<!DOCTYPE html>
+	<html lang="en">
+	<head>
+		<meta charset="utf-8"/>
+		<meta name="viewport" content="width=device-width, initial-scale=1"/>
+		<title>{ title } - Gongyu</title>
+		<link rel="icon" href="/static/images/logo.png"/>
+		<link rel="alternate" type="application/atom+xml" title="Gongyu Feed" href="/feed"/>
+		<link rel="stylesheet" href="/static/style.css"/>
+		<script src="https://unpkg.com/htmx.org@2.0.4"></script>
+	</head>
+	<body>
+		<header>
+			<div class="container">
+				<a href="/" class="logo">
+					<img src="/static/images/logo.png" alt="Gongyu"/>
+					Gongyu
+				</a>
+				<nav>
+					<a href="/feed">Feed</a>
+					if user != nil {
+						<a href="/admin/dashboard">Dashboard</a>
+						<a href="/admin/bookmarks/create">+ Add</a>
+						<form method="POST" action="/logout" class="inline-form">
+							<button type="submit" class="btn btn-sm btn-secondary">Logout</button>
+						</form>
+					} else {
+						<a href="/login">Login</a>
+					}
+				</nav>
+			</div>
+		</header>
+		<main>
+			<div class="container">
+				if flash != "" {
+					<div class="flash">{ flash }</div>
+				}
+				{ children... }
+			</div>
+		</main>
+	</body>
+	</html>
+}

@@ -12,6 +12,8 @@ jobs:
         with:
           go-version: "1.26"
 
+      - run: go tool templ generate
+
       - uses: golangci/golangci-lint-action@v7
         with:
           version: latest
@@ -24,5 +26,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "1.26"
+
+      - run: go tool templ generate
 
       - run: go test ./... -count=1 -race

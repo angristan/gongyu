@@ -6,6 +6,7 @@ import (
 	"github.com/angristan/gongyu/internal/auth"
 	"github.com/angristan/gongyu/internal/model"
 	"github.com/angristan/gongyu/internal/social"
+	"github.com/angristan/gongyu/internal/view"
 )
 
 func (h *Handler) Bookmarklet(w http.ResponseWriter, r *http.Request) {
@@ -25,13 +26,13 @@ func (h *Handler) Bookmarklet(w http.ResponseWriter, r *http.Request) {
 
 	hasSocial := social.HasSocialProviders(r.Context(), h.Store, h.EncKey)
 
-	h.render(w, r, "bookmarklet.html", map[string]any{
-		"Title":        "Add Bookmark",
-		"PrefillURL":   prefillURL,
-		"PrefillTitle": r.URL.Query().Get("title"),
-		"PrefillDesc":  r.URL.Query().Get("description"),
-		"Source":       r.URL.Query().Get("source"),
-		"Existing":     existing,
-		"HasSocial":    hasSocial,
-	})
+	h.render(w, r, view.BookmarkletPage(view.BookmarkletData{
+		LayoutData:   h.layoutData(w, r),
+		PrefillURL:   prefillURL,
+		PrefillTitle: r.URL.Query().Get("title"),
+		PrefillDesc:  r.URL.Query().Get("description"),
+		Source:       r.URL.Query().Get("source"),
+		Existing:     existing,
+		HasSocial:    hasSocial,
+	}))
 }

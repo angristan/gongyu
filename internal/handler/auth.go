@@ -7,10 +7,13 @@ import (
 
 	"github.com/angristan/gongyu/internal/auth"
 	"github.com/angristan/gongyu/internal/model"
+	"github.com/angristan/gongyu/internal/view"
 )
 
 func (h *Handler) LoginPage(w http.ResponseWriter, r *http.Request) {
-	h.render(w, r, "login.html", map[string]any{"Title": "Login"})
+	h.render(w, r, view.LoginPage(view.LoginData{
+		LayoutData: h.layoutData(w, r),
+	}))
 }
 
 func (h *Handler) LoginSubmit(w http.ResponseWriter, r *http.Request) {
@@ -24,11 +27,11 @@ func (h *Handler) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 
 	user, err := auth.Authenticate(r.Context(), h.Store, email, password)
 	if err != nil {
-		h.render(w, r, "login.html", map[string]any{
-			"Title": "Login",
-			"Error": "The provided credentials do not match our records.",
-			"Email": email,
-		})
+		h.render(w, r, view.LoginPage(view.LoginData{
+			LayoutData: h.layoutData(w, r),
+			Error:      "The provided credentials do not match our records.",
+			Email:      email,
+		}))
 		return
 	}
 
@@ -51,7 +54,9 @@ func (h *Handler) SetupPage(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
-	h.render(w, r, "setup.html", map[string]any{"Title": "Setup"})
+	h.render(w, r, view.SetupPage(view.SetupData{
+		LayoutData: h.layoutData(w, r),
+	}))
 }
 
 func (h *Handler) SetupSubmit(w http.ResponseWriter, r *http.Request) {
@@ -84,9 +89,12 @@ func (h *Handler) SetupSubmit(w http.ResponseWriter, r *http.Request) {
 		errors = append(errors, "Passwords do not match")
 	}
 	if len(errors) > 0 {
-		h.render(w, r, "setup.html", map[string]any{
-			"Title": "Setup", "Errors": errors, "Name": name, "Email": email,
-		})
+		h.render(w, r, view.SetupPage(view.SetupData{
+			LayoutData: h.layoutData(w, r),
+			Errors:     errors,
+			Name:       name,
+			Email:      email,
+		}))
 		return
 	}
 
@@ -101,9 +109,12 @@ func (h *Handler) SetupSubmit(w http.ResponseWriter, r *http.Request) {
 		Name: name, Email: email, Password: hash, CreatedAt: now, UpdatedAt: now,
 	})
 	if err != nil {
-		h.render(w, r, "setup.html", map[string]any{
-			"Title": "Setup", "Errors": []string{"Failed to create account. Email may already be in use."}, "Name": name, "Email": email,
-		})
+		h.render(w, r, view.SetupPage(view.SetupData{
+			LayoutData: h.layoutData(w, r),
+			Errors:     []string{"Failed to create account. Email may already be in use."},
+			Name:       name,
+			Email:      email,
+		}))
 		return
 	}
 

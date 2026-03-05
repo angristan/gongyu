@@ -8,12 +8,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/angristan/gongyu/internal/model"
 	"github.com/angristan/gongyu/internal/importer"
+	"github.com/angristan/gongyu/internal/model"
+	"github.com/angristan/gongyu/internal/view"
 )
 
 func (h *Handler) AdminImportPage(w http.ResponseWriter, r *http.Request) {
-	h.render(w, r, "admin_import.html", map[string]any{"Title": "Import"})
+	h.render(w, r, view.AdminImportPage(view.ImportData{
+		LayoutData: h.layoutData(w, r),
+	}))
 }
 
 func (h *Handler) AdminImport(w http.ResponseWriter, r *http.Request) {
@@ -23,6 +26,13 @@ func (h *Handler) AdminImport(w http.ResponseWriter, r *http.Request) {
 	}
 	importType := r.FormValue("type")
 
+	renderErr := func(msg string) {
+		h.render(w, r, view.AdminImportPage(view.ImportData{
+			LayoutData: h.layoutData(w, r),
+			Errors:     []string{msg},
+		}))
+	}
+
 	var bookmarks []model.Bookmark
 	var err error
 
@@ -31,9 +41,7 @@ func (h *Handler) AdminImport(w http.ResponseWriter, r *http.Request) {
 		url := strings.TrimSpace(r.FormValue("shaarli_url"))
 		secret := strings.TrimSpace(r.FormValue("shaarli_secret"))
 		if url == "" || secret == "" {
-			h.render(w, r, "admin_import.html", map[string]any{
-				"Title": "Import", "Errors": []string{"Shaarli URL and API secret are required"},
-			})
+			renderErr("Shaarli URL and API secret are required")
 			return
 		}
 		bookmarks, err = importer.FetchFromShaarliAPI(url, secret)
@@ -41,9 +49,7 @@ func (h *Handler) AdminImport(w http.ResponseWriter, r *http.Request) {
 	case "shaarli_datastore":
 		content, readErr := readUploadedFile(r, "file")
 		if readErr != nil {
-			h.render(w, r, "admin_import.html", map[string]any{
-				"Title": "Import", "Errors": []string{"Failed to read uploaded file"},
-			})
+			renderErr("Failed to read uploaded file")
 			return
 		}
 		bookmarks, err = importer.ParseShaarliDatastore(content)
@@ -51,9 +57,7 @@ func (h *Handler) AdminImport(w http.ResponseWriter, r *http.Request) {
 	case "netscape":
 		content, readErr := readUploadedFile(r, "file")
 		if readErr != nil {
-			h.render(w, r, "admin_import.html", map[string]any{
-				"Title": "Import", "Errors": []string{"Failed to read uploaded file"},
-			})
+			renderErr("Failed to read uploaded file")
 			return
 		}
 		bookmarks = importer.ParseNetscapeBookmarks(content)
@@ -61,24 +65,18 @@ func (h *Handler) AdminImport(w http.ResponseWriter, r *http.Request) {
 	case "gongyu":
 		content, readErr := readUploadedFile(r, "file")
 		if readErr != nil {
-			h.render(w, r, "admin_import.html", map[string]any{
-				"Title": "Import", "Errors": []string{"Failed to read uploaded file"},
-			})
+			renderErr("Failed to read uploaded file")
 			return
 		}
 		bookmarks, err = importer.ParseGongyuJSON(content)
 
 	default:
-		h.render(w, r, "admin_import.html", map[string]any{
-			"Title": "Import", "Errors": []string{"Unknown import type"},
-		})
+		renderErr("Unknown import type")
 		return
 	}
 
 	if err != nil {
-		h.render(w, r, "admin_import.html", map[string]any{
-			"Title": "Import", "Errors": []string{"Failed to parse: " + err.Error()},
-		})
+		renderErr("Failed to parse: " + err.Error())
 		return
 	}
 
@@ -97,9 +95,7 @@ func (h *Handler) AdminImport(w http.ResponseWriter, r *http.Request) {
 
 	imported, skipped, err := h.Store.BulkImportBookmarks(r.Context(), bookmarks)
 	if err != nil {
-		h.render(w, r, "admin_import.html", map[string]any{
-			"Title": "Import", "Errors": []string{"Import failed: " + err.Error()},
-		})
+		renderErr("Import failed: " + err.Error())
 		return
 	}
 

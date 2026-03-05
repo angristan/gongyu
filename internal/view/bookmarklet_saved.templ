@@ -1,0 +1,51 @@
+package view
+
+templ BookmarkletSavedPage(data BookmarkletSavedData) {
+	<!DOCTYPE html>
+	<html lang="en">
+	<head>
+		<meta charset="utf-8"/>
+		<meta name="viewport" content="width=device-width, initial-scale=1"/>
+		<title>Saved! - Gongyu</title>
+		<style>
+			body {
+				font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				min-height: 100vh;
+				margin: 0;
+				background: #faf8f5;
+				color: #2c2416;
+			}
+			@media (prefers-color-scheme: dark) {
+				body { background: #1a1612; color: #e8e0d4; }
+			}
+			.saved {
+				text-align: center;
+				padding: 2rem;
+			}
+			.checkmark {
+				font-size: 3rem;
+				margin-bottom: 0.5rem;
+			}
+			h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+			p { color: #8b7e6a; }
+		</style>
+	</head>
+	<body>
+		<div class="saved">
+			<div class="checkmark">&#10003;</div>
+			<h1>Saved!</h1>
+			<p>{ data.Bookmark.Title }</p>
+		</div>
+		@autoCloseScript()
+	</body>
+	</html>
+}
+
+script autoCloseScript() {
+	if (window.opener) {
+		setTimeout(function() { window.close(); }, 1500);
+	}
+}

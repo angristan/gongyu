@@ -12,6 +12,7 @@ import (
 	"github.com/angristan/gongyu/internal/social"
 	"github.com/angristan/gongyu/internal/thumbnail"
 	"github.com/angristan/gongyu/internal/title"
+	"github.com/angristan/gongyu/internal/view"
 )
 
 func (h *Handler) AdminBookmarks(w http.ResponseWriter, r *http.Request) {
@@ -27,25 +28,24 @@ func (h *Handler) AdminBookmarks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.render(w, r, "admin_bookmarks.html", map[string]any{
-		"Title":     "Bookmarks",
-		"Bookmarks": result.Bookmarks,
-		"Page":      result.CurrentPage,
-		"LastPage":  result.LastPage,
-		"Total":     result.Total,
-		"Query":     query,
-	})
+	h.render(w, r, view.AdminBookmarksPage(view.AdminBookmarksData{
+		LayoutData: h.layoutData(w, r),
+		Bookmarks:  result.Bookmarks,
+		Page:       result.CurrentPage,
+		LastPage:   result.LastPage,
+		Total:      result.Total,
+		Query:      query,
+	}))
 }
 
 func (h *Handler) AdminCreateBookmarkPage(w http.ResponseWriter, r *http.Request) {
 	hasSocial := social.HasSocialProviders(r.Context(), h.Store, h.EncKey)
-	h.render(w, r, "admin_bookmark_form.html", map[string]any{
-		"Title":        "Add Bookmark",
-		"IsCreate":     true,
-		"HasSocial":    hasSocial,
-		"PrefillURL":   r.URL.Query().Get("url"),
-		"PrefillTitle": r.URL.Query().Get("title"),
-	})
+	h.render(w, r, view.AdminBookmarkFormPage(view.BookmarkFormData{
+		LayoutData: h.layoutData(w, r),
+		IsCreate:   true,
+		HasSocial:  hasSocial,
+		Form:       map[string]string{"url": r.URL.Query().Get("url"), "title": r.URL.Query().Get("title")},
+	}))
 }
 
 func (h *Handler) AdminCreateBookmark(w http.ResponseWriter, r *http.Request) {
@@ -66,19 +66,23 @@ func (h *Handler) AdminCreateBookmark(w http.ResponseWriter, r *http.Request) {
 		errors = append(errors, "Title is required")
 	}
 	if len(errors) > 0 {
-		h.render(w, r, "admin_bookmark_form.html", map[string]any{
-			"Title": "Add Bookmark", "IsCreate": true, "Errors": errors,
-			"Form": map[string]string{"url": bookmarkURL, "title": bookmarkTitle, "description": description},
-		})
+		h.render(w, r, view.AdminBookmarkFormPage(view.BookmarkFormData{
+			LayoutData: h.layoutData(w, r),
+			IsCreate:   true,
+			Errors:     errors,
+			Form:       map[string]string{"url": bookmarkURL, "title": bookmarkTitle, "description": description},
+		}))
 		return
 	}
 
 	if existing, err := h.Store.GetBookmarkByURL(r.Context(), bookmarkURL); err == nil {
-		h.render(w, r, "admin_bookmark_form.html", map[string]any{
-			"Title": "Add Bookmark", "IsCreate": true,
-			"Errors": []string{"A bookmark with this URL already exists."}, "Existing": existing,
-			"Form": map[string]string{"url": bookmarkURL, "title": bookmarkTitle, "description": description},
-		})
+		h.render(w, r, view.AdminBookmarkFormPage(view.BookmarkFormData{
+			LayoutData: h.layoutData(w, r),
+			IsCreate:   true,
+			Errors:     []string{"A bookmark with this URL already exists."},
+			Existing:   &existing,
+			Form:       map[string]string{"url": bookmarkURL, "title": bookmarkTitle, "description": description},
+		}))
 		return
 	}
 
@@ -95,11 +99,12 @@ func (h *Handler) AdminCreateBookmark(w http.ResponseWriter, r *http.Request) {
 		UpdatedAt:   now,
 	})
 	if err != nil {
-		h.render(w, r, "admin_bookmark_form.html", map[string]any{
-			"Title": "Add Bookmark", "IsCreate": true,
-			"Errors": []string{"Failed to create bookmark: " + err.Error()},
-			"Form":   map[string]string{"url": bookmarkURL, "title": bookmarkTitle, "description": description},
-		})
+		h.render(w, r, view.AdminBookmarkFormPage(view.BookmarkFormData{
+			LayoutData: h.layoutData(w, r),
+			IsCreate:   true,
+			Errors:     []string{"Failed to create bookmark: " + err.Error()},
+			Form:       map[string]string{"url": bookmarkURL, "title": bookmarkTitle, "description": description},
+		}))
 		return
 	}
 
@@ -122,7 +127,7 @@ func (h *Handler) AdminCreateBookmark(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.FormValue("source") == "bookmarklet" {
-		h.render(w, r, "bookmarklet_saved.html", map[string]any{"Bookmark": b})
+		h.render(w, r, view.BookmarkletSavedPage(view.BookmarkletSavedData{Bookmark: b}))
 		return
 	}
 
@@ -138,10 +143,12 @@ func (h *Handler) AdminEditBookmarkPage(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	h.render(w, r, "admin_bookmark_form.html", map[string]any{
-		"Title": "Edit Bookmark", "IsCreate": false, "Bookmark": b,
-		"Form": map[string]string{"url": b.Url, "title": b.Title, "description": b.Description},
-	})
+	h.render(w, r, view.AdminBookmarkFormPage(view.BookmarkFormData{
+		LayoutData: h.layoutData(w, r),
+		IsCreate:   false,
+		Bookmark:   &b,
+		Form:       map[string]string{"url": b.Url, "title": b.Title, "description": b.Description},
+	}))
 }
 
 func (h *Handler) AdminUpdateBookmark(w http.ResponseWriter, r *http.Request) {
@@ -166,11 +173,13 @@ func (h *Handler) AdminUpdateBookmark(w http.ResponseWriter, r *http.Request) {
 		UpdatedAt:       time.Now().UTC(),
 	})
 	if err != nil {
-		h.render(w, r, "admin_bookmark_form.html", map[string]any{
-			"Title": "Edit Bookmark", "IsCreate": false, "Bookmark": b,
-			"Errors": []string{"Failed to update bookmark: " + err.Error()},
-			"Form":   map[string]string{"url": r.FormValue("url"), "title": r.FormValue("title"), "description": r.FormValue("description")},
-		})
+		h.render(w, r, view.AdminBookmarkFormPage(view.BookmarkFormData{
+			LayoutData: h.layoutData(w, r),
+			IsCreate:   false,
+			Bookmark:   &b,
+			Errors:     []string{"Failed to update bookmark: " + err.Error()},
+			Form:       map[string]string{"url": r.FormValue("url"), "title": r.FormValue("title"), "description": r.FormValue("description")},
+		}))
 		return
 	}
 

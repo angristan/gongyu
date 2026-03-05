@@ -1,0 +1,79 @@
+package view
+
+import "fmt"
+
+templ AdminBookmarksPage(data AdminBookmarksData) {
+	@Layout("Bookmarks", data.User, data.BaseURL, data.Flash) {
+		<div class="flex-between mb-2">
+			<h1 style="margin-bottom:0">Bookmarks</h1>
+			<a href="/admin/bookmarks/create" class="btn btn-primary btn-sm">+ Add Bookmark</a>
+		</div>
+		<div class="search-bar">
+			<form method="GET" action="/admin/bookmarks" style="display:flex;gap:0.5rem;width:100%">
+				<input type="search" name="q" value={ data.Query } placeholder="Search bookmarks..."/>
+				<button type="submit" class="btn btn-primary">Search</button>
+			</form>
+		</div>
+		if data.Query != "" {
+			<p class="text-muted text-sm mb-2">{ searchSummary(data.Total, data.Query) }</p>
+		}
+		<div class="card" style="padding:0;overflow-x:auto">
+			if len(data.Bookmarks) > 0 {
+				<table>
+					<thead>
+						<tr>
+							<th>Title</th>
+							<th>URL</th>
+							<th>Created</th>
+							<th style="width:100px">Actions</th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, b := range data.Bookmarks {
+							<tr>
+								<td><a href={ templ.SafeURL("/b/" + b.ShortUrl) }>{ Truncate(b.Title, 60) }</a></td>
+								<td class="text-muted text-sm">
+									<a href={ templ.URL(b.Url) } target="_blank" rel="noopener" style="color:var(--text-muted)">{ Domain(b.Url) }</a>
+								</td>
+								<td class="text-muted text-sm" style="white-space:nowrap">{ FormatDate(b.CreatedAt) }</td>
+								<td>
+									<div class="flex gap-1">
+										<a href={ templ.SafeURL(fmt.Sprintf("/admin/bookmarks/%d/edit", b.ID)) } class="btn btn-secondary btn-sm">Edit</a>
+										<form method="POST" action={ templ.SafeURL(fmt.Sprintf("/admin/bookmarks/%d/delete", b.ID)) } class="inline-form" onsubmit="return confirm('Delete this bookmark?')">
+											<button type="submit" class="btn btn-danger btn-sm">Del</button>
+										</form>
+									</div>
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			} else {
+				<div style="padding:2rem;text-align:center">
+					<p class="text-muted">No bookmarks found.</p>
+				</div>
+			}
+		</div>
+		if data.LastPage > 1 {
+			@AdminPagination(data.Page, data.LastPage, data.Query)
+		}
+	}
+}
+
+templ AdminPagination(page, lastPage int, query string) {
+	<div class="pagination">
+		if page > 1 {
+			<a href={ templ.SafeURL(fmt.Sprintf("?q=%s&page=%d", QueryEscape(query), page-1)) }>&laquo; Prev</a>
+		}
+		for i := 1; i <= lastPage; i++ {
+			if i == page {
+				<span class="active">{ fmt.Sprintf("%d", i) }</span>
+			} else {
+				<a href={ templ.SafeURL(fmt.Sprintf("?q=%s&page=%d", QueryEscape(query), i)) }>{ fmt.Sprintf("%d", i) }</a>
+			}
+		}
+		if page < lastPage {
+			<a href={ templ.SafeURL(fmt.Sprintf("?q=%s&page=%d", QueryEscape(query), page+1)) }>Next &raquo;</a>
+		}
+	</div>
+}

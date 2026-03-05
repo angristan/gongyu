@@ -3,6 +3,8 @@ package handler
 import (
 	"net/http"
 	"time"
+
+	"github.com/angristan/gongyu/internal/view"
 )
 
 func (h *Handler) AdminDashboard(w http.ResponseWriter, r *http.Request) {
@@ -33,14 +35,14 @@ func (h *Handler) AdminDashboard(w http.ResponseWriter, r *http.Request) {
 	overTime, _ := h.Store.BookmarksOverTime(ctx, since)
 	topDomains, _ := h.Store.TopDomains(ctx, since, 10)
 
-	h.render(w, r, "admin_dashboard.html", map[string]any{
-		"Title":      "Dashboard",
-		"Total":      total,
-		"ThisMonth":  thisMonth,
-		"ThisWeek":   thisWeek,
-		"Recent":     recent,
-		"OverTime":   overTime,
-		"TopDomains": topDomains,
-		"Period":     period,
-	})
+	h.render(w, r, view.AdminDashboardPage(view.DashboardData{
+		LayoutData: h.layoutData(w, r),
+		Total:      total,
+		ThisMonth:  thisMonth,
+		ThisWeek:   thisWeek,
+		Recent:     recent,
+		OverTime:   overTime,
+		TopDomains: topDomains,
+		Period:     period,
+	}))
 }

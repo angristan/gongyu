@@ -1,0 +1,111 @@
+package view
+
+import "fmt"
+
+templ AdminDashboardPage(data DashboardData) {
+	@Layout("Dashboard", data.User, data.BaseURL, data.Flash) {
+		<div class="flex-between mb-2">
+			<h1 style="margin-bottom:0">Dashboard</h1>
+			<div class="flex gap-1">
+				<a href="/admin/bookmarks/create" class="btn btn-primary btn-sm">+ Add Bookmark</a>
+				<a href="/admin/settings" class="btn btn-secondary btn-sm">Settings</a>
+			</div>
+		</div>
+		<div class="grid-3 mb-2">
+			<div class="card stat-card">
+				<div class="stat-value">{ fmt.Sprintf("%d", data.Total) }</div>
+				<div class="stat-label">Total Bookmarks</div>
+			</div>
+			<div class="card stat-card">
+				<div class="stat-value" style="color:var(--success)">{ fmt.Sprintf("%d", data.ThisMonth) }</div>
+				<div class="stat-label">This Month</div>
+			</div>
+			<div class="card stat-card">
+				<div class="stat-value" style="color:#dd6b20">{ fmt.Sprintf("%d", data.ThisWeek) }</div>
+				<div class="stat-label">This Week</div>
+			</div>
+		</div>
+		<div class="flex-between mb-1">
+			<h2 style="margin-bottom:0">Activity</h2>
+			<div class="period-selector">
+				<a href="?period=7d" class={ periodClass("7d", data.Period) }>7d</a>
+				<a href="?period=30d" class={ periodClass("30d", data.Period) }>30d</a>
+				<a href="?period=90d" class={ periodClass("90d", data.Period) }>90d</a>
+				<a href="?period=1y" class={ periodClass("1y", data.Period) }>1y</a>
+				<a href="?period=all" class={ periodClass("all", data.Period) }>All</a>
+			</div>
+		</div>
+		<div class="grid-2 mb-2">
+			<div class="card">
+				<h3 class="text-sm text-muted mb-1" style="text-transform:uppercase;letter-spacing:0.05em">Bookmarks Over Time</h3>
+				if len(data.OverTime) > 0 {
+					<div style="height:200px;display:flex;align-items:flex-end;gap:2px">
+						for _, row := range data.OverTime {
+							<div
+								style={ fmt.Sprintf("flex:1;background:var(--accent);border-radius:2px 2px 0 0;min-height:2px;height:%dpx;max-height:200px", barHeight(row.Count, maxOverTime(data.OverTime))) }
+								title={ fmt.Sprintf("%s: %d", row.Date, row.Count) }
+							></div>
+						}
+					</div>
+				} else {
+					<p class="text-muted text-sm">No data for this period.</p>
+				}
+			</div>
+			<div class="card">
+				<h3 class="text-sm text-muted mb-1" style="text-transform:uppercase;letter-spacing:0.05em">Top Domains</h3>
+				if len(data.TopDomains) > 0 {
+					<div class="bar-chart">
+						for _, d := range data.TopDomains {
+							<div class="bar-row">
+								<span class="bar-label">{ d.Domain }</span>
+								<div class="bar-fill" style={ fmt.Sprintf("width:calc(%d / %d * 100%%)", d.Count, maxDomainCount(data.TopDomains)) }></div>
+								<span class="bar-value">{ fmt.Sprintf("%d", d.Count) }</span>
+							</div>
+						}
+					</div>
+				} else {
+					<p class="text-muted text-sm">No data for this period.</p>
+				}
+			</div>
+		</div>
+		<div class="card">
+			<div class="flex-between mb-1">
+				<h2 style="margin-bottom:0">Recent Bookmarks</h2>
+				<a href="/admin/bookmarks" class="text-sm">View all &rarr;</a>
+			</div>
+			if len(data.Recent) > 0 {
+				<table>
+					<thead>
+						<tr>
+							<th>Title</th>
+							<th>Domain</th>
+							<th>Date</th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, b := range data.Recent {
+							<tr>
+								<td><a href={ templ.SafeURL("/b/" + b.ShortUrl) }>{ Truncate(b.Title, 50) }</a></td>
+								<td class="text-muted text-sm">{ Domain(b.Url) }</td>
+								<td class="text-muted text-sm">{ Timeago(b.CreatedAt) }</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			} else {
+				<p class="text-muted">No bookmarks yet.</p>
+			}
+		</div>
+		<div class="card mt-2">
+			<h2>Bookmarklet</h2>
+			<p class="text-sm text-muted mb-1">Drag this link to your bookmarks bar to quickly add bookmarks from any page:</p>
+			<p>
+				<a
+					href={ templ.SafeURL("javascript:void(window.open('" + data.BaseURL + "/bookmarklet?url='+encodeURIComponent(location.href)+'&title='+encodeURIComponent(document.title)+'&description='+encodeURIComponent(window.getSelection().toString())+'&source=bookmarklet','gongyu','width=600,height=500,scrollbars=yes'))") }
+					class="btn btn-primary btn-sm"
+					onclick="return false"
+				>+ Add to Gongyu</a>
+			</p>
+		</div>
+	}
+}

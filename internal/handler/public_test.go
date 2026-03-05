@@ -210,20 +210,3 @@ func TestStaticFiles(t *testing.T) {
 	}
 }
 
-func TestExtractDomain(t *testing.T) {
-	tests := []struct {
-		input string
-		want  string
-	}{
-		{"https://www.example.com/path", "example.com"},
-		{"https://example.com", "example.com"},
-		{"http://sub.example.com/page?q=1", "sub.example.com"},
-		{"not-a-url", ""},
-	}
-	for _, tt := range tests {
-		got := extractDomain(tt.input)
-		if got != tt.want {
-			t.Errorf("extractDomain(%q) = %q, want %q", tt.input, got, tt.want)
-		}
-	}
-}

@@ -1,0 +1,32 @@
+package view
+
+import "fmt"
+
+templ BookmarkPage(data BookmarkPageData) {
+	@Layout(data.Bookmark.Title, data.User, data.BaseURL, data.Flash) {
+		<div class="mb-2">
+			<a href="/">&larr; All bookmarks</a>
+		</div>
+		<div class="card">
+			if data.Bookmark.ThumbnailUrl != "" {
+				<img src={ data.Bookmark.ThumbnailUrl } alt="" style="max-width:100%;border-radius:var(--radius);margin-bottom:1rem" loading="lazy"/>
+			}
+			<h1 style="margin-bottom:0.5rem">{ data.Bookmark.Title }</h1>
+			<div class="flex gap-1 mb-2" style="flex-wrap:wrap;align-items:center">
+				<span class="badge">{ Domain(data.Bookmark.Url) }</span>
+				<span class="text-muted text-sm">{ FormatDate(data.Bookmark.CreatedAt) }</span>
+			</div>
+			<p style="margin-bottom:1rem">
+				<a href={ templ.URL(data.Bookmark.Url) } target="_blank" rel="noopener">{ data.Bookmark.Url }</a>
+			</p>
+			if data.Bookmark.Description != "" {
+				<p>{ data.Bookmark.Description }</p>
+			}
+			if data.User != nil {
+				<div class="mt-3">
+					<a href={ templ.SafeURL(fmt.Sprintf("/admin/bookmarks/%d/edit", data.Bookmark.ID)) } class="btn btn-secondary btn-sm">Edit</a>
+				</div>
+			}
+		</div>
+	}
+}
