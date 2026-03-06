@@ -1,3 +1,12 @@
 .git
-gongyu
 .env
+*.env
+.env.*
+gongyu
+tmp/
+.cache/
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*~

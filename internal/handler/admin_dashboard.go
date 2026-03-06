@@ -8,6 +8,15 @@ import (
 	"github.com/angristan/gongyu/internal/view"
 )
 
+// mondayMidnight returns midnight (00:00 UTC) of the Monday of the week containing t.
+func mondayMidnight(t time.Time) time.Time {
+	weekday := int(t.Weekday())
+	if weekday == 0 {
+		weekday = 7
+	}
+	return time.Date(t.Year(), t.Month(), t.Day()-(weekday-1), 0, 0, 0, 0, time.UTC)
+}
+
 func (h *Handler) AdminDashboard(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	now := time.Now().UTC()
@@ -20,7 +29,7 @@ func (h *Handler) AdminDashboard(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		slog.Error("dashboard: count bookmarks this month", "error", err)
 	}
-	thisWeek, err := h.Store.CountBookmarksSince(ctx, now.AddDate(0, 0, -((int(now.Weekday())+6)%7)))
+	thisWeek, err := h.Store.CountBookmarksSince(ctx, mondayMidnight(now))
 	if err != nil {
 		slog.Error("dashboard: count bookmarks this week", "error", err)
 	}
