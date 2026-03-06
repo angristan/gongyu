@@ -11,6 +11,7 @@ import (
 	gongyu "github.com/angristan/gongyu"
 	"github.com/angristan/gongyu/internal/background"
 	"github.com/angristan/gongyu/internal/model"
+	"github.com/angristan/gongyu/internal/thumbnail"
 )
 
 // mockStore implements model.Store with function fields.
@@ -145,8 +146,42 @@ func closeTestBody(t *testing.T, resp *http.Response) {
 }
 
 func newTestHandler(store model.Store) http.Handler {
-	h := New(store, testEncKey, "http://localhost", gongyu.StaticFS, background.New(1))
+	return newTestHandlerWithDeps(store, stubMetadataFetcher{}, stubSocialClient{})
+}
+
+func newTestHandlerWithDeps(store model.Store, fetcher metadataFetcher, socialClient socialSharer) http.Handler {
+	h, err := New(store, testEncKey, "http://localhost", gongyu.StaticFS, background.New(1), &http.Client{})
+	if err != nil {
+		panic(err)
+	}
+	if fetcher != nil {
+		h.ThumbnailFetcher = fetcher
+	}
+	if socialClient != nil {
+		h.SocialClient = socialClient
+	}
 	return h.Routes()
+}
+
+type stubMetadataFetcher struct {
+	fetch func(ctx context.Context, rawURL string) (*thumbnail.Metadata, error)
+}
+
+func (s stubMetadataFetcher) FetchMetadata(ctx context.Context, rawURL string) (*thumbnail.Metadata, error) {
+	if s.fetch != nil {
+		return s.fetch(ctx, rawURL)
+	}
+	return &thumbnail.Metadata{}, nil
+}
+
+type stubSocialClient struct {
+	share func(ctx context.Context, bg *background.Runner, store model.Store, encKey []byte, b *model.Bookmark)
+}
+
+func (s stubSocialClient) ShareBookmark(ctx context.Context, bg *background.Runner, store model.Store, encKey []byte, b *model.Bookmark) {
+	if s.share != nil {
+		s.share(ctx, bg, store, encKey, b)
+	}
 }
 
 // loginSession creates a session cookie for the given user in the mock store.

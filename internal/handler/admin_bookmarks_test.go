@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/angristan/gongyu/internal/model"
+	"github.com/angristan/gongyu/internal/thumbnail"
 )
 
 func TestAdminDashboard(t *testing.T) {
@@ -37,7 +38,7 @@ func TestAdminDashboard(t *testing.T) {
 	user := &model.User{ID: 1, Name: "Admin"}
 	cookie := loginSession(store, user)
 
-	srv := httptest.NewServer(newTestHandler(store))
+	srv := httptest.NewServer(newTestHandlerWithDeps(store, thumbnail.NewFetcher(&http.Client{}), stubSocialClient{}))
 	defer srv.Close()
 
 	req, err := http.NewRequest("GET", srv.URL+"/admin/dashboard", nil)
@@ -87,7 +88,7 @@ func TestAdminDashboardRedirectsGuest(t *testing.T) {
 		getSession: noSessionStore(),
 	}
 
-	srv := httptest.NewServer(newTestHandler(store))
+	srv := httptest.NewServer(newTestHandlerWithDeps(store, thumbnail.NewFetcher(&http.Client{}), stubSocialClient{}))
 	defer srv.Close()
 
 	resp, err := noRedirectClient().Get(srv.URL + "/admin/dashboard")
@@ -117,7 +118,7 @@ func TestAdminBookmarks(t *testing.T) {
 	user := &model.User{ID: 1, Name: "Admin"}
 	cookie := loginSession(store, user)
 
-	srv := httptest.NewServer(newTestHandler(store))
+	srv := httptest.NewServer(newTestHandlerWithDeps(store, thumbnail.NewFetcher(&http.Client{}), stubSocialClient{}))
 	defer srv.Close()
 
 	req, err := http.NewRequest("GET", srv.URL+"/admin/bookmarks", nil)
@@ -145,7 +146,7 @@ func TestAdminCreateBookmarkPage(t *testing.T) {
 	user := &model.User{ID: 1, Name: "Admin"}
 	cookie := loginSession(store, user)
 
-	srv := httptest.NewServer(newTestHandler(store))
+	srv := httptest.NewServer(newTestHandlerWithDeps(store, thumbnail.NewFetcher(&http.Client{}), stubSocialClient{}))
 	defer srv.Close()
 
 	req, err := http.NewRequest("GET", srv.URL+"/admin/bookmarks/create", nil)
@@ -448,7 +449,7 @@ func TestFetchMetadataAPI(t *testing.T) {
 	}))
 	defer ogServer.Close()
 
-	srv := httptest.NewServer(newTestHandler(store))
+	srv := httptest.NewServer(newTestHandlerWithDeps(store, thumbnail.NewFetcher(&http.Client{}), stubSocialClient{}))
 	defer srv.Close()
 
 	body := `{"url":"` + ogServer.URL + `"}`
@@ -500,7 +501,7 @@ func TestFetchMetadataAPIFormEncoded(t *testing.T) {
 	}))
 	defer ogServer.Close()
 
-	srv := httptest.NewServer(newTestHandler(store))
+	srv := httptest.NewServer(newTestHandlerWithDeps(store, thumbnail.NewFetcher(&http.Client{}), stubSocialClient{}))
 	defer srv.Close()
 
 	form := withCsrf(url.Values{"url": {ogServer.URL}}, cookie)

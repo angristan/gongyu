@@ -2,7 +2,6 @@ package handler
 
 import (
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/angristan/gongyu/internal/auth"
@@ -17,25 +16,23 @@ func (h *Handler) LoginPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) LoginSubmit(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
+	form, err := parseLoginForm(r)
+	if err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
-	email := strings.TrimSpace(r.FormValue("email"))
-	password := r.FormValue("password")
-	remember := r.FormValue("remember") == "on"
 
-	user, err := auth.Authenticate(r.Context(), h.Store, email, password)
+	user, err := auth.Authenticate(r.Context(), h.Store, form.Email, form.Password)
 	if err != nil {
 		h.render(w, r, view.LoginPage(view.LoginData{
 			LayoutData: h.layoutData(w, r),
 			Error:      "The provided credentials do not match our records.",
-			Email:      email,
+			Email:      form.Email,
 		}))
 		return
 	}
 
-	if err := auth.Login(w, r, h.Store, user, remember); err != nil {
+	if err := auth.Login(w, r, h.Store, user, form.Remember); err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -74,39 +71,23 @@ func (h *Handler) SetupSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := r.ParseForm(); err != nil {
+	form, err := parseSetupForm(r)
+	if err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
-	name := strings.TrimSpace(r.FormValue("name"))
-	email := strings.TrimSpace(r.FormValue("email"))
-	password := r.FormValue("password")
-	passwordConfirm := r.FormValue("password_confirmation")
-
-	var errors []string
-	if name == "" {
-		errors = append(errors, "Name is required")
-	}
-	if email == "" {
-		errors = append(errors, "Email is required")
-	}
-	if len(password) < 8 {
-		errors = append(errors, "Password must be at least 8 characters")
-	}
-	if password != passwordConfirm {
-		errors = append(errors, "Passwords do not match")
-	}
+	errors := form.Validate()
 	if len(errors) > 0 {
 		h.render(w, r, view.SetupPage(view.SetupData{
 			LayoutData: h.layoutData(w, r),
 			Errors:     errors,
-			Name:       name,
-			Email:      email,
+			Name:       form.Name,
+			Email:      form.Email,
 		}))
 		return
 	}
 
-	hash, err := auth.HashPassword(password)
+	hash, err := auth.HashPassword(form.Password)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
@@ -114,14 +95,14 @@ func (h *Handler) SetupSubmit(w http.ResponseWriter, r *http.Request) {
 
 	now := time.Now().UTC()
 	user, err := h.Store.CreateUser(r.Context(), model.CreateUserParams{
-		Name: name, Email: email, Password: hash, CreatedAt: now, UpdatedAt: now,
+		Name: form.Name, Email: form.Email, Password: hash, CreatedAt: now, UpdatedAt: now,
 	})
 	if err != nil {
 		h.render(w, r, view.SetupPage(view.SetupData{
 			LayoutData: h.layoutData(w, r),
 			Errors:     []string{"Failed to create account. Email may already be in use."},
-			Name:       name,
-			Email:      email,
+			Name:       form.Name,
+			Email:      form.Email,
 		}))
 		return
 	}

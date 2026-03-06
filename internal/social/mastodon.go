@@ -1,6 +1,7 @@
 package social
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log/slog"
@@ -11,7 +12,10 @@ import (
 )
 
 // PostToMastodon posts a status to a Mastodon instance.
-func PostToMastodon(instance, accessToken, title, bookmarkURL string) error {
+func (c *Client) PostToMastodon(ctx context.Context, instance, accessToken, title, bookmarkURL string) error {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
 	// Normalize instance URL
 	instance = strings.TrimSpace(instance)
 	instance = strings.TrimRight(instance, "/")
@@ -25,15 +29,14 @@ func PostToMastodon(instance, accessToken, title, bookmarkURL string) error {
 	status := title + "\n" + bookmarkURL
 
 	form := url.Values{"status": {status}}
-	req, err := http.NewRequest("POST", instance+"/api/v1/statuses", strings.NewReader(form.Encode()))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, instance+"/api/v1/statuses", strings.NewReader(form.Encode()))
 	if err != nil {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return err
 	}

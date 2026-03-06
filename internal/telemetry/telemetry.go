@@ -58,10 +58,18 @@ func Init(ctx context.Context) (shutdown func(context.Context) error, err error)
 	)
 	otel.SetMeterProvider(mp)
 
-	// Instrument default HTTP transport for outgoing requests
-	http.DefaultTransport = otelhttp.NewTransport(http.DefaultTransport)
-
 	return func(ctx context.Context) error {
 		return errors.Join(tp.Shutdown(ctx), mp.Shutdown(ctx))
 	}, nil
+}
+
+// WrapTransport instruments an HTTP transport when telemetry is enabled.
+func WrapTransport(base http.RoundTripper) http.RoundTripper {
+	if base == nil {
+		base = http.DefaultTransport
+	}
+	if os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT") == "" {
+		return base
+	}
+	return otelhttp.NewTransport(base)
 }

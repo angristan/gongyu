@@ -2,6 +2,7 @@ package social
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -19,9 +20,12 @@ type bskySession struct {
 }
 
 // PostToBluesky posts to Bluesky via the AT Protocol.
-func PostToBluesky(handle, appPassword, title, bookmarkURL, thumbnailURL, description string) error {
+func (c *Client) PostToBluesky(ctx context.Context, handle, appPassword, title, bookmarkURL, thumbnailURL, description string) error {
+	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	defer cancel()
+
 	// Create session
-	session, err := bskyLogin(handle, appPassword)
+	session, err := c.bskyLogin(ctx, handle, appPassword)
 	if err != nil {
 		return fmt.Errorf("bluesky login: %w", err)
 	}
@@ -65,7 +69,7 @@ func PostToBluesky(handle, appPassword, title, bookmarkURL, thumbnailURL, descri
 	}
 
 	if thumbnailURL != "" {
-		blob, err := bskyUploadBlob(session, thumbnailURL)
+		blob, err := c.bskyUploadBlob(ctx, session, thumbnailURL)
 		if err == nil && blob != nil {
 			embed["external"].(map[string]any)["thumb"] = blob
 		}
@@ -78,10 +82,10 @@ func PostToBluesky(handle, appPassword, title, bookmarkURL, thumbnailURL, descri
 		"record":     record,
 	}
 
-	return bskyRequest(session, "com.atproto.repo.createRecord", body)
+	return c.bskyRequest(ctx, session, "com.atproto.repo.createRecord", body)
 }
 
-func bskyLogin(handle, appPassword string) (*bskySession, error) {
+func (c *Client) bskyLogin(ctx context.Context, handle, appPassword string) (*bskySession, error) {
 	body, err := json.Marshal(map[string]string{
 		"identifier": handle,
 		"password":   appPassword,
@@ -89,7 +93,12 @@ func bskyLogin(handle, appPassword string) (*bskySession, error) {
 	if err != nil {
 		return nil, fmt.Errorf("marshal login: %w", err)
 	}
-	resp, err := http.Post(bskyAPI+"/com.atproto.server.createSession", "application/json", bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, bskyAPI+"/com.atproto.server.createSession", bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -102,8 +111,12 @@ func bskyLogin(handle, appPassword string) (*bskySession, error) {
 	return &s, json.NewDecoder(resp.Body).Decode(&s)
 }
 
-func bskyUploadBlob(session *bskySession, imageURL string) (any, error) {
-	resp, err := http.Get(imageURL)
+func (c *Client) bskyUploadBlob(ctx context.Context, session *bskySession, imageURL string) (any, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, imageURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -123,14 +136,14 @@ func bskyUploadBlob(session *bskySession, imageURL string) (any, error) {
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", bskyAPI+"/com.atproto.repo.uploadBlob", bytes.NewReader(imgData))
+	req, err = http.NewRequestWithContext(ctx, http.MethodPost, bskyAPI+"/com.atproto.repo.uploadBlob", bytes.NewReader(imgData))
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Authorization", "Bearer "+session.AccessJwt)
 	req.Header.Set("Content-Type", contentType)
 
-	uploadResp, err := http.DefaultClient.Do(req)
+	uploadResp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -148,19 +161,19 @@ func bskyUploadBlob(session *bskySession, imageURL string) (any, error) {
 	return result.Blob, nil
 }
 
-func bskyRequest(session *bskySession, method string, body any) error {
+func (c *Client) bskyRequest(ctx context.Context, session *bskySession, method string, body any) error {
 	data, err := json.Marshal(body)
 	if err != nil {
 		return fmt.Errorf("marshal request: %w", err)
 	}
-	req, err := http.NewRequest("POST", bskyAPI+"/"+method, bytes.NewReader(data))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, bskyAPI+"/"+method, bytes.NewReader(data))
 	if err != nil {
 		return err
 	}
 	req.Header.Set("Authorization", "Bearer "+session.AccessJwt)
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return err
 	}

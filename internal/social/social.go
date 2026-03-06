@@ -3,21 +3,36 @@ package social
 import (
 	"context"
 	"log/slog"
+	"net/http"
 
 	"github.com/angristan/gongyu/internal/background"
 	"github.com/angristan/gongyu/internal/model"
 )
 
-func ShareBookmark(bg *background.Runner, store model.Store, encKey []byte, b *model.Bookmark) {
-	ctx := context.Background()
+// Client posts bookmarks to social providers.
+type Client struct {
+	httpClient *http.Client
+}
+
+func NewClient(httpClient *http.Client) *Client {
+	if httpClient == nil {
+		httpClient = &http.Client{}
+	}
+	return &Client{httpClient: httpClient}
+}
+
+func (c *Client) ShareBookmark(ctx context.Context, bg *background.Runner, store model.Store, encKey []byte, b *model.Bookmark) {
 	get := func(key string) string {
 		return model.GetSetting(ctx, store, key, encKey)
 	}
 
 	if hasTwitterProvider(get) {
 		apiKey := get("twitter_api_key")
-		bg.Do(func() {
-			if err := PostToTwitter(apiKey, get("twitter_api_secret"), get("twitter_access_token"), get("twitter_access_secret"), b.Title, b.Url); err != nil {
+		apiSecret := get("twitter_api_secret")
+		accessToken := get("twitter_access_token")
+		accessSecret := get("twitter_access_secret")
+		bg.Do(func(taskCtx context.Context) {
+			if err := c.PostToTwitter(taskCtx, apiKey, apiSecret, accessToken, accessSecret, b.Title, b.Url); err != nil {
 				slog.Error("twitter post failed", "error", err)
 			}
 		})
@@ -25,8 +40,9 @@ func ShareBookmark(bg *background.Runner, store model.Store, encKey []byte, b *m
 
 	if hasMastodonProvider(get) {
 		instance := get("mastodon_instance")
-		bg.Do(func() {
-			if err := PostToMastodon(instance, get("mastodon_access_token"), b.Title, b.Url); err != nil {
+		accessToken := get("mastodon_access_token")
+		bg.Do(func(taskCtx context.Context) {
+			if err := c.PostToMastodon(taskCtx, instance, accessToken, b.Title, b.Url); err != nil {
 				slog.Error("mastodon post failed", "error", err)
 			}
 		})
@@ -34,8 +50,9 @@ func ShareBookmark(bg *background.Runner, store model.Store, encKey []byte, b *m
 
 	if hasBlueskyProvider(get) {
 		handle := get("bluesky_handle")
-		bg.Do(func() {
-			if err := PostToBluesky(handle, get("bluesky_app_password"), b.Title, b.Url, b.ThumbnailUrl, b.Description); err != nil {
+		appPassword := get("bluesky_app_password")
+		bg.Do(func(taskCtx context.Context) {
+			if err := c.PostToBluesky(taskCtx, handle, appPassword, b.Title, b.Url, b.ThumbnailUrl, b.Description); err != nil {
 				slog.Error("bluesky post failed", "error", err)
 			}
 		})

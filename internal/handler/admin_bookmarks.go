@@ -11,7 +11,6 @@ import (
 
 	"github.com/angristan/gongyu/internal/model"
 	"github.com/angristan/gongyu/internal/social"
-	"github.com/angristan/gongyu/internal/thumbnail"
 	"github.com/angristan/gongyu/internal/title"
 	"github.com/angristan/gongyu/internal/view"
 )
@@ -50,22 +49,16 @@ func (h *Handler) AdminCreateBookmarkPage(w http.ResponseWriter, r *http.Request
 }
 
 func (h *Handler) AdminCreateBookmark(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
+	form, err := parseBookmarkForm(r)
+	if err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
-	bookmarkURL := strings.TrimSpace(r.FormValue("url"))
-	bookmarkTitle := strings.TrimSpace(r.FormValue("title"))
-	description := strings.TrimSpace(r.FormValue("description"))
-	shareToSocial := r.FormValue("share") == "on"
+	bookmarkURL := form.URL
+	bookmarkTitle := form.Title
+	description := form.Description
 
-	var errors []string
-	if bookmarkURL == "" {
-		errors = append(errors, "URL is required")
-	}
-	if bookmarkTitle == "" {
-		errors = append(errors, "Title is required")
-	}
+	errors := form.Validate()
 	if len(errors) > 0 {
 		h.render(w, r, view.AdminBookmarkFormPage(view.BookmarkFormData{
 			LayoutData: h.layoutData(w, r),
@@ -114,9 +107,8 @@ func (h *Handler) AdminCreateBookmark(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Fetch thumbnail in background (detached from request context)
-	h.Background.Do(func() {
-		ctx := context.Background()
-		meta, err := thumbnail.FetchMetadata(ctx, bookmarkURL)
+	h.Background.Do(func(ctx context.Context) {
+		meta, err := h.ThumbnailFetcher.FetchMetadata(ctx, bookmarkURL)
 		if err == nil && meta.OGImage != "" {
 			if err := h.Store.UpdateBookmark(ctx, model.UpdateBookmarkParams{
 				ID: b.ID, Url: b.Url, Title: b.Title, Description: b.Description,
@@ -128,11 +120,11 @@ func (h *Handler) AdminCreateBookmark(w http.ResponseWriter, r *http.Request) {
 		}
 	})
 
-	if shareToSocial {
-		social.ShareBookmark(h.Background, h.Store, h.EncKey, &b)
+	if form.Share {
+		h.SocialClient.ShareBookmark(r.Context(), h.Background, h.Store, h.EncKey, &b)
 	}
 
-	if r.FormValue("source") == "bookmarklet" {
+	if form.Source == "bookmarklet" {
 		h.render(w, r, view.BookmarkletSavedPage(view.BookmarkletSavedData{Bookmark: b}))
 		return
 	}
@@ -165,15 +157,16 @@ func (h *Handler) AdminUpdateBookmark(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = r.ParseForm(); err != nil {
+	form, err := parseBookmarkForm(r)
+	if err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
 	err = h.Store.UpdateBookmark(r.Context(), model.UpdateBookmarkParams{
 		ID:              b.ID,
-		Url:             strings.TrimSpace(r.FormValue("url")),
-		Title:           strings.TrimSpace(r.FormValue("title")),
-		Description:     strings.TrimSpace(r.FormValue("description")),
+		Url:             form.URL,
+		Title:           form.Title,
+		Description:     form.Description,
 		ThumbnailUrl:    b.ThumbnailUrl,
 		ShaarliShortUrl: b.ShaarliShortUrl,
 		UpdatedAt:       time.Now().UTC(),
@@ -184,7 +177,7 @@ func (h *Handler) AdminUpdateBookmark(w http.ResponseWriter, r *http.Request) {
 			IsCreate:   false,
 			Bookmark:   &b,
 			Errors:     []string{"Failed to update bookmark: " + err.Error()},
-			Form:       map[string]string{"url": r.FormValue("url"), "title": r.FormValue("title"), "description": r.FormValue("description")},
+			Form:       map[string]string{"url": form.URL, "title": form.Title, "description": form.Description},
 		}))
 		return
 	}
@@ -231,7 +224,7 @@ func (h *Handler) FetchMetadataAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	meta, err := thumbnail.FetchMetadata(r.Context(), bookmarkURL)
+	meta, err := h.ThumbnailFetcher.FetchMetadata(r.Context(), bookmarkURL)
 	if err != nil {
 		h.jsonResponse(w, http.StatusOK, map[string]string{"title": "", "description": "", "og_image": ""})
 		return

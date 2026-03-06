@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
@@ -18,6 +19,8 @@ import (
 	"github.com/angristan/gongyu/internal/auth"
 	"github.com/angristan/gongyu/internal/background"
 	"github.com/angristan/gongyu/internal/model"
+	"github.com/angristan/gongyu/internal/social"
+	"github.com/angristan/gongyu/internal/thumbnail"
 	"github.com/angristan/gongyu/internal/view"
 )
 
@@ -33,27 +36,47 @@ type Handler struct {
 	BaseURL    string
 	Background *background.Runner
 
-	StaticFS      fs.FS
-	StaticVersion string // content hash for cache busting
-	loginLimiter  *ipLimiter
+	ThumbnailFetcher metadataFetcher
+	SocialClient     socialSharer
+	StaticFS         fs.FS
+	StaticVersion    string // content hash for cache busting
+	loginLimiter     *ipLimiter
+}
+
+type metadataFetcher interface {
+	FetchMetadata(ctx context.Context, rawURL string) (*thumbnail.Metadata, error)
+}
+
+type socialSharer interface {
+	ShareBookmark(ctx context.Context, bg *background.Runner, store model.Store, encKey []byte, b *model.Bookmark)
 }
 
 // New creates a Handler.
-func New(store model.Store, encKey []byte, baseURL string, staticFS embed.FS, bg *background.Runner) *Handler {
+func New(store model.Store, encKey []byte, baseURL string, staticFS embed.FS, bg *background.Runner, httpClient *http.Client) (*Handler, error) {
+	if bg == nil {
+		bg = background.New(1)
+	}
+
 	staticSub, err := fs.Sub(staticFS, "static")
 	if err != nil {
-		panic(fmt.Sprintf("static fs: %v", err))
+		return nil, fmt.Errorf("static fs: %w", err)
+	}
+	staticVersion, err := hashFS(staticSub)
+	if err != nil {
+		return nil, fmt.Errorf("hash static fs: %w", err)
 	}
 
 	return &Handler{
-		Store:         store,
-		EncKey:        encKey,
-		BaseURL:       strings.TrimRight(baseURL, "/"),
-		Background:    bg,
-		StaticFS:      staticSub,
-		StaticVersion: hashFS(staticSub),
-		loginLimiter:  newIPLimiter(),
-	}
+		Store:            store,
+		EncKey:           encKey,
+		BaseURL:          strings.TrimRight(baseURL, "/"),
+		Background:       bg,
+		ThumbnailFetcher: thumbnail.NewFetcher(httpClient),
+		SocialClient:     social.NewClient(httpClient),
+		StaticFS:         staticSub,
+		StaticVersion:    staticVersion,
+		loginLimiter:     newIPLimiter(),
+	}, nil
 }
 
 func (h *Handler) layoutData(w http.ResponseWriter, r *http.Request) view.LayoutData {
@@ -110,21 +133,23 @@ func randomToken(size int) (string, error) {
 }
 
 // hashFS computes a short content hash of all files in the FS.
-func hashFS(fsys fs.FS) string {
+func hashFS(fsys fs.FS) (string, error) {
 	h := sha256.New()
-	fs.WalkDir(fsys, ".", func(path string, d fs.DirEntry, err error) error { //nolint:errcheck
+	if err := fs.WalkDir(fsys, ".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil || d.IsDir() {
-			return nil
+			return err
 		}
 		data, err := fs.ReadFile(fsys, path)
 		if err != nil {
-			return nil
+			return err
 		}
 		h.Write([]byte(path))
 		h.Write(data)
 		return nil
-	})
-	return hex.EncodeToString(h.Sum(nil))[:12]
+	}); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(h.Sum(nil))[:12], nil
 }
 
 func (h *Handler) render(w http.ResponseWriter, r *http.Request, component templ.Component) {

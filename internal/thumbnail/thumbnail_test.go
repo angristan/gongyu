@@ -30,7 +30,7 @@ func TestFetchMetadata(t *testing.T) {
 </html>`)
 	defer srv.Close()
 
-	meta, err := FetchMetadata(context.Background(), srv.URL)
+	meta, err := NewFetcher(nil).FetchMetadata(context.Background(), srv.URL)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -50,7 +50,7 @@ func TestFetchMetadataFallbackToTitle(t *testing.T) {
 	srv := serveHTML(`<html><head><title>Fallback Title</title></head></html>`)
 	defer srv.Close()
 
-	meta, err := FetchMetadata(context.Background(), srv.URL)
+	meta, err := NewFetcher(nil).FetchMetadata(context.Background(), srv.URL)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -64,7 +64,7 @@ func TestFetchMetadataFallbackToMetaDescription(t *testing.T) {
 	srv := serveHTML(`<html><head><meta name="description" content="Meta desc"></head></html>`)
 	defer srv.Close()
 
-	meta, err := FetchMetadata(context.Background(), srv.URL)
+	meta, err := NewFetcher(nil).FetchMetadata(context.Background(), srv.URL)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -78,7 +78,7 @@ func TestFetchMetadataRelativeOGImage(t *testing.T) {
 	srv := serveHTML(`<html><head><meta property="og:image" content="/images/thumb.png"></head></html>`)
 	defer srv.Close()
 
-	meta, err := FetchMetadata(context.Background(), srv.URL)
+	meta, err := NewFetcher(nil).FetchMetadata(context.Background(), srv.URL)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -93,7 +93,7 @@ func TestFetchMetadataEmptyPage(t *testing.T) {
 	srv := serveHTML("")
 	defer srv.Close()
 
-	meta, err := FetchMetadata(context.Background(), srv.URL)
+	meta, err := NewFetcher(nil).FetchMetadata(context.Background(), srv.URL)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -107,7 +107,7 @@ func TestFetchMetadataHTMLEntityDecoding(t *testing.T) {
 	srv := serveHTML(`<html><head><title>Tom &amp; Jerry</title></head></html>`)
 	defer srv.Close()
 
-	meta, err := FetchMetadata(context.Background(), srv.URL)
+	meta, err := NewFetcher(nil).FetchMetadata(context.Background(), srv.URL)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

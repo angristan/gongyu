@@ -2,6 +2,7 @@ package social
 
 import (
 	"bytes"
+	"context"
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha1"
@@ -28,7 +29,10 @@ func truncateRunes(s string, maxLen int) string {
 }
 
 // PostToTwitter posts a tweet using OAuth 1.0a and the Twitter API v2.
-func PostToTwitter(apiKey, apiSecret, accessToken, accessSecret, title, bookmarkURL string) error {
+func (c *Client) PostToTwitter(ctx context.Context, apiKey, apiSecret, accessToken, accessSecret, title, bookmarkURL string) error {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
 	// Truncate title to fit in 280 chars (URL = 23 chars fixed by t.co)
 	maxTitleLen := 280 - 23 - 2 // 2 for space + newline
 	title = truncateRunes(title, maxTitleLen)
@@ -40,16 +44,21 @@ func PostToTwitter(apiKey, apiSecret, accessToken, accessSecret, title, bookmark
 		return fmt.Errorf("marshal tweet: %w", err)
 	}
 
-	req, err := http.NewRequest("POST", endpoint, bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(body))
 	if err != nil {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
 
+	nonce, err := generateNonce()
+	if err != nil {
+		return fmt.Errorf("generate nonce: %w", err)
+	}
+
 	// OAuth 1.0a signature
 	oauthParams := map[string]string{
 		"oauth_consumer_key":     apiKey,
-		"oauth_nonce":            generateNonce(),
+		"oauth_nonce":            nonce,
 		"oauth_signature_method": "HMAC-SHA1",
 		"oauth_timestamp":        fmt.Sprintf("%d", time.Now().Unix()),
 		"oauth_token":            accessToken,
@@ -69,8 +78,7 @@ func PostToTwitter(apiKey, apiSecret, accessToken, accessSecret, title, bookmark
 	slices.Sort(authParts)
 	req.Header.Set("Authorization", "OAuth "+strings.Join(authParts, ", "))
 
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return err
 	}
@@ -97,11 +105,10 @@ func oauthSignatureBase(method, endpoint string, params map[string]string) strin
 	return method + "&" + url.QueryEscape(endpoint) + "&" + url.QueryEscape(paramStr)
 }
 
-func generateNonce() string {
+func generateNonce() (string, error) {
 	b := make([]byte, 32)
 	if _, err := rand.Read(b); err != nil {
-		panic("crypto/rand: " + err.Error())
+		return "", err
 	}
-	return fmt.Sprintf("%x", b)
+	return fmt.Sprintf("%x", b), nil
 }
-
