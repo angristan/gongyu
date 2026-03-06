@@ -49,7 +49,11 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) SetupPage(w http.ResponseWriter, r *http.Request) {
-	count, _ := h.Store.CountUsers(r.Context())
+	count, err := h.Store.CountUsers(r.Context())
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 	if count > 0 {
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
@@ -60,7 +64,11 @@ func (h *Handler) SetupPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) SetupSubmit(w http.ResponseWriter, r *http.Request) {
-	count, _ := h.Store.CountUsers(r.Context())
+	count, err := h.Store.CountUsers(r.Context())
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 	if count > 0 {
 		http.Redirect(w, r, "/", http.StatusFound)
 		return

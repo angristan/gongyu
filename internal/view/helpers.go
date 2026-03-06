@@ -238,7 +238,10 @@ func rollupWeekly(rows []model.BookmarksOverTimeRow) []model.BookmarksOverTimeRo
 	byWeek := make(map[string]int)
 	var weeks []string
 	for _, r := range rows {
-		t, _ := time.Parse("2006-01-02", r.Date)
+		t, err := time.Parse("2006-01-02", r.Date)
+		if err != nil {
+			continue
+		}
 		// Shift to Monday of the week
 		weekStart := t.AddDate(0, 0, -((int(t.Weekday()) + 6) % 7))
 		key := weekStart.Format("2006-01-02")
@@ -249,8 +252,14 @@ func rollupWeekly(rows []model.BookmarksOverTimeRow) []model.BookmarksOverTimeRo
 	}
 
 	// Generate all weeks between first and last
-	start, _ := time.Parse("2006-01-02", weeks[0])
-	end, _ := time.Parse("2006-01-02", weeks[len(weeks)-1])
+	start, err := time.Parse("2006-01-02", weeks[0])
+	if err != nil {
+		return nil
+	}
+	end, err := time.Parse("2006-01-02", weeks[len(weeks)-1])
+	if err != nil {
+		return nil
+	}
 	var result []model.BookmarksOverTimeRow
 	for w := start; !w.After(end); w = w.AddDate(0, 0, 7) {
 		key := w.Format("2006-01-02")
@@ -275,8 +284,14 @@ func rollupMonthly(rows []model.BookmarksOverTimeRow) []model.BookmarksOverTimeR
 	}
 
 	// Generate all months between first and last
-	start, _ := time.Parse("2006-01", months[0])
-	end, _ := time.Parse("2006-01", months[len(months)-1])
+	start, err := time.Parse("2006-01", months[0])
+	if err != nil {
+		return nil
+	}
+	end, err := time.Parse("2006-01", months[len(months)-1])
+	if err != nil {
+		return nil
+	}
 	var result []model.BookmarksOverTimeRow
 	for m := start; !m.After(end); m = m.AddDate(0, 1, 0) {
 		key := m.Format("2006-01")

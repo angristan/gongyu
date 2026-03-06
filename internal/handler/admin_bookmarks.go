@@ -18,7 +18,7 @@ import (
 
 func (h *Handler) AdminBookmarks(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("q")
-	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	page, _ := strconv.Atoi(r.URL.Query().Get("page")) //nolint:errcheck // defaults to 0, clamped below
 	if page < 1 {
 		page = 1
 	}
@@ -88,7 +88,11 @@ func (h *Handler) AdminCreateBookmark(w http.ResponseWriter, r *http.Request) {
 	}
 
 	bookmarkTitle = title.Clean(bookmarkTitle)
-	shortURL, _ := model.UniqueShortURL(r.Context(), h.Store)
+	shortURL, err := model.UniqueShortURL(r.Context(), h.Store)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 	now := time.Now().UTC()
 
 	b, err := h.Store.CreateBookmark(r.Context(), model.CreateBookmarkParams{
@@ -138,7 +142,7 @@ func (h *Handler) AdminCreateBookmark(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) AdminEditBookmarkPage(w http.ResponseWriter, r *http.Request) {
-	id, _ := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	id, _ := strconv.ParseInt(r.PathValue("id"), 10, 64) //nolint:errcheck // invalid id → 0 → not found
 	b, err := h.Store.GetBookmarkByID(r.Context(), id)
 	if err != nil {
 		http.NotFound(w, r)
@@ -154,7 +158,7 @@ func (h *Handler) AdminEditBookmarkPage(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *Handler) AdminUpdateBookmark(w http.ResponseWriter, r *http.Request) {
-	id, _ := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	id, _ := strconv.ParseInt(r.PathValue("id"), 10, 64) //nolint:errcheck // invalid id → 0 → not found
 	b, err := h.Store.GetBookmarkByID(r.Context(), id)
 	if err != nil {
 		http.NotFound(w, r)
@@ -190,7 +194,7 @@ func (h *Handler) AdminUpdateBookmark(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) AdminDeleteBookmark(w http.ResponseWriter, r *http.Request) {
-	id, _ := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	id, _ := strconv.ParseInt(r.PathValue("id"), 10, 64) //nolint:errcheck // invalid id → 0 → not found
 	if err := h.Store.DeleteBookmark(r.Context(), id); err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
@@ -209,7 +213,13 @@ func (h *Handler) AdminDeleteAllBookmarks(w http.ResponseWriter, r *http.Request
 		http.Redirect(w, r, "/admin/settings?tab=danger", http.StatusFound)
 		return
 	}
-	count, _ := h.Store.DeleteAllBookmarks(r.Context())
+	count, err := h.Store.DeleteAllBookmarks(r.Context())
+	if err != nil {
+		slog.Error("failed to delete all bookmarks", "error", err)
+		setFlash(w, "Failed to delete bookmarks")
+		http.Redirect(w, r, "/admin/settings?tab=danger", http.StatusFound)
+		return
+	}
 	setFlash(w, strconv.FormatInt(count, 10)+" bookmarks deleted")
 	http.Redirect(w, r, "/admin/settings?tab=danger", http.StatusFound)
 }

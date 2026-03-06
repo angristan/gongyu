@@ -82,10 +82,13 @@ func PostToBluesky(handle, appPassword, title, bookmarkURL, thumbnailURL, descri
 }
 
 func bskyLogin(handle, appPassword string) (*bskySession, error) {
-	body, _ := json.Marshal(map[string]string{
+	body, err := json.Marshal(map[string]string{
 		"identifier": handle,
 		"password":   appPassword,
 	})
+	if err != nil {
+		return nil, fmt.Errorf("marshal login: %w", err)
+	}
 	resp, err := http.Post(bskyAPI+"/com.atproto.server.createSession", "application/json", bytes.NewReader(body))
 	if err != nil {
 		return nil, err
@@ -146,7 +149,10 @@ func bskyUploadBlob(session *bskySession, imageURL string) (any, error) {
 }
 
 func bskyRequest(session *bskySession, method string, body any) error {
-	data, _ := json.Marshal(body)
+	data, err := json.Marshal(body)
+	if err != nil {
+		return fmt.Errorf("marshal request: %w", err)
+	}
 	req, err := http.NewRequest("POST", bskyAPI+"/"+method, bytes.NewReader(data))
 	if err != nil {
 		return err

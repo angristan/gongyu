@@ -12,7 +12,7 @@ import (
 
 func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("q")
-	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	page, _ := strconv.Atoi(r.URL.Query().Get("page")) //nolint:errcheck // defaults to 0, clamped below
 	if page < 1 {
 		page = 1
 	}

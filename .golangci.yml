@@ -1,0 +1,8 @@
+version: "2"
+linters:
+  settings:
+    errcheck:
+      check-blank: true
+      exclude-functions:
+        - io.ReadAll
+        - net.SplitHostPort

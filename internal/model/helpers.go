@@ -17,7 +17,10 @@ const shortURLChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234
 func GenerateShortURL() string {
 	b := make([]byte, 8)
 	for i := range b {
-		n, _ := rand.Int(rand.Reader, big.NewInt(int64(len(shortURLChars))))
+		n, err := rand.Int(rand.Reader, big.NewInt(int64(len(shortURLChars))))
+		if err != nil {
+			panic("crypto/rand: " + err.Error())
+		}
 		b[i] = shortURLChars[n.Int64()]
 	}
 	return string(b)

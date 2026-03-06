@@ -35,7 +35,10 @@ func (h *Handler) AdminSettings(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	total, _ := h.Store.CountBookmarks(ctx)
+	total, err := h.Store.CountBookmarks(ctx)
+	if err != nil {
+		slog.Error("settings: count bookmarks", "error", err)
+	}
 
 	h.render(w, r, view.AdminSettingsPage(view.SettingsData{
 		LayoutData:     h.layoutData(w, r),
