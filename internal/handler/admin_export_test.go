@@ -25,7 +25,8 @@ func TestAdminExportHTML(t *testing.T) {
 	srv := httptest.NewServer(newTestHandler(store))
 	defer srv.Close()
 
-	req, _ := http.NewRequest("GET", srv.URL+"/admin/export?format=html", nil)
+	req, err := http.NewRequest("GET", srv.URL+"/admin/export?format=html", nil)
+	if err != nil { t.Fatal(err) }
 	req.AddCookie(cookie)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -56,7 +57,8 @@ func TestAdminExportJSON(t *testing.T) {
 	srv := httptest.NewServer(newTestHandler(store))
 	defer srv.Close()
 
-	req, _ := http.NewRequest("GET", srv.URL+"/admin/export?format=json", nil)
+	req, err := http.NewRequest("GET", srv.URL+"/admin/export?format=json", nil)
+	if err != nil { t.Fatal(err) }
 	req.AddCookie(cookie)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -80,7 +82,8 @@ func TestAdminExportInvalidFormat(t *testing.T) {
 	srv := httptest.NewServer(newTestHandler(store))
 	defer srv.Close()
 
-	req, _ := http.NewRequest("GET", srv.URL+"/admin/export?format=csv", nil)
+	req, err := http.NewRequest("GET", srv.URL+"/admin/export?format=csv", nil)
+	if err != nil { t.Fatal(err) }
 	req.AddCookie(cookie)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

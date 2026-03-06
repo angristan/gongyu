@@ -41,9 +41,7 @@ func TestAdminDashboard(t *testing.T) {
 	defer srv.Close()
 
 	req, err := http.NewRequest("GET", srv.URL+"/admin/dashboard", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	if err != nil { t.Fatal(err) }
 	req.AddCookie(cookie)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -121,9 +119,7 @@ func TestAdminBookmarks(t *testing.T) {
 	defer srv.Close()
 
 	req, err := http.NewRequest("GET", srv.URL+"/admin/bookmarks", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	if err != nil { t.Fatal(err) }
 	req.AddCookie(cookie)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -149,9 +145,7 @@ func TestAdminCreateBookmarkPage(t *testing.T) {
 	defer srv.Close()
 
 	req, err := http.NewRequest("GET", srv.URL+"/admin/bookmarks/create", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	if err != nil { t.Fatal(err) }
 	req.AddCookie(cookie)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -173,7 +167,8 @@ func TestAdminCreateBookmarkValidation(t *testing.T) {
 	defer srv.Close()
 
 	form := withCsrf(url.Values{"url": {""}, "title": {""}}, cookie)
-	req, _ := http.NewRequest("POST", srv.URL+"/admin/bookmarks", strings.NewReader(form.Encode()))
+	req, err := http.NewRequest("POST", srv.URL+"/admin/bookmarks", strings.NewReader(form.Encode()))
+	if err != nil { t.Fatal(err) }
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.AddCookie(cookie)
 	resp, err := noRedirectClient().Do(req)
@@ -200,7 +195,8 @@ func TestAdminCreateBookmarkDuplicate(t *testing.T) {
 	defer srv.Close()
 
 	form := withCsrf(url.Values{"url": {"https://example.com"}, "title": {"Test"}}, cookie)
-	req, _ := http.NewRequest("POST", srv.URL+"/admin/bookmarks", strings.NewReader(form.Encode()))
+	req, err := http.NewRequest("POST", srv.URL+"/admin/bookmarks", strings.NewReader(form.Encode()))
+	if err != nil { t.Fatal(err) }
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.AddCookie(cookie)
 	resp, err := http.DefaultClient.Do(req)
@@ -241,7 +237,8 @@ func TestAdminCreateBookmarkSuccess(t *testing.T) {
 	defer srv.Close()
 
 	form := withCsrf(url.Values{"url": {"https://example.com"}, "title": {"My Bookmark"}}, cookie)
-	req, _ := http.NewRequest("POST", srv.URL+"/admin/bookmarks", strings.NewReader(form.Encode()))
+	req, err := http.NewRequest("POST", srv.URL+"/admin/bookmarks", strings.NewReader(form.Encode()))
+	if err != nil { t.Fatal(err) }
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.AddCookie(cookie)
 	resp, err := noRedirectClient().Do(req)
@@ -273,7 +270,8 @@ func TestAdminEditBookmarkPage(t *testing.T) {
 	srv := httptest.NewServer(newTestHandler(store))
 	defer srv.Close()
 
-	req, _ := http.NewRequest("GET", srv.URL+"/admin/bookmarks/1/edit", nil)
+	req, err := http.NewRequest("GET", srv.URL+"/admin/bookmarks/1/edit", nil)
+	if err != nil { t.Fatal(err) }
 	req.AddCookie(cookie)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -304,7 +302,8 @@ func TestAdminUpdateBookmark(t *testing.T) {
 	defer srv.Close()
 
 	form := withCsrf(url.Values{"url": {"https://example.com"}, "title": {"Updated Title"}, "description": {"desc"}}, cookie)
-	req, _ := http.NewRequest("POST", srv.URL+"/admin/bookmarks/1", strings.NewReader(form.Encode()))
+	req, err := http.NewRequest("POST", srv.URL+"/admin/bookmarks/1", strings.NewReader(form.Encode()))
+	if err != nil { t.Fatal(err) }
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.AddCookie(cookie)
 	resp, err := noRedirectClient().Do(req)
@@ -336,7 +335,8 @@ func TestAdminDeleteBookmark(t *testing.T) {
 	defer srv.Close()
 
 	form := withCsrf(nil, cookie)
-	req, _ := http.NewRequest("POST", srv.URL+"/admin/bookmarks/42/delete", strings.NewReader(form.Encode()))
+	req, err := http.NewRequest("POST", srv.URL+"/admin/bookmarks/42/delete", strings.NewReader(form.Encode()))
+	if err != nil { t.Fatal(err) }
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.AddCookie(cookie)
 	resp, err := noRedirectClient().Do(req)
@@ -366,7 +366,8 @@ func TestAdminDeleteAllBookmarks(t *testing.T) {
 	defer srv.Close()
 
 	form := withCsrf(url.Values{"confirmation": {"DELETE ALL BOOKMARKS"}}, cookie)
-	req, _ := http.NewRequest("POST", srv.URL+"/admin/bookmarks/delete-all", strings.NewReader(form.Encode()))
+	req, err := http.NewRequest("POST", srv.URL+"/admin/bookmarks/delete-all", strings.NewReader(form.Encode()))
+	if err != nil { t.Fatal(err) }
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.AddCookie(cookie)
 	resp, err := noRedirectClient().Do(req)
@@ -389,7 +390,8 @@ func TestAdminDeleteAllBookmarksBadConfirmation(t *testing.T) {
 	defer srv.Close()
 
 	form := withCsrf(url.Values{"confirmation": {"wrong text"}}, cookie)
-	req, _ := http.NewRequest("POST", srv.URL+"/admin/bookmarks/delete-all", strings.NewReader(form.Encode()))
+	req, err := http.NewRequest("POST", srv.URL+"/admin/bookmarks/delete-all", strings.NewReader(form.Encode()))
+	if err != nil { t.Fatal(err) }
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.AddCookie(cookie)
 	resp, err := noRedirectClient().Do(req)
@@ -428,7 +430,8 @@ func TestFetchMetadataAPI(t *testing.T) {
 	defer srv.Close()
 
 	body := `{"url":"` + ogServer.URL + `"}`
-	req, _ := http.NewRequest("POST", srv.URL+"/admin/bookmarks/fetch-metadata", strings.NewReader(body))
+	req, err := http.NewRequest("POST", srv.URL+"/admin/bookmarks/fetch-metadata", strings.NewReader(body))
+	if err != nil { t.Fatal(err) }
 	req.Header.Set("Content-Type", "application/json")
 	req.AddCookie(cookie)
 	resp, err := http.DefaultClient.Do(req)
@@ -468,7 +471,8 @@ func TestFetchMetadataAPIMissingURL(t *testing.T) {
 	srv := httptest.NewServer(newTestHandler(store))
 	defer srv.Close()
 
-	req, _ := http.NewRequest("POST", srv.URL+"/admin/bookmarks/fetch-metadata", strings.NewReader(`{}`))
+	req, err := http.NewRequest("POST", srv.URL+"/admin/bookmarks/fetch-metadata", strings.NewReader(`{}`))
+	if err != nil { t.Fatal(err) }
 	req.Header.Set("Content-Type", "application/json")
 	req.AddCookie(cookie)
 	resp, err := http.DefaultClient.Do(req)

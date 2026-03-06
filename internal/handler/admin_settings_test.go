@@ -27,7 +27,8 @@ func TestAdminSettings(t *testing.T) {
 	srv := httptest.NewServer(newTestHandler(store))
 	defer srv.Close()
 
-	req, _ := http.NewRequest("GET", srv.URL+"/admin/settings", nil)
+	req, err := http.NewRequest("GET", srv.URL+"/admin/settings", nil)
+	if err != nil { t.Fatal(err) }
 	req.AddCookie(cookie)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -61,7 +62,8 @@ func TestAdminUpdateSettings(t *testing.T) {
 		"mastodon_instance": {"https://mastodon.social"},
 		"bluesky_handle":    {"user.bsky.social"},
 	}, cookie)
-	req, _ := http.NewRequest("POST", srv.URL+"/admin/settings", strings.NewReader(form.Encode()))
+	req, err := http.NewRequest("POST", srv.URL+"/admin/settings", strings.NewReader(form.Encode()))
+	if err != nil { t.Fatal(err) }
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.AddCookie(cookie)
 	resp, err := noRedirectClient().Do(req)

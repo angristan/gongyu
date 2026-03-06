@@ -174,7 +174,8 @@ func TestAuthenticate(t *testing.T) {
 }
 
 func TestMiddleware(t *testing.T) {
-	hash, _ := HashPassword("pass")
+	hash, err := HashPassword("pass")
+	if err != nil { t.Fatal(err) }
 	store := &mockStore{
 		users: map[string]model.User{
 			"user@test.com": {ID: 42, Email: "user@test.com", Password: hash},

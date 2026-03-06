@@ -40,7 +40,8 @@ func TestLoginPageRedirectsAuthed(t *testing.T) {
 	srv := httptest.NewServer(newTestHandler(store))
 	defer srv.Close()
 
-	req, _ := http.NewRequest("GET", srv.URL+"/login", nil)
+	req, err := http.NewRequest("GET", srv.URL+"/login", nil)
+	if err != nil { t.Fatal(err) }
 	req.AddCookie(cookie)
 	resp, err := noRedirectClient().Do(req)
 	if err != nil {
@@ -140,7 +141,8 @@ func TestLogout(t *testing.T) {
 
 	cookie := &http.Cookie{Name: "gongyu_session", Value: "some-token"}
 	form := withCsrf(nil, cookie)
-	req, _ := http.NewRequest("POST", srv.URL+"/logout", strings.NewReader(form.Encode()))
+	req, err := http.NewRequest("POST", srv.URL+"/logout", strings.NewReader(form.Encode()))
+	if err != nil { t.Fatal(err) }
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.AddCookie(cookie)
 	resp, err := noRedirectClient().Do(req)
