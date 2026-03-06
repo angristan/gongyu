@@ -13,7 +13,7 @@ func (h *Handler) AdminDashboard(w http.ResponseWriter, r *http.Request) {
 
 	total, _ := h.Store.CountBookmarks(ctx)
 	thisMonth, _ := h.Store.CountBookmarksSince(ctx, time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC))
-	thisWeek, _ := h.Store.CountBookmarksSince(ctx, now.AddDate(0, 0, -int(now.Weekday())))
+	thisWeek, _ := h.Store.CountBookmarksSince(ctx, now.AddDate(0, 0, -((int(now.Weekday())+6)%7)))
 	recent, _ := h.Store.RecentBookmarks(ctx, 10)
 
 	period := r.URL.Query().Get("period")

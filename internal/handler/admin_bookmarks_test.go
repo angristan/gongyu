@@ -15,11 +15,13 @@ import (
 )
 
 func TestAdminDashboard(t *testing.T) {
+	var sinceValues []time.Time
 	store := &mockStore{
 		countBookmarks: func(ctx context.Context) (int64, error) {
 			return 42, nil
 		},
 		countBookmarksSince: func(ctx context.Context, since time.Time) (int64, error) {
+			sinceValues = append(sinceValues, since)
 			return 5, nil
 		},
 		recentBookmarks: func(ctx context.Context, limit int64) ([]model.Bookmark, error) {
@@ -48,6 +50,32 @@ func TestAdminDashboard(t *testing.T) {
 
 	if resp.StatusCode != 200 {
 		t.Errorf("status = %d, want 200", resp.StatusCode)
+	}
+
+	// sinceValues[0] = thisMonth, sinceValues[1] = thisWeek
+	if len(sinceValues) >= 2 {
+		weekStart := sinceValues[1]
+		if weekStart.Weekday() != time.Monday {
+			t.Errorf("thisWeek since should be Monday, got %s", weekStart.Weekday())
+		}
+	}
+}
+
+func TestWeekStartIsMonday(t *testing.T) {
+	// The formula used in AdminDashboard: (int(weekday)+6)%7 days back from today
+	for _, day := range []time.Weekday{time.Monday, time.Tuesday, time.Wednesday, time.Thursday, time.Friday, time.Saturday, time.Sunday} {
+		// Find next date with this weekday
+		d := time.Date(2026, 3, 2, 12, 0, 0, 0, time.UTC) // Monday
+		for d.Weekday() != day {
+			d = d.AddDate(0, 0, 1)
+		}
+		got := d.AddDate(0, 0, -((int(d.Weekday()) + 6) % 7))
+		if got.Weekday() != time.Monday {
+			t.Errorf("for %s: week start = %s, want Monday", day, got.Weekday())
+		}
+		if got.After(d) {
+			t.Errorf("for %s: week start %s is after the day itself %s", day, got, d)
+		}
 	}
 }
 
