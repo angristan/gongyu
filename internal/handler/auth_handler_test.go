@@ -58,7 +58,10 @@ func TestLoginPageRedirectsAuthed(t *testing.T) {
 }
 
 func TestLoginSubmitSuccess(t *testing.T) {
-	hash, _ := auth.HashPassword("password123")
+	hash, err := auth.HashPassword("password123")
+	if err != nil {
+		t.Fatal(err)
+	}
 	store := &mockStore{
 		getUserByEmail: func(ctx context.Context, email string) (model.User, error) {
 			if email == "test@example.com" {

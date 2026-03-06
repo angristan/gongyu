@@ -82,8 +82,14 @@ func TestDecryptBadData(t *testing.T) {
 
 func TestEncryptProducesDifferentCiphertexts(t *testing.T) {
 	key := testKey()
-	a, _ := encrypt("same", key)
-	b, _ := encrypt("same", key)
+	a, err := encrypt("same", key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := encrypt("same", key)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if a == b {
 		t.Error("encrypt should produce different ciphertexts for the same plaintext (random nonce)")
 	}

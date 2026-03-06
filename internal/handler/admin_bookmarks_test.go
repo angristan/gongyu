@@ -40,7 +40,10 @@ func TestAdminDashboard(t *testing.T) {
 	srv := httptest.NewServer(newTestHandler(store))
 	defer srv.Close()
 
-	req, _ := http.NewRequest("GET", srv.URL+"/admin/dashboard", nil)
+	req, err := http.NewRequest("GET", srv.URL+"/admin/dashboard", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 	req.AddCookie(cookie)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -117,7 +120,10 @@ func TestAdminBookmarks(t *testing.T) {
 	srv := httptest.NewServer(newTestHandler(store))
 	defer srv.Close()
 
-	req, _ := http.NewRequest("GET", srv.URL+"/admin/bookmarks", nil)
+	req, err := http.NewRequest("GET", srv.URL+"/admin/bookmarks", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 	req.AddCookie(cookie)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -142,7 +148,10 @@ func TestAdminCreateBookmarkPage(t *testing.T) {
 	srv := httptest.NewServer(newTestHandler(store))
 	defer srv.Close()
 
-	req, _ := http.NewRequest("GET", srv.URL+"/admin/bookmarks/create", nil)
+	req, err := http.NewRequest("GET", srv.URL+"/admin/bookmarks/create", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 	req.AddCookie(cookie)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

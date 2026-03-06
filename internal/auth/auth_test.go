@@ -141,7 +141,10 @@ func (m *mockStore) DeleteSession(_ context.Context, token string) error {
 }
 
 func TestAuthenticate(t *testing.T) {
-	hash, _ := HashPassword("correct")
+	hash, err := HashPassword("correct")
+	if err != nil {
+		t.Fatal(err)
+	}
 	store := &mockStore{
 		users: map[string]model.User{
 			"user@test.com": {ID: 1, Email: "user@test.com", Password: hash},
