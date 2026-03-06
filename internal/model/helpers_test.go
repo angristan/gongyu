@@ -8,7 +8,10 @@ import (
 )
 
 func TestGenerateShortURL(t *testing.T) {
-	url := GenerateShortURL()
+	url, err := GenerateShortURL()
+	if err != nil {
+		t.Fatalf("GenerateShortURL() error = %v", err)
+	}
 	if len(url) != 8 {
 		t.Errorf("GenerateShortURL() length = %d, want 8", len(url))
 	}
@@ -21,7 +24,10 @@ func TestGenerateShortURL(t *testing.T) {
 	// Should produce unique values
 	seen := make(map[string]bool)
 	for range 100 {
-		s := GenerateShortURL()
+		s, err := GenerateShortURL()
+		if err != nil {
+			t.Fatalf("GenerateShortURL() error = %v", err)
+		}
 		if seen[s] {
 			t.Errorf("GenerateShortURL() produced duplicate: %s", s)
 		}

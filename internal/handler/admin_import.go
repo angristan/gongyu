@@ -83,7 +83,12 @@ func (h *Handler) AdminImport(w http.ResponseWriter, r *http.Request) {
 	// Fill in short URLs and timestamps for import
 	for i := range bookmarks {
 		if bookmarks[i].ShortUrl == "" {
-			bookmarks[i].ShortUrl = model.GenerateShortURL()
+			shortURL, err := model.GenerateShortURL()
+			if err != nil {
+				renderErr("Failed to generate short URL: " + err.Error())
+				return
+			}
+			bookmarks[i].ShortUrl = shortURL
 		}
 		if bookmarks[i].CreatedAt.IsZero() {
 			bookmarks[i].CreatedAt = time.Now().UTC()

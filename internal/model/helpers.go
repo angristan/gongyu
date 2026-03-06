@@ -14,21 +14,24 @@ import (
 
 const shortURLChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
-func GenerateShortURL() string {
+func GenerateShortURL() (string, error) {
 	b := make([]byte, 8)
 	for i := range b {
 		n, err := rand.Int(rand.Reader, big.NewInt(int64(len(shortURLChars))))
 		if err != nil {
-			panic("crypto/rand: " + err.Error())
+			return "", err
 		}
 		b[i] = shortURLChars[n.Int64()]
 	}
-	return string(b)
+	return string(b), nil
 }
 
 func UniqueShortURL(ctx context.Context, store Store) (string, error) {
 	for {
-		s := GenerateShortURL()
+		s, err := GenerateShortURL()
+		if err != nil {
+			return "", err
+		}
 		exists, err := store.ShortURLExists(ctx, s)
 		if err != nil {
 			return "", err
