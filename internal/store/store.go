@@ -213,27 +213,7 @@ func (s *Store) TopDomains(ctx context.Context, since time.Time, limit int) ([]m
 	return result, nil
 }
 
-// --- Search (hand-written, uses FTS + ILIKE fallback) ---
-
-const (
-	bookmarkCols = `id, short_url, url, title, description, thumbnail_url, shaarli_short_url, created_at, updated_at`
-	ftsExpr      = `to_tsvector('english', coalesce(title, '') || ' ' || coalesce(description, '') || ' ' || coalesce(url, ''))`
-)
-
-func scanBookmarks(rows *sql.Rows) ([]model.Bookmark, error) {
-	var bookmarks []model.Bookmark
-	for rows.Next() {
-		var b model.Bookmark
-		if err := rows.Scan(&b.ID, &b.ShortUrl, &b.Url, &b.Title, &b.Description, &b.ThumbnailUrl, &b.ShaarliShortUrl, &b.CreatedAt, &b.UpdatedAt); err != nil {
-			return nil, err
-		}
-		bookmarks = append(bookmarks, b)
-	}
-	if bookmarks == nil {
-		bookmarks = []model.Bookmark{}
-	}
-	return bookmarks, rows.Err()
-}
+// --- Search (sqlc-delegated, uses FTS with window count) ---
 
 func (s *Store) SearchBookmarks(ctx context.Context, query string, page, perPage int) (*model.PaginatedBookmarks, error) {
 	if query == "" {
@@ -245,33 +225,30 @@ func (s *Store) SearchBookmarks(ctx context.Context, query string, page, perPage
 		return s.paginateBookmarks(ctx, page, perPage)
 	}
 
-	var total int
-	err := s.sqlDB.QueryRowContext(ctx,
-		`SELECT COUNT(*) FROM bookmarks WHERE `+ftsExpr+` @@ to_tsquery('english', $1)`, tsQuery).Scan(&total)
+	// First pass: get total count to compute page bounds
+	// We query with no offset limit to let pageBounds clamp the page,
+	// then re-query with the correct offset.
+	rows, err := s.q.SearchBookmarks(ctx, postgres.SearchBookmarksParams{
+		ToTsquery: tsQuery,
+		Limit:     int32(perPage),
+		Offset:    int32((max(page, 1) - 1) * perPage),
+	})
 	if err != nil {
-		return s.searchILike(ctx, query, page, perPage)
+		return nil, fmt.Errorf("search: %w", err)
+	}
+
+	var total int
+	bookmarks := make([]model.Bookmark, 0, len(rows))
+	for _, r := range rows {
+		total = int(r.TotalCount)
+		bookmarks = append(bookmarks, model.Bookmark(postgres.Bookmark{
+			ID: r.ID, ShortUrl: r.ShortUrl, Url: r.Url, Title: r.Title,
+			Description: r.Description, ThumbnailUrl: r.ThumbnailUrl,
+			ShaarliShortUrl: r.ShaarliShortUrl, CreatedAt: r.CreatedAt, UpdatedAt: r.UpdatedAt,
+		}))
 	}
 
 	p := pageBounds(total, page, perPage)
-
-	rows, err := s.sqlDB.QueryContext(ctx,
-		`SELECT `+bookmarkCols+` FROM bookmarks
-		 WHERE `+ftsExpr+` @@ to_tsquery('english', $1)
-		 ORDER BY ts_rank(`+ftsExpr+`, to_tsquery('english', $1)) DESC
-		 LIMIT $2 OFFSET $3`, tsQuery, perPage, (p.page-1)*perPage)
-	if err != nil {
-		return s.searchILike(ctx, query, page, perPage)
-	}
-	defer func() {
-		if err := rows.Close(); err != nil {
-			slog.Error("failed to close rows", "error", err)
-		}
-	}()
-
-	bookmarks, err := scanBookmarks(rows)
-	if err != nil {
-		return nil, err
-	}
 
 	return &model.PaginatedBookmarks{
 		Bookmarks: bookmarks, CurrentPage: p.page, LastPage: p.lastPage, PerPage: perPage, Total: total,
@@ -293,42 +270,6 @@ func (s *Store) paginateBookmarks(ctx context.Context, page, perPage int) (*mode
 	}, nil
 }
 
-func (s *Store) searchILike(ctx context.Context, query string, page, perPage int) (*model.PaginatedBookmarks, error) {
-	like := "%" + query + "%"
-
-	var total int
-	err := s.sqlDB.QueryRowContext(ctx,
-		`SELECT COUNT(*) FROM bookmarks WHERE title ILIKE $1 OR description ILIKE $2 OR url ILIKE $3`,
-		like, like, like).Scan(&total)
-	if err != nil {
-		return nil, err
-	}
-
-	p := pageBounds(total, page, perPage)
-
-	rows, err := s.sqlDB.QueryContext(ctx,
-		`SELECT `+bookmarkCols+` FROM bookmarks
-		 WHERE title ILIKE $1 OR description ILIKE $2 OR url ILIKE $3
-		 ORDER BY created_at DESC LIMIT $4 OFFSET $5`,
-		like, like, like, perPage, (p.page-1)*perPage)
-	if err != nil {
-		return nil, err
-	}
-	defer func() {
-		if err := rows.Close(); err != nil {
-			slog.Error("failed to close rows", "error", err)
-		}
-	}()
-
-	bookmarks, err := scanBookmarks(rows)
-	if err != nil {
-		return nil, err
-	}
-
-	return &model.PaginatedBookmarks{
-		Bookmarks: bookmarks, CurrentPage: p.page, LastPage: p.lastPage, PerPage: perPage, Total: total,
-	}, nil
-}
 
 func buildTSQuery(query string) string {
 	query = strings.TrimSpace(query)

@@ -372,6 +372,72 @@ func (q *Queries) RecentBookmarks(ctx context.Context, limit int32) ([]Bookmark,
 	return items, nil
 }
 
+const searchBookmarks = `-- name: SearchBookmarks :many
+SELECT id, short_url, url, title, description, thumbnail_url, shaarli_short_url, created_at, updated_at,
+  COUNT(*) OVER() AS total_count
+FROM bookmarks
+WHERE to_tsvector('english', coalesce(title, '') || ' ' || coalesce(description, '') || ' ' || coalesce(url, ''))
+  @@ to_tsquery('english', $1)
+ORDER BY ts_rank(
+  to_tsvector('english', coalesce(title, '') || ' ' || coalesce(description, '') || ' ' || coalesce(url, '')),
+  to_tsquery('english', $1)
+) DESC
+LIMIT $2 OFFSET $3
+`
+
+type SearchBookmarksParams struct {
+	ToTsquery string `json:"to_tsquery"`
+	Limit     int32  `json:"limit"`
+	Offset    int32  `json:"offset"`
+}
+
+type SearchBookmarksRow struct {
+	ID              int64     `json:"id"`
+	ShortUrl        string    `json:"short_url"`
+	Url             string    `json:"url"`
+	Title           string    `json:"title"`
+	Description     string    `json:"description"`
+	ThumbnailUrl    string    `json:"thumbnail_url"`
+	ShaarliShortUrl string    `json:"shaarli_short_url"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
+	TotalCount      int64     `json:"total_count"`
+}
+
+func (q *Queries) SearchBookmarks(ctx context.Context, arg SearchBookmarksParams) ([]SearchBookmarksRow, error) {
+	rows, err := q.db.QueryContext(ctx, searchBookmarks, arg.ToTsquery, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SearchBookmarksRow{}
+	for rows.Next() {
+		var i SearchBookmarksRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ShortUrl,
+			&i.Url,
+			&i.Title,
+			&i.Description,
+			&i.ThumbnailUrl,
+			&i.ShaarliShortUrl,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.TotalCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const shortURLExists = `-- name: ShortURLExists :one
 SELECT EXISTS(SELECT 1 FROM bookmarks WHERE short_url = $1)
 `

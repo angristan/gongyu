@@ -62,6 +62,18 @@ FROM bookmarks
 WHERE created_at >= $1
 GROUP BY date ORDER BY date;
 
+-- name: SearchBookmarks :many
+SELECT id, short_url, url, title, description, thumbnail_url, shaarli_short_url, created_at, updated_at,
+  COUNT(*) OVER() AS total_count
+FROM bookmarks
+WHERE to_tsvector('english', coalesce(title, '') || ' ' || coalesce(description, '') || ' ' || coalesce(url, ''))
+  @@ to_tsquery('english', $1)
+ORDER BY ts_rank(
+  to_tsvector('english', coalesce(title, '') || ' ' || coalesce(description, '') || ' ' || coalesce(url, '')),
+  to_tsquery('english', $1)
+) DESC
+LIMIT $2 OFFSET $3;
+
 -- name: TopDomains :many
 SELECT
     regexp_replace(substring(url from '://([^/]+)'), '^www\.', '') AS domain,
