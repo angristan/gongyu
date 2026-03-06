@@ -57,3 +57,24 @@ func TestPageBounds(t *testing.T) {
 		}
 	}
 }
+
+func TestSearchPage(t *testing.T) {
+	tests := []struct {
+		total, page, perPage int
+		wantPage, wantLast   int
+		wantOffset           int32
+	}{
+		{0, 1, 20, 1, 1, 0},
+		{25, 1, 10, 1, 3, 0},
+		{25, 3, 10, 3, 3, 20},
+		{25, 99, 10, 3, 3, 20},
+	}
+
+	for _, tt := range tests {
+		p, offset := searchPage(tt.total, tt.page, tt.perPage)
+		if p.page != tt.wantPage || p.lastPage != tt.wantLast || offset != tt.wantOffset {
+			t.Errorf("searchPage(%d, %d, %d) = {%d, %d}, %d; want {%d, %d}, %d",
+				tt.total, tt.page, tt.perPage, p.page, p.lastPage, offset, tt.wantPage, tt.wantLast, tt.wantOffset)
+		}
+	}
+}

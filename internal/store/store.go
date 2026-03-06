@@ -225,33 +225,28 @@ func (s *Store) SearchBookmarks(ctx context.Context, query string, page, perPage
 		return s.paginateBookmarks(ctx, page, perPage)
 	}
 
-	// First pass: get total count to compute page bounds
-	// We query with no offset limit to let pageBounds clamp the page,
-	// then re-query with the correct offset.
+	total, err := s.q.CountSearchBookmarks(ctx, tsQuery)
+	if err != nil {
+		return nil, fmt.Errorf("count search: %w", err)
+	}
+
+	p, offset := searchPage(int(total), page, perPage)
 	rows, err := s.q.SearchBookmarks(ctx, postgres.SearchBookmarksParams{
 		ToTsquery: tsQuery,
 		Limit:     int32(perPage),
-		Offset:    int32((max(page, 1) - 1) * perPage),
+		Offset:    offset,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("search: %w", err)
 	}
 
-	var total int
 	bookmarks := make([]model.Bookmark, 0, len(rows))
 	for _, r := range rows {
-		total = int(r.TotalCount)
-		bookmarks = append(bookmarks, model.Bookmark(postgres.Bookmark{
-			ID: r.ID, ShortUrl: r.ShortUrl, Url: r.Url, Title: r.Title,
-			Description: r.Description, ThumbnailUrl: r.ThumbnailUrl,
-			ShaarliShortUrl: r.ShaarliShortUrl, CreatedAt: r.CreatedAt, UpdatedAt: r.UpdatedAt,
-		}))
+		bookmarks = append(bookmarks, model.Bookmark(r))
 	}
 
-	p := pageBounds(total, page, perPage)
-
 	return &model.PaginatedBookmarks{
-		Bookmarks: bookmarks, CurrentPage: p.page, LastPage: p.lastPage, PerPage: perPage, Total: total,
+		Bookmarks: bookmarks, CurrentPage: p.page, LastPage: p.lastPage, PerPage: perPage, Total: int(total),
 	}, nil
 }
 
@@ -269,7 +264,6 @@ func (s *Store) paginateBookmarks(ctx context.Context, page, perPage int) (*mode
 		Bookmarks: bookmarks, CurrentPage: p.page, LastPage: p.lastPage, PerPage: perPage, Total: int(total),
 	}, nil
 }
-
 
 func buildTSQuery(query string) string {
 	query = strings.TrimSpace(query)
@@ -306,6 +300,11 @@ func pageBounds(total, page, perPage int) pageInfo {
 		page = lastPage
 	}
 	return pageInfo{page, lastPage}
+}
+
+func searchPage(total, page, perPage int) (pageInfo, int32) {
+	p := pageBounds(total, page, perPage)
+	return p, int32((p.page - 1) * perPage)
 }
 
 // --- Users (sqlc-delegated) ---

@@ -62,12 +62,20 @@ FROM bookmarks
 WHERE created_at >= $1
 GROUP BY date ORDER BY date;
 
+-- name: CountSearchBookmarks :one
+WITH query AS (
+  SELECT to_tsquery('english', $1) AS q
+)
+SELECT COUNT(*)
+FROM bookmarks b, query
+WHERE to_tsvector('english', coalesce(b.title, '') || ' ' || coalesce(b.description, '') || ' ' || coalesce(b.url, ''))
+  @@ query.q;
+
 -- name: SearchBookmarks :many
 WITH query AS (
   SELECT to_tsquery('english', $1) AS q
 )
-SELECT b.id, b.short_url, b.url, b.title, b.description, b.thumbnail_url, b.shaarli_short_url, b.created_at, b.updated_at,
-  COUNT(*) OVER() AS total_count
+SELECT b.id, b.short_url, b.url, b.title, b.description, b.thumbnail_url, b.shaarli_short_url, b.created_at, b.updated_at
 FROM bookmarks b, query
 WHERE to_tsvector('english', coalesce(b.title, '') || ' ' || coalesce(b.description, '') || ' ' || coalesce(b.url, ''))
   @@ query.q

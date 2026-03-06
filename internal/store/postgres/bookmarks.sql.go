@@ -105,6 +105,23 @@ func (q *Queries) CountBookmarksSince(ctx context.Context, createdAt time.Time) 
 	return count, err
 }
 
+const countSearchBookmarks = `-- name: CountSearchBookmarks :one
+WITH query AS (
+  SELECT to_tsquery('english', $1) AS q
+)
+SELECT COUNT(*)
+FROM bookmarks b, query
+WHERE to_tsvector('english', coalesce(b.title, '') || ' ' || coalesce(b.description, '') || ' ' || coalesce(b.url, ''))
+  @@ query.q
+`
+
+func (q *Queries) CountSearchBookmarks(ctx context.Context, toTsquery string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countSearchBookmarks, toTsquery)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createBookmark = `-- name: CreateBookmark :one
 INSERT INTO bookmarks (short_url, url, title, description, thumbnail_url, shaarli_short_url, created_at, updated_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -376,8 +393,7 @@ const searchBookmarks = `-- name: SearchBookmarks :many
 WITH query AS (
   SELECT to_tsquery('english', $1) AS q
 )
-SELECT b.id, b.short_url, b.url, b.title, b.description, b.thumbnail_url, b.shaarli_short_url, b.created_at, b.updated_at,
-  COUNT(*) OVER() AS total_count
+SELECT b.id, b.short_url, b.url, b.title, b.description, b.thumbnail_url, b.shaarli_short_url, b.created_at, b.updated_at
 FROM bookmarks b, query
 WHERE to_tsvector('english', coalesce(b.title, '') || ' ' || coalesce(b.description, '') || ' ' || coalesce(b.url, ''))
   @@ query.q
@@ -394,28 +410,15 @@ type SearchBookmarksParams struct {
 	Offset    int32  `json:"offset"`
 }
 
-type SearchBookmarksRow struct {
-	ID              int64     `json:"id"`
-	ShortUrl        string    `json:"short_url"`
-	Url             string    `json:"url"`
-	Title           string    `json:"title"`
-	Description     string    `json:"description"`
-	ThumbnailUrl    string    `json:"thumbnail_url"`
-	ShaarliShortUrl string    `json:"shaarli_short_url"`
-	CreatedAt       time.Time `json:"created_at"`
-	UpdatedAt       time.Time `json:"updated_at"`
-	TotalCount      int64     `json:"total_count"`
-}
-
-func (q *Queries) SearchBookmarks(ctx context.Context, arg SearchBookmarksParams) ([]SearchBookmarksRow, error) {
+func (q *Queries) SearchBookmarks(ctx context.Context, arg SearchBookmarksParams) ([]Bookmark, error) {
 	rows, err := q.db.QueryContext(ctx, searchBookmarks, arg.ToTsquery, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []SearchBookmarksRow{}
+	items := []Bookmark{}
 	for rows.Next() {
-		var i SearchBookmarksRow
+		var i Bookmark
 		if err := rows.Scan(
 			&i.ID,
 			&i.ShortUrl,
@@ -426,7 +429,6 @@ func (q *Queries) SearchBookmarks(ctx context.Context, arg SearchBookmarksParams
 			&i.ShaarliShortUrl,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.TotalCount,
 		); err != nil {
 			return nil, err
 		}
