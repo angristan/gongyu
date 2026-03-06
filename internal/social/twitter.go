@@ -18,13 +18,20 @@ import (
 	"time"
 )
 
+// truncateRunes truncates s to maxLen runes, appending "…" if truncated.
+func truncateRunes(s string, maxLen int) string {
+	runes := []rune(s)
+	if len(runes) > maxLen {
+		return string(runes[:maxLen-1]) + "…"
+	}
+	return s
+}
+
 // PostToTwitter posts a tweet using OAuth 1.0a and the Twitter API v2.
 func PostToTwitter(apiKey, apiSecret, accessToken, accessSecret, title, bookmarkURL string) error {
 	// Truncate title to fit in 280 chars (URL = 23 chars fixed by t.co)
 	maxTitleLen := 280 - 23 - 2 // 2 for space + newline
-	if len(title) > maxTitleLen {
-		title = title[:maxTitleLen-1] + "…"
-	}
+	title = truncateRunes(title, maxTitleLen)
 	tweetText := title + "\n" + bookmarkURL
 
 	endpoint := "https://api.twitter.com/2/tweets"
@@ -62,7 +69,8 @@ func PostToTwitter(apiKey, apiSecret, accessToken, accessSecret, title, bookmark
 	slices.Sort(authParts)
 	req.Header.Set("Authorization", "OAuth "+strings.Join(authParts, ", "))
 
-	resp, err := http.DefaultClient.Do(req)
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}

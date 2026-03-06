@@ -5,6 +5,38 @@ import (
 	"testing"
 )
 
+func TestTruncateRunes(t *testing.T) {
+	tests := []struct {
+		name   string
+		input  string
+		maxLen int
+		want   string
+	}{
+		{"short ASCII", "hello", 10, "hello"},
+		{"exact limit", "hello", 5, "hello"},
+		{"truncate ASCII", "hello world", 6, "hello…"},
+		{"short CJK", "日本語", 10, "日本語"},
+		{"truncate CJK", "日本語テスト", 4, "日本語…"},
+		{"mixed multibyte", "Go言語プログラミング", 5, "Go言語…"},
+		{"emoji preserved", "hello 🌍🌎🌏", 8, "hello 🌍…"},
+		{"empty", "", 10, ""},
+		{"maxLen 1", "abc", 1, "…"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := truncateRunes(tt.input, tt.maxLen)
+			if got != tt.want {
+				t.Errorf("truncateRunes(%q, %d) = %q, want %q", tt.input, tt.maxLen, got, tt.want)
+			}
+			// Result must never exceed maxLen runes
+			if len([]rune(got)) > tt.maxLen {
+				t.Errorf("result %q has %d runes, exceeds maxLen %d", got, len([]rune(got)), tt.maxLen)
+			}
+		})
+	}
+}
+
 func TestOAuthSignatureBase(t *testing.T) {
 	params := map[string]string{
 		"oauth_consumer_key": "key",

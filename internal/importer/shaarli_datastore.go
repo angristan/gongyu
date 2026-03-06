@@ -1,7 +1,8 @@
 package importer
 
 import (
-	"compress/zlib"
+	"bytes"
+	"compress/flate"
 	"encoding/base64"
 	"fmt"
 	"io"
@@ -29,14 +30,11 @@ func ParseShaarliDatastore(content string) ([]model.Bookmark, error) {
 		return nil, fmt.Errorf("base64 decode: %w", err)
 	}
 
-	// Zlib inflate
-	r, err := zlib.NewReader(strings.NewReader(string(decoded)))
-	if err != nil {
-		return nil, fmt.Errorf("zlib decompress: %w", err)
-	}
+	// Raw DEFLATE inflate (PHP's gzdeflate produces RFC 1951)
+	r := flate.NewReader(bytes.NewReader(decoded))
 	defer func() {
 		if cerr := r.Close(); cerr != nil {
-			slog.Error("failed to close zlib reader", "error", cerr)
+			slog.Error("failed to close flate reader", "error", cerr)
 		}
 	}()
 

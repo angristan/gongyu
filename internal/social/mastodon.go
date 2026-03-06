@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 )
 
 // PostToMastodon posts a status to a Mastodon instance.
@@ -20,9 +21,7 @@ func PostToMastodon(instance, accessToken, title, bookmarkURL string) error {
 
 	// Status: max 500 chars
 	maxTitleLen := 500 - len(bookmarkURL) - 2
-	if len(title) > maxTitleLen {
-		title = title[:maxTitleLen-1] + "…"
-	}
+	title = truncateRunes(title, maxTitleLen)
 	status := title + "\n" + bookmarkURL
 
 	form := url.Values{"status": {status}}
@@ -33,7 +32,8 @@ func PostToMastodon(instance, accessToken, title, bookmarkURL string) error {
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 
-	resp, err := http.DefaultClient.Do(req)
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}

@@ -17,12 +17,14 @@ func TestGenerateAtom(t *testing.T) {
 			Title:       "Example",
 			Description: "A test bookmark",
 			CreatedAt:   time.Date(2024, 1, 15, 10, 0, 0, 0, time.UTC),
+			UpdatedAt:   time.Date(2024, 2, 20, 12, 0, 0, 0, time.UTC),
 		},
 		{
 			ShortUrl:  "def",
 			Url:       "https://go.dev",
 			Title:     "Go",
 			CreatedAt: time.Date(2024, 1, 16, 10, 0, 0, 0, time.UTC),
+			UpdatedAt: time.Date(2024, 1, 16, 10, 0, 0, 0, time.UTC),
 		},
 	}
 
@@ -68,6 +70,12 @@ func TestGenerateAtom(t *testing.T) {
 	}
 	if entry.Summary == nil || *entry.Summary != "A test bookmark" {
 		t.Errorf("entry.Summary = %v, want %q", entry.Summary, "A test bookmark")
+	}
+
+	// Entry Updated should use UpdatedAt, not CreatedAt
+	wantUpdated := "2024-02-20T12:00:00Z"
+	if entry.Updated != wantUpdated {
+		t.Errorf("entry.Updated = %q, want %q (should use UpdatedAt)", entry.Updated, wantUpdated)
 	}
 
 	// Second entry should have no summary

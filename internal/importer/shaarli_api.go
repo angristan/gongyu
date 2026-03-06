@@ -29,7 +29,8 @@ func FetchFromShaarliAPI(instanceURL, apiSecret string) ([]model.Bookmark, error
 	}
 	req.Header.Set("Authorization", "Bearer "+token)
 
-	resp, err := http.DefaultClient.Do(req)
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}

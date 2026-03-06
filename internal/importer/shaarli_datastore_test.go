@@ -1,6 +1,11 @@
 package importer
 
-import "testing"
+import (
+	"bytes"
+	"compress/flate"
+	"encoding/base64"
+	"testing"
+)
 
 func TestParseSerializedPHP(t *testing.T) {
 	// Simplified PHP serialized data with 2 links
@@ -41,6 +46,45 @@ func TestParseSerializedPHP(t *testing.T) {
 
 	if bookmarks[1].Url != "https://go.dev/" {
 		t.Errorf("bookmarks[1].Url = %q, want %q", bookmarks[1].Url, "https://go.dev/")
+	}
+}
+
+func TestParseShaarliDatastore(t *testing.T) {
+	// Build a valid datastore: <?php /* base64(deflate(serialized)) */ ?>
+	serialized := `s:3:"url";s:19:"https://example.com"` +
+		`s:5:"title";s:7:"Example"` +
+		`s:11:"description";s:4:"test"` +
+		`s:8:"shorturl";s:3:"abc"` +
+		`s:7:"created";i:1700000000`
+
+	// Compress with raw DEFLATE (matching PHP gzdeflate)
+	var buf bytes.Buffer
+	w, err := flate.NewWriter(&buf, flate.DefaultCompression)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := w.Write([]byte(serialized)); err != nil {
+		t.Fatal(err)
+	}
+	if err := w.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	encoded := base64.StdEncoding.EncodeToString(buf.Bytes())
+	content := "<?php /* " + encoded + " */ ?>"
+
+	bookmarks, err := ParseShaarliDatastore(content)
+	if err != nil {
+		t.Fatalf("ParseShaarliDatastore() error: %v", err)
+	}
+	if len(bookmarks) != 1 {
+		t.Fatalf("got %d bookmarks, want 1", len(bookmarks))
+	}
+	if bookmarks[0].Url != "https://example.com" {
+		t.Errorf("Url = %q, want %q", bookmarks[0].Url, "https://example.com")
+	}
+	if bookmarks[0].Title != "Example" {
+		t.Errorf("Title = %q, want %q", bookmarks[0].Title, "Example")
 	}
 }
 

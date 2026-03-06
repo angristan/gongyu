@@ -45,7 +45,7 @@ func GenerateAtom(baseURL string, bookmarks []model.Bookmark) ([]byte, error) {
 			Title:   b.Title,
 			Link:    atomLink{Href: b.Url},
 			ID:      baseURL + "/b/" + b.ShortUrl,
-			Updated: b.CreatedAt.UTC().Format(time.RFC3339),
+			Updated: b.UpdatedAt.UTC().Format(time.RFC3339),
 		}
 		if b.Description != "" {
 			entry.Summary = &b.Description

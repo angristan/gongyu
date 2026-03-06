@@ -76,13 +76,15 @@ templ AdminBookmarkFormPage(data BookmarkFormData) {
 						}
 					</button>
 					if !data.IsCreate && data.Bookmark != nil {
-						<form method="POST" action={ fmt.Sprintf("/admin/bookmarks/%d/delete", data.Bookmark.ID) } class="inline-form" onsubmit="return confirm('Delete this bookmark?')">
-							@csrfField(data.CsrfToken)
-							<button type="submit" class="btn btn-danger">Delete</button>
-						</form>
+						<button type="submit" form="delete-bookmark-form" class="btn btn-danger" onclick="return confirm('Delete this bookmark?')">Delete</button>
 					}
 				</div>
 			</form>
+			if !data.IsCreate && data.Bookmark != nil {
+				<form method="POST" action={ fmt.Sprintf("/admin/bookmarks/%d/delete", data.Bookmark.ID) } id="delete-bookmark-form" style="display:none">
+					@csrfField(data.CsrfToken)
+				</form>
+			}
 			<div id="metadata-result"></div>
 		</div>
 		@metadataScript()
