@@ -41,7 +41,9 @@ func TestAdminDashboard(t *testing.T) {
 	defer srv.Close()
 
 	req, err := http.NewRequest("GET", srv.URL+"/admin/dashboard", nil)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	req.AddCookie(cookie)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -119,7 +121,9 @@ func TestAdminBookmarks(t *testing.T) {
 	defer srv.Close()
 
 	req, err := http.NewRequest("GET", srv.URL+"/admin/bookmarks", nil)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	req.AddCookie(cookie)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -145,7 +149,9 @@ func TestAdminCreateBookmarkPage(t *testing.T) {
 	defer srv.Close()
 
 	req, err := http.NewRequest("GET", srv.URL+"/admin/bookmarks/create", nil)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	req.AddCookie(cookie)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -168,7 +174,9 @@ func TestAdminCreateBookmarkValidation(t *testing.T) {
 
 	form := withCsrf(url.Values{"url": {""}, "title": {""}}, cookie)
 	req, err := http.NewRequest("POST", srv.URL+"/admin/bookmarks", strings.NewReader(form.Encode()))
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.AddCookie(cookie)
 	resp, err := noRedirectClient().Do(req)
@@ -196,7 +204,9 @@ func TestAdminCreateBookmarkDuplicate(t *testing.T) {
 
 	form := withCsrf(url.Values{"url": {"https://example.com"}, "title": {"Test"}}, cookie)
 	req, err := http.NewRequest("POST", srv.URL+"/admin/bookmarks", strings.NewReader(form.Encode()))
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.AddCookie(cookie)
 	resp, err := http.DefaultClient.Do(req)
@@ -238,7 +248,9 @@ func TestAdminCreateBookmarkSuccess(t *testing.T) {
 
 	form := withCsrf(url.Values{"url": {"https://example.com"}, "title": {"My Bookmark"}}, cookie)
 	req, err := http.NewRequest("POST", srv.URL+"/admin/bookmarks", strings.NewReader(form.Encode()))
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.AddCookie(cookie)
 	resp, err := noRedirectClient().Do(req)
@@ -271,7 +283,9 @@ func TestAdminEditBookmarkPage(t *testing.T) {
 	defer srv.Close()
 
 	req, err := http.NewRequest("GET", srv.URL+"/admin/bookmarks/1/edit", nil)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	req.AddCookie(cookie)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -303,7 +317,9 @@ func TestAdminUpdateBookmark(t *testing.T) {
 
 	form := withCsrf(url.Values{"url": {"https://example.com"}, "title": {"Updated Title"}, "description": {"desc"}}, cookie)
 	req, err := http.NewRequest("POST", srv.URL+"/admin/bookmarks/1", strings.NewReader(form.Encode()))
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.AddCookie(cookie)
 	resp, err := noRedirectClient().Do(req)
@@ -336,7 +352,9 @@ func TestAdminDeleteBookmark(t *testing.T) {
 
 	form := withCsrf(nil, cookie)
 	req, err := http.NewRequest("POST", srv.URL+"/admin/bookmarks/42/delete", strings.NewReader(form.Encode()))
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.AddCookie(cookie)
 	resp, err := noRedirectClient().Do(req)
@@ -367,7 +385,9 @@ func TestAdminDeleteAllBookmarks(t *testing.T) {
 
 	form := withCsrf(url.Values{"confirmation": {"DELETE ALL BOOKMARKS"}}, cookie)
 	req, err := http.NewRequest("POST", srv.URL+"/admin/bookmarks/delete-all", strings.NewReader(form.Encode()))
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.AddCookie(cookie)
 	resp, err := noRedirectClient().Do(req)
@@ -391,7 +411,9 @@ func TestAdminDeleteAllBookmarksBadConfirmation(t *testing.T) {
 
 	form := withCsrf(url.Values{"confirmation": {"wrong text"}}, cookie)
 	req, err := http.NewRequest("POST", srv.URL+"/admin/bookmarks/delete-all", strings.NewReader(form.Encode()))
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.AddCookie(cookie)
 	resp, err := noRedirectClient().Do(req)
@@ -431,7 +453,9 @@ func TestFetchMetadataAPI(t *testing.T) {
 
 	body := `{"url":"` + ogServer.URL + `"}`
 	req, err := http.NewRequest("POST", srv.URL+"/admin/bookmarks/fetch-metadata", strings.NewReader(body))
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	req.Header.Set("Content-Type", "application/json")
 	req.AddCookie(cookie)
 	resp, err := http.DefaultClient.Do(req)
@@ -463,6 +487,50 @@ func TestFetchMetadataAPI(t *testing.T) {
 	}
 }
 
+func TestFetchMetadataAPIFormEncoded(t *testing.T) {
+	store := &mockStore{}
+	user := &model.User{ID: 1, Name: "Admin"}
+	cookie := loginSession(store, user)
+
+	ogServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		if _, err := w.Write([]byte(`<html><head><title>Form Title</title></head></html>`)); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	}))
+	defer ogServer.Close()
+
+	srv := httptest.NewServer(newTestHandler(store))
+	defer srv.Close()
+
+	form := withCsrf(url.Values{"url": {ogServer.URL}}, cookie)
+	req, err := http.NewRequest("POST", srv.URL+"/admin/bookmarks/fetch-metadata", strings.NewReader(form.Encode()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(cookie)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer closeTestBody(t, resp)
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("status = %d, want %d", resp.StatusCode, http.StatusOK)
+	}
+
+	var meta struct {
+		Title string `json:"title"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&meta); err != nil {
+		t.Fatal(err)
+	}
+	if meta.Title != "Form Title" {
+		t.Errorf("title = %q, want Form Title", meta.Title)
+	}
+}
+
 func TestFetchMetadataAPIMissingURL(t *testing.T) {
 	store := &mockStore{}
 	user := &model.User{ID: 1, Name: "Admin"}
@@ -472,7 +540,9 @@ func TestFetchMetadataAPIMissingURL(t *testing.T) {
 	defer srv.Close()
 
 	req, err := http.NewRequest("POST", srv.URL+"/admin/bookmarks/fetch-metadata", strings.NewReader(`{}`))
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	req.Header.Set("Content-Type", "application/json")
 	req.AddCookie(cookie)
 	resp, err := http.DefaultClient.Do(req)

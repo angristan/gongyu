@@ -225,15 +225,13 @@ func (h *Handler) AdminDeleteAllBookmarks(w http.ResponseWriter, r *http.Request
 }
 
 func (h *Handler) FetchMetadataAPI(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		URL string `json:"url"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.URL == "" {
+	bookmarkURL, err := metadataRequestURL(r)
+	if err != nil || bookmarkURL == "" {
 		h.jsonResponse(w, http.StatusBadRequest, map[string]string{"error": "URL is required"})
 		return
 	}
 
-	meta, err := thumbnail.FetchMetadata(r.Context(), req.URL)
+	meta, err := thumbnail.FetchMetadata(r.Context(), bookmarkURL)
 	if err != nil {
 		h.jsonResponse(w, http.StatusOK, map[string]string{"title": "", "description": "", "og_image": ""})
 		return
@@ -241,4 +239,21 @@ func (h *Handler) FetchMetadataAPI(w http.ResponseWriter, r *http.Request) {
 
 	meta.Title = title.Clean(meta.Title)
 	h.jsonResponse(w, http.StatusOK, meta)
+}
+
+func metadataRequestURL(r *http.Request) (string, error) {
+	if strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
+		var req struct {
+			URL string `json:"url"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			return "", err
+		}
+		return strings.TrimSpace(req.URL), nil
+	}
+
+	if err := r.ParseForm(); err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(r.FormValue("url")), nil
 }

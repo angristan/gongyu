@@ -185,14 +185,14 @@ func AdminBookmarkFormPage(data BookmarkFormData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "\" required placeholder=\"https://example.com\" hx-post=\"/admin/bookmarks/fetch-metadata\" hx-trigger=\"blur changed delay:300ms\" hx-target=\"#metadata-result\" hx-vals=\"js:{&quot;url&quot;: document.getElementById(&quot;url&quot;).value}\" hx-headers=\"{&quot;Content-Type&quot;: &quot;application/json&quot;}\" hx-ext=\"json-enc\"></div><div class=\"form-group\"><label for=\"title\">Title</label> <input type=\"text\" id=\"title\" name=\"title\" value=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "\" required placeholder=\"https://example.com\" hx-post=\"/admin/bookmarks/fetch-metadata\" hx-trigger=\"blur changed delay:300ms\" hx-include=\"#bookmark-form [name='_csrf']\" hx-target=\"#metadata-result\" hx-swap=\"none\"></div><div class=\"form-group\"><label for=\"title\">Title</label> <input type=\"text\" id=\"title\" name=\"title\" value=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var9 string
 			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(formVal(data.Form, "title"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/admin_bookmark_form.templ`, Line: 58, Col: 83}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/admin_bookmark_form.templ`, Line: 57, Col: 83}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 			if templ_7745c5c3_Err != nil {
@@ -205,7 +205,7 @@ func AdminBookmarkFormPage(data BookmarkFormData) templ.Component {
 			var templ_7745c5c3_Var10 string
 			templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(formVal(data.Form, "description"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/admin_bookmark_form.templ`, Line: 62, Col: 86}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/admin_bookmark_form.templ`, Line: 61, Col: 86}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 			if templ_7745c5c3_Err != nil {
@@ -241,20 +241,30 @@ func AdminBookmarkFormPage(data BookmarkFormData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			if !data.IsCreate && data.Bookmark != nil {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "<form method=\"POST\" action=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "<button type=\"submit\" form=\"delete-bookmark-form\" class=\"btn btn-danger\" onclick=\"return confirm('Delete this bookmark?')\">Delete</button>")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "</div></form>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			if !data.IsCreate && data.Bookmark != nil {
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "<form method=\"POST\" action=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var11 templ.SafeURL
 				templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinURLErrs(fmt.Sprintf("/admin/bookmarks/%d/delete", data.Bookmark.ID))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/admin_bookmark_form.templ`, Line: 79, Col: 94}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/admin_bookmark_form.templ`, Line: 83, Col: 92}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "\" class=\"inline-form\" onsubmit=\"return confirm('Delete this bookmark?')\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "\" id=\"delete-bookmark-form\" style=\"display:none\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -262,12 +272,12 @@ func AdminBookmarkFormPage(data BookmarkFormData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "<button type=\"submit\" class=\"btn btn-danger\">Delete</button></form>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "</form>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "</div></form><div id=\"metadata-result\"></div></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "<div id=\"metadata-result\"></div></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

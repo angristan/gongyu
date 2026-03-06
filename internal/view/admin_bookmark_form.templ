@@ -47,10 +47,9 @@ templ AdminBookmarkFormPage(data BookmarkFormData) {
 						placeholder="https://example.com"
 						hx-post="/admin/bookmarks/fetch-metadata"
 						hx-trigger="blur changed delay:300ms"
+						hx-include="#bookmark-form [name='_csrf']"
 						hx-target="#metadata-result"
-						hx-vals="js:{&quot;url&quot;: document.getElementById(&quot;url&quot;).value}"
-						hx-headers="{&quot;Content-Type&quot;: &quot;application/json&quot;}"
-						hx-ext="json-enc"
+						hx-swap="none"
 					/>
 				</div>
 				<div class="form-group">
