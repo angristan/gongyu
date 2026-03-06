@@ -6,3 +6,6 @@ SELECT token, user_id, expires_at FROM sessions WHERE token = $1;
 
 -- name: DeleteSession :exec
 DELETE FROM sessions WHERE token = $1;
+
+-- name: DeleteExpiredSessions :execrows
+DELETE FROM sessions WHERE expires_at < NOW();

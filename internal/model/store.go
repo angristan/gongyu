@@ -103,6 +103,7 @@ type Store interface {
 	CreateSession(ctx context.Context, arg CreateSessionParams) error
 	GetSession(ctx context.Context, token string) (Session, error)
 	DeleteSession(ctx context.Context, token string) error
+	DeleteExpiredSessions(ctx context.Context) (int64, error)
 
 	// Lifecycle
 	Ping(ctx context.Context) error

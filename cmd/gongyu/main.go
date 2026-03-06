@@ -54,6 +54,14 @@ func main() {
 	}()
 
 	bg := background.New(1)
+	bg.Every(time.Hour, func() {
+		n, err := db.DeleteExpiredSessions(context.Background())
+		if err != nil {
+			slog.Error("failed to delete expired sessions", "error", err)
+		} else if n > 0 {
+			slog.Info("deleted expired sessions", "count", n)
+		}
+	})
 
 	h := handler.New(db, encKey, baseURL, gongyu.StaticFS, bg)
 

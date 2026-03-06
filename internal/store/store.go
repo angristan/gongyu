@@ -417,3 +417,7 @@ func (s *Store) GetSession(ctx context.Context, token string) (model.Session, er
 func (s *Store) DeleteSession(ctx context.Context, token string) error {
 	return s.q.DeleteSession(ctx, token)
 }
+
+func (s *Store) DeleteExpiredSessions(ctx context.Context) (int64, error) {
+	return s.q.DeleteExpiredSessions(ctx)
+}
