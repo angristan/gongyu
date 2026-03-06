@@ -2,6 +2,7 @@ package thumbnail
 
 import (
 	"context"
+	"fmt"
 	"html"
 	"io"
 	"log/slog"
@@ -37,13 +38,13 @@ func FetchMetadata(ctx context.Context, rawURL string) (*Metadata, error) {
 
 	req, err := http.NewRequestWithContext(ctx, "GET", rawURL, nil)
 	if err != nil {
-		return &Metadata{}, nil
+		return nil, fmt.Errorf("build request: %w", err)
 	}
 	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; Gongyu/1.0)")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return &Metadata{}, nil
+		return nil, fmt.Errorf("fetch %s: %w", rawURL, err)
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
@@ -54,7 +55,7 @@ func FetchMetadata(ctx context.Context, rawURL string) (*Metadata, error) {
 	// Read at most 1MB
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if err != nil {
-		return &Metadata{}, nil
+		return nil, fmt.Errorf("read body: %w", err)
 	}
 	htmlStr := string(body)
 
