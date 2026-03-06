@@ -91,7 +91,6 @@ func hashFS(fsys fs.FS) string {
 func (h *Handler) render(w http.ResponseWriter, r *http.Request, component templ.Component) {
 	if err := component.Render(r.Context(), w); err != nil {
 		slog.Error("render failed", "error", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }
 

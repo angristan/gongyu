@@ -20,7 +20,7 @@ func PostToMastodon(instance, accessToken, title, bookmarkURL string) error {
 	}
 
 	// Status: max 500 chars
-	maxTitleLen := 500 - len(bookmarkURL) - 2
+	maxTitleLen := 500 - len([]rune(bookmarkURL)) - 2
 	title = truncateRunes(title, maxTitleLen)
 	status := title + "\n" + bookmarkURL
 

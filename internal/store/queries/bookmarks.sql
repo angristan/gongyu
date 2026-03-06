@@ -63,14 +63,17 @@ WHERE created_at >= $1
 GROUP BY date ORDER BY date;
 
 -- name: SearchBookmarks :many
-SELECT id, short_url, url, title, description, thumbnail_url, shaarli_short_url, created_at, updated_at,
+WITH query AS (
+  SELECT to_tsquery('english', $1) AS q
+)
+SELECT b.id, b.short_url, b.url, b.title, b.description, b.thumbnail_url, b.shaarli_short_url, b.created_at, b.updated_at,
   COUNT(*) OVER() AS total_count
-FROM bookmarks
-WHERE to_tsvector('english', coalesce(title, '') || ' ' || coalesce(description, '') || ' ' || coalesce(url, ''))
-  @@ to_tsquery('english', $1)
+FROM bookmarks b, query
+WHERE to_tsvector('english', coalesce(b.title, '') || ' ' || coalesce(b.description, '') || ' ' || coalesce(b.url, ''))
+  @@ query.q
 ORDER BY ts_rank(
-  to_tsvector('english', coalesce(title, '') || ' ' || coalesce(description, '') || ' ' || coalesce(url, '')),
-  to_tsquery('english', $1)
+  to_tsvector('english', coalesce(b.title, '') || ' ' || coalesce(b.description, '') || ' ' || coalesce(b.url, '')),
+  query.q
 ) DESC
 LIMIT $2 OFFSET $3;
 
