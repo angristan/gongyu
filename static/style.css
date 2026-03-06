@@ -76,6 +76,12 @@ header .container {
     border-radius: 4px;
 }
 
+.tagline {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 0.125rem;
+}
+
 nav {
     display: flex;
     gap: 0.75rem;
@@ -266,8 +272,16 @@ textarea {
     padding: 0.125rem 0.5rem;
     border-radius: 999px;
     font-size: 0.75rem;
-    background: var(--border);
-    color: var(--text-muted);
+    font-weight: 500;
+    background: #3d2e0a;
+    color: #e8d9b8;
+}
+
+@media (prefers-color-scheme: dark) {
+    .badge {
+        background: #3d3428;
+        color: #daa520;
+    }
 }
 
 .text-muted {
@@ -384,6 +398,11 @@ tr:hover td {
     gap: 1rem;
     padding: 1rem;
     border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+}
+
+.bookmark-card:hover {
+    background: var(--bg);
 }
 
 .bookmark-card:last-child {
@@ -482,12 +501,22 @@ tr:hover td {
 
 .search-bar {
     display: flex;
+    align-items: center;
     gap: 0.5rem;
     margin-bottom: 1.5rem;
+    position: relative;
+}
+
+.search-icon {
+    position: absolute;
+    left: 0.75rem;
+    color: var(--text-muted);
+    pointer-events: none;
 }
 
 .search-bar input {
     flex: 1;
+    padding-left: 2.25rem;
 }
 
 .checkbox-group {
@@ -630,6 +659,35 @@ tr:hover td {
 
 .inline-form {
     display: inline;
+}
+
+footer {
+    padding: 1.5rem 0;
+    border-top: 1px solid var(--border);
+    margin-top: 2rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.footer-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.footer-icons {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.footer-icons a {
+    color: var(--text-muted);
+    transition: color 0.15s;
+}
+
+.footer-icons a:hover {
+    color: var(--accent);
 }
 
 @media (max-width: 640px) {

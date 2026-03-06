@@ -68,20 +68,20 @@ func Layout(title string, ld LayoutData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\"><script src=\"https://unpkg.com/htmx.org@2.0.4\"></script></head><body><header><div class=\"container\"><a href=\"/\" class=\"logo\"><img src=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\"><script src=\"https://unpkg.com/htmx.org@2.0.4\"></script></head><body><header><div class=\"container\"><div><a href=\"/\" class=\"logo\"><img src=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var5 string
 		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs("/static/images/logo.png?v=" + ld.StaticVersion)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout.templ`, Line: 19, Col: 63}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout.templ`, Line: 20, Col: 64}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\" alt=\"Gongyu\"> Gongyu</a><nav><a href=\"/feed\">Feed</a> ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\" alt=\"Gongyu\"> Gongyu</a><p class=\"tagline\">A simple bookmark manager</p></div><nav>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -116,7 +116,7 @@ func Layout(title string, ld LayoutData) templ.Component {
 			var templ_7745c5c3_Var6 string
 			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(ld.Flash)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout.templ`, Line: 40, Col: 34}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout.templ`, Line: 42, Col: 34}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 			if templ_7745c5c3_Err != nil {
@@ -131,7 +131,7 @@ func Layout(title string, ld LayoutData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</div></main></body></html>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</div></main><footer><div class=\"container footer-inner\"><p>Powered by <a href=\"https://github.com/angristan/gongyu\">Gongyu</a></p><div class=\"footer-icons\"><a href=\"/feed\" title=\"RSS feed\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 11a9 9 0 0 1 9 9\"></path><path d=\"M4 4a16 16 0 0 1 16 16\"></path><circle cx=\"5\" cy=\"19\" r=\"1\"></circle></svg></a></div></div></footer></body></html>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -168,7 +168,7 @@ func csrfField(token string) templ.Component {
 			var templ_7745c5c3_Var8 string
 			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(token)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout.templ`, Line: 51, Col: 49}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/layout.templ`, Line: 63, Col: 49}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 			if templ_7745c5c3_Err != nil {
