@@ -2,6 +2,7 @@ package handler
 
 import (
 	"crypto/hmac"
+	"crypto/rand"
 	"crypto/sha256"
 	"embed"
 	"encoding/hex"
@@ -11,12 +12,18 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/a-h/templ"
 	"github.com/angristan/gongyu/internal/auth"
 	"github.com/angristan/gongyu/internal/background"
 	"github.com/angristan/gongyu/internal/model"
 	"github.com/angristan/gongyu/internal/view"
+)
+
+const (
+	sessionCookieName   = "gongyu_session"
+	guestCSRFCookieName = "gongyu_csrf"
 )
 
 // Handler holds dependencies shared across all HTTP handlers.
@@ -50,16 +57,12 @@ func New(store model.Store, encKey []byte, baseURL string, staticFS embed.FS, bg
 }
 
 func (h *Handler) layoutData(w http.ResponseWriter, r *http.Request) view.LayoutData {
-	var csrf string
-	if c, err := r.Cookie("gongyu_session"); err == nil {
-		csrf = csrfToken(c.Value, h.EncKey)
-	}
 	return view.LayoutData{
 		User:          auth.UserFromContext(r.Context()),
 		BaseURL:       h.BaseURL,
 		Flash:         getFlash(w, r),
 		StaticVersion: h.StaticVersion,
-		CsrfToken:     csrf,
+		CsrfToken:     h.formCSRFToken(w, r),
 	}
 }
 
@@ -68,6 +71,42 @@ func csrfToken(sessionToken string, key []byte) string {
 	mac := hmac.New(sha256.New, key)
 	mac.Write([]byte(sessionToken))
 	return hex.EncodeToString(mac.Sum(nil))[:32]
+}
+
+func (h *Handler) formCSRFToken(w http.ResponseWriter, r *http.Request) string {
+	if c, err := r.Cookie(sessionCookieName); err == nil && c.Value != "" {
+		return csrfToken(c.Value, h.EncKey)
+	}
+
+	if c, err := r.Cookie(guestCSRFCookieName); err == nil && c.Value != "" {
+		return c.Value
+	}
+
+	token, err := randomToken(32)
+	if err != nil {
+		slog.Error("failed to generate guest CSRF token", "error", err)
+		return ""
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     guestCSRFCookieName,
+		Value:    token,
+		Path:     "/",
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+		Secure:   authIsHTTPS(r),
+		MaxAge:   int((24 * time.Hour).Seconds()),
+	})
+
+	return token
+}
+
+func randomToken(size int) (string, error) {
+	b := make([]byte, size)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(b), nil
 }
 
 // hashFS computes a short content hash of all files in the FS.

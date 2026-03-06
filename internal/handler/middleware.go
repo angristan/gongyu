@@ -57,22 +57,25 @@ func (h *Handler) csrfProtect(next http.Handler) http.Handler {
 			return
 		}
 
-		// No session cookie means unauthenticated; SameSite=Lax protects those routes.
-		c, err := r.Cookie("gongyu_session")
-		if err != nil {
-			next.ServeHTTP(w, r)
-			return
-		}
-
-		expected := csrfToken(c.Value, h.EncKey)
+		expected := h.expectedCSRFToken(r)
 		got := r.FormValue("_csrf")
-		if !hmac.Equal([]byte(got), []byte(expected)) {
+		if expected == "" || !hmac.Equal([]byte(got), []byte(expected)) {
 			http.Error(w, "Forbidden - invalid CSRF token", http.StatusForbidden)
 			return
 		}
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+func (h *Handler) expectedCSRFToken(r *http.Request) string {
+	if c, err := r.Cookie(sessionCookieName); err == nil && c.Value != "" {
+		return csrfToken(c.Value, h.EncKey)
+	}
+	if c, err := r.Cookie(guestCSRFCookieName); err == nil && c.Value != "" {
+		return c.Value
+	}
+	return ""
 }
 
 // ipLimiter tracks per-IP rate limiters.
@@ -132,6 +135,13 @@ func loginRateLimit(limiter *ipLimiter, next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+func authIsHTTPS(r *http.Request) bool {
+	if r.TLS != nil {
+		return true
+	}
+	return r.Header.Get("X-Forwarded-Proto") == "https"
 }
 
 func recoverMiddleware(next http.Handler) http.Handler {

@@ -183,6 +183,14 @@ func withCsrf(form url.Values, cookie *http.Cookie) url.Values {
 	return form
 }
 
+func withGuestCsrf(form url.Values, cookie *http.Cookie) url.Values {
+	if form == nil {
+		form = url.Values{}
+	}
+	form.Set("_csrf", cookie.Value)
+	return form
+}
+
 // noRedirectClient returns an HTTP client that does not follow redirects.
 func noRedirectClient() *http.Client {
 	return &http.Client{CheckRedirect: func(req *http.Request, via []*http.Request) error {

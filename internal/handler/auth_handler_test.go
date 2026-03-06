@@ -30,6 +30,16 @@ func TestLoginPageGuest(t *testing.T) {
 	if resp.StatusCode != 200 {
 		t.Errorf("status = %d, want 200", resp.StatusCode)
 	}
+
+	var found bool
+	for _, c := range resp.Cookies() {
+		if c.Name == guestCSRFCookieName && c.Value != "" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("guest CSRF cookie not set")
+	}
 }
 
 func TestLoginPageRedirectsAuthed(t *testing.T) {
@@ -41,7 +51,9 @@ func TestLoginPageRedirectsAuthed(t *testing.T) {
 	defer srv.Close()
 
 	req, err := http.NewRequest("GET", srv.URL+"/login", nil)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	req.AddCookie(cookie)
 	resp, err := noRedirectClient().Do(req)
 	if err != nil {
@@ -79,8 +91,15 @@ func TestLoginSubmitSuccess(t *testing.T) {
 	srv := httptest.NewServer(newTestHandler(store))
 	defer srv.Close()
 
-	form := url.Values{"email": {"test@example.com"}, "password": {"password123"}}
-	resp, err := noRedirectClient().PostForm(srv.URL+"/login", form)
+	guestCookie := &http.Cookie{Name: guestCSRFCookieName, Value: "guest-login-csrf"}
+	form := withGuestCsrf(url.Values{"email": {"test@example.com"}, "password": {"password123"}}, guestCookie)
+	req, err := http.NewRequest("POST", srv.URL+"/login", strings.NewReader(form.Encode()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(guestCookie)
+	resp, err := noRedirectClient().Do(req)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -116,8 +135,15 @@ func TestLoginSubmitBadCredentials(t *testing.T) {
 	srv := httptest.NewServer(newTestHandler(store))
 	defer srv.Close()
 
-	form := url.Values{"email": {"bad@example.com"}, "password": {"wrong"}}
-	resp, err := http.PostForm(srv.URL+"/login", form)
+	guestCookie := &http.Cookie{Name: guestCSRFCookieName, Value: "guest-login-csrf"}
+	form := withGuestCsrf(url.Values{"email": {"bad@example.com"}, "password": {"wrong"}}, guestCookie)
+	req, err := http.NewRequest("POST", srv.URL+"/login", strings.NewReader(form.Encode()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(guestCookie)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -142,7 +168,9 @@ func TestLogout(t *testing.T) {
 	cookie := &http.Cookie{Name: "gongyu_session", Value: "some-token"}
 	form := withCsrf(nil, cookie)
 	req, err := http.NewRequest("POST", srv.URL+"/logout", strings.NewReader(form.Encode()))
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.AddCookie(cookie)
 	resp, err := noRedirectClient().Do(req)
@@ -168,11 +196,18 @@ func TestLoginRateLimit(t *testing.T) {
 	defer srv.Close()
 
 	client := noRedirectClient()
+	guestCookie := &http.Cookie{Name: guestCSRFCookieName, Value: "guest-login-csrf"}
 
 	// Exhaust the burst (5 requests)
 	for i := range 5 {
-		form := url.Values{"email": {"bad@example.com"}, "password": {"wrong"}}
-		resp, err := client.PostForm(srv.URL+"/login", form)
+		form := withGuestCsrf(url.Values{"email": {"bad@example.com"}, "password": {"wrong"}}, guestCookie)
+		req, err := http.NewRequest("POST", srv.URL+"/login", strings.NewReader(form.Encode()))
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.AddCookie(guestCookie)
+		resp, err := client.Do(req)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -183,8 +218,14 @@ func TestLoginRateLimit(t *testing.T) {
 	}
 
 	// 6th request should be rate limited
-	form := url.Values{"email": {"bad@example.com"}, "password": {"wrong"}}
-	resp, err := client.PostForm(srv.URL+"/login", form)
+	form := withGuestCsrf(url.Values{"email": {"bad@example.com"}, "password": {"wrong"}}, guestCookie)
+	req, err := http.NewRequest("POST", srv.URL+"/login", strings.NewReader(form.Encode()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(guestCookie)
+	resp, err := client.Do(req)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -192,6 +233,29 @@ func TestLoginRateLimit(t *testing.T) {
 
 	if resp.StatusCode != http.StatusTooManyRequests {
 		t.Errorf("status = %d, want %d", resp.StatusCode, http.StatusTooManyRequests)
+	}
+}
+
+func TestLoginSubmitRequiresGuestCSRF(t *testing.T) {
+	store := &mockStore{
+		getUserByEmail: func(ctx context.Context, email string) (model.User, error) {
+			return model.User{}, sql.ErrNoRows
+		},
+		getSession: noSessionStore(),
+	}
+
+	srv := httptest.NewServer(newTestHandler(store))
+	defer srv.Close()
+
+	form := url.Values{"email": {"bad@example.com"}, "password": {"wrong"}}
+	resp, err := http.PostForm(srv.URL+"/login", form)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer closeTestBody(t, resp)
+
+	if resp.StatusCode != http.StatusForbidden {
+		t.Errorf("status = %d, want %d", resp.StatusCode, http.StatusForbidden)
 	}
 }
 
@@ -214,6 +278,16 @@ func TestSetupPageShowsFormWhenNoUsers(t *testing.T) {
 
 	if resp.StatusCode != 200 {
 		t.Errorf("status = %d, want 200", resp.StatusCode)
+	}
+
+	var found bool
+	for _, c := range resp.Cookies() {
+		if c.Name == guestCSRFCookieName && c.Value != "" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("guest CSRF cookie not set")
 	}
 }
 
@@ -258,13 +332,20 @@ func TestSetupSubmitCreatesUser(t *testing.T) {
 	srv := httptest.NewServer(newTestHandler(store))
 	defer srv.Close()
 
-	form := url.Values{
+	guestCookie := &http.Cookie{Name: guestCSRFCookieName, Value: "guest-setup-csrf"}
+	form := withGuestCsrf(url.Values{
 		"name":                  {"Admin"},
 		"email":                 {"admin@example.com"},
 		"password":              {"password123"},
 		"password_confirmation": {"password123"},
+	}, guestCookie)
+	req, err := http.NewRequest("POST", srv.URL+"/setup", strings.NewReader(form.Encode()))
+	if err != nil {
+		t.Fatal(err)
 	}
-	resp, err := noRedirectClient().PostForm(srv.URL+"/setup", form)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(guestCookie)
+	resp, err := noRedirectClient().Do(req)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -289,13 +370,20 @@ func TestSetupSubmitValidation(t *testing.T) {
 	srv := httptest.NewServer(newTestHandler(store))
 	defer srv.Close()
 
-	form := url.Values{
+	guestCookie := &http.Cookie{Name: guestCSRFCookieName, Value: "guest-setup-csrf"}
+	form := withGuestCsrf(url.Values{
 		"name":                  {""},
 		"email":                 {""},
 		"password":              {"short"},
 		"password_confirmation": {"different"},
+	}, guestCookie)
+	req, err := http.NewRequest("POST", srv.URL+"/setup", strings.NewReader(form.Encode()))
+	if err != nil {
+		t.Fatal(err)
 	}
-	resp, err := http.PostForm(srv.URL+"/setup", form)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(guestCookie)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -303,5 +391,33 @@ func TestSetupSubmitValidation(t *testing.T) {
 
 	if resp.StatusCode != 200 {
 		t.Errorf("status = %d, want 200", resp.StatusCode)
+	}
+}
+
+func TestSetupSubmitRequiresGuestCSRF(t *testing.T) {
+	store := &mockStore{
+		countUsers: func(ctx context.Context) (int64, error) {
+			return 0, nil
+		},
+		getSession: noSessionStore(),
+	}
+
+	srv := httptest.NewServer(newTestHandler(store))
+	defer srv.Close()
+
+	form := url.Values{
+		"name":                  {"Admin"},
+		"email":                 {"admin@example.com"},
+		"password":              {"password123"},
+		"password_confirmation": {"password123"},
+	}
+	resp, err := http.PostForm(srv.URL+"/setup", form)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer closeTestBody(t, resp)
+
+	if resp.StatusCode != http.StatusForbidden {
+		t.Errorf("status = %d, want %d", resp.StatusCode, http.StatusForbidden)
 	}
 }
