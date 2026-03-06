@@ -36,7 +36,11 @@ func main() {
 	databaseURL := envOr("DATABASE_URL", "postgres://localhost:5432/gongyu?sslmode=disable")
 	addr := envOr("LISTEN_ADDR", ":8080")
 	baseURL := envOr("BASE_URL", "http://localhost:8080")
-	appKey := envOr("APP_KEY", "change-me-to-a-random-32-byte-key!!")
+	appKey := os.Getenv("APP_KEY")
+	if appKey == "" {
+		slog.Error("APP_KEY environment variable must be set to a random secret")
+		os.Exit(1)
+	}
 
 	// Derive a 32-byte encryption key from APP_KEY
 	hash := sha256.Sum256([]byte(appKey))
