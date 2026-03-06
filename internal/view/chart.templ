@@ -1,0 +1,88 @@
+package view
+
+import (
+	"fmt"
+	"time"
+	"github.com/angristan/gongyu/internal/model"
+)
+
+templ barChart(rows []model.BookmarksOverTimeRow, period string, since time.Time) {
+	if len(rows) == 0 {
+		<p class="text-muted text-sm">No data for this period.</p>
+	} else {
+		{{ c := buildBarChart(rows, period, since) }}
+		<svg viewBox="0 0 500 240" class="chart" preserveAspectRatio="xMidYMid meet">
+			// Gridlines
+			for _, tick := range c.YTicks {
+				<line
+					x1={ fmt.Sprintf("%.1f", c.PlotX) }
+					y1={ fmt.Sprintf("%.1f", tick.Y) }
+					x2={ fmt.Sprintf("%.1f", c.PlotX+c.PlotW) }
+					y2={ fmt.Sprintf("%.1f", tick.Y) }
+					class="chart-grid"
+				/>
+				<text
+					x={ fmt.Sprintf("%.1f", c.PlotX-4) }
+					y={ fmt.Sprintf("%.1f", tick.Y+3) }
+					class="chart-axis-label"
+					text-anchor="end"
+				>{ tick.Label }</text>
+			}
+			// Baseline
+			<line
+				x1={ fmt.Sprintf("%.1f", c.PlotX) }
+				y1={ fmt.Sprintf("%.1f", c.PlotY+c.PlotH) }
+				x2={ fmt.Sprintf("%.1f", c.PlotX+c.PlotW) }
+				y2={ fmt.Sprintf("%.1f", c.PlotY+c.PlotH) }
+				class="chart-baseline"
+			/>
+			// Bars
+			for i, bar := range c.Bars {
+				<g class="chart-bar">
+					// Invisible hit area for hover
+					<rect
+						x={ fmt.Sprintf("%.1f", c.PlotX+float64(i)*c.PlotW/float64(len(c.Bars))) }
+						y={ fmt.Sprintf("%.1f", c.PlotY) }
+						width={ fmt.Sprintf("%.1f", c.PlotW/float64(len(c.Bars))) }
+						height={ fmt.Sprintf("%.1f", c.PlotH) }
+						fill="transparent"
+					/>
+					<rect
+						x={ fmt.Sprintf("%.1f", bar.X) }
+						y={ fmt.Sprintf("%.1f", bar.Y) }
+						width={ fmt.Sprintf("%.1f", bar.W) }
+						height={ fmt.Sprintf("%.1f", bar.H) }
+						rx="2"
+						class="chart-bar-rect"
+					/>
+					// Hover tooltip
+					<g class="chart-tooltip">
+						<rect
+							x={ fmt.Sprintf("%.1f", bar.X+bar.W/2-35) }
+							y={ fmt.Sprintf("%.1f", bar.Y-26) }
+							width="70"
+							height="20"
+							rx="4"
+							class="chart-tooltip-bg"
+						/>
+						<text
+							x={ fmt.Sprintf("%.1f", bar.X+bar.W/2) }
+							y={ fmt.Sprintf("%.1f", bar.Y-12) }
+							text-anchor="middle"
+							class="chart-tooltip-text"
+						>{ fmt.Sprintf("%s: %d", bar.Label, bar.Count) }</text>
+					</g>
+				</g>
+			}
+			// X-axis labels
+			for _, label := range c.XLabels {
+				<text
+					x={ fmt.Sprintf("%.1f", label.X) }
+					y={ fmt.Sprintf("%.1f", c.PlotY+c.PlotH+18) }
+					text-anchor="middle"
+					class="chart-axis-label"
+				>{ label.Text }</text>
+			}
+		</svg>
+	}
+}

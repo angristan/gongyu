@@ -1,0 +1,57 @@
+name: CI
+
+on: [push]
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+
+      - run: go tool templ generate
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: generated
+          path: internal/view/*_templ.go
+          retention-days: 1
+
+  lint:
+    needs: generate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: generated
+          path: internal/view
+
+      - uses: golangci/golangci-lint-action@v7
+        with:
+          version: latest
+
+  test:
+    needs: generate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: generated
+          path: internal/view
+
+      - run: go test ./... -race

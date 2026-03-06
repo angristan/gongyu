@@ -1,0 +1,30 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: gongyu
+      POSTGRES_USER: gongyu
+      POSTGRES_PASSWORD: gongyu
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      DATABASE_URL: postgres://gongyu:gongyu@postgres:5432/gongyu?sslmode=disable
+      LISTEN_ADDR: ":8080"
+      BASE_URL: http://localhost:8080
+      APP_KEY: dev-secret-key-change-in-production
+    volumes:
+      - .:/app
+    depends_on:
+      - postgres
+
+volumes:
+  pgdata:

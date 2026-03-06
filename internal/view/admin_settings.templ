@@ -1,0 +1,194 @@
+package view
+
+import "fmt"
+
+templ AdminSettingsPage(data SettingsData) {
+	@Layout("Settings", data.LayoutData) {
+		<div class="flex-between mb-2">
+			<h1 style="margin-bottom:0">Settings</h1>
+			<a href="/admin/dashboard" class="btn btn-secondary btn-sm">&larr; Dashboard</a>
+		</div>
+		<div class="tabs">
+			<a href="/admin/settings?tab=import" class={ tabClass("import", data.Tab, true) }>Import</a>
+			<a href="/admin/settings?tab=export" class={ tabClass("export", data.Tab, false) }>Export</a>
+			<a href="/admin/settings?tab=twitter" class={ tabClass("twitter", data.Tab, false) }>Twitter</a>
+			<a href="/admin/settings?tab=mastodon" class={ tabClass("mastodon", data.Tab, false) }>Mastodon</a>
+			<a href="/admin/settings?tab=bluesky" class={ tabClass("bluesky", data.Tab, false) }>Bluesky</a>
+			<a href="/admin/settings?tab=danger" class={ tabClass("danger", data.Tab, false) }>Danger Zone</a>
+		</div>
+		if data.Tab == "" || data.Tab == "import" {
+			@settingsImport(data.CsrfToken)
+		} else if data.Tab == "export" {
+			@settingsExport()
+		} else if data.Tab == "twitter" {
+			@settingsTwitter(data.Settings, data.CsrfToken)
+		} else if data.Tab == "mastodon" {
+			@settingsMastodon(data.Settings, data.CsrfToken)
+		} else if data.Tab == "bluesky" {
+			@settingsBluesky(data.Settings, data.CsrfToken)
+		} else if data.Tab == "danger" {
+			@settingsDanger(data.TotalBookmarks, data.CsrfToken)
+		}
+	}
+}
+
+templ settingsImport(csrf string) {
+	<div class="card">
+		<h2>Import from Shaarli (API)</h2>
+		<p class="text-sm text-muted mb-2">Enter your Shaarli instance URL and API secret to import bookmarks.</p>
+		<form method="POST" action="/admin/import" enctype="multipart/form-data">
+			@csrfField(csrf)
+			<input type="hidden" name="type" value="shaarli_api"/>
+			<div class="form-group">
+				<label for="shaarli_url">Shaarli URL</label>
+				<input type="url" id="shaarli_url" name="shaarli_url" placeholder="https://shaarli.example.com"/>
+			</div>
+			<div class="form-group">
+				<label for="shaarli_secret">API Secret</label>
+				<input type="password" id="shaarli_secret" name="shaarli_secret"/>
+			</div>
+			<button type="submit" class="btn btn-primary">Import from API</button>
+		</form>
+	</div>
+	<div class="card">
+		<h2>Import from Shaarli (Datastore)</h2>
+		<p class="text-sm text-muted mb-2">Upload your Shaarli <code>data/datastore.php</code> file.</p>
+		<form method="POST" action="/admin/import" enctype="multipart/form-data">
+			@csrfField(csrf)
+			<input type="hidden" name="type" value="shaarli_datastore"/>
+			<div class="form-group">
+				<label for="datastore_file">Datastore File</label>
+				<input type="file" id="datastore_file" name="file" accept=".php"/>
+			</div>
+			<button type="submit" class="btn btn-primary">Import Datastore</button>
+		</form>
+	</div>
+	<div class="card">
+		<h2>Import from HTML (Netscape)</h2>
+		<p class="text-sm text-muted mb-2">Upload a Netscape bookmark HTML file (exported from Shaarli or any browser).</p>
+		<form method="POST" action="/admin/import" enctype="multipart/form-data">
+			@csrfField(csrf)
+			<input type="hidden" name="type" value="netscape"/>
+			<div class="form-group">
+				<label for="html_file">HTML File</label>
+				<input type="file" id="html_file" name="file" accept=".html,.htm"/>
+			</div>
+			<button type="submit" class="btn btn-primary">Import HTML</button>
+		</form>
+	</div>
+	<div class="card">
+		<h2>Restore from Gongyu Backup</h2>
+		<p class="text-sm text-muted mb-2">Upload a Gongyu JSON export file to restore bookmarks.</p>
+		<form method="POST" action="/admin/import" enctype="multipart/form-data">
+			@csrfField(csrf)
+			<input type="hidden" name="type" value="gongyu"/>
+			<div class="form-group">
+				<label for="json_file">JSON File</label>
+				<input type="file" id="json_file" name="file" accept=".json"/>
+			</div>
+			<button type="submit" class="btn btn-primary">Restore Backup</button>
+		</form>
+	</div>
+}
+
+templ settingsExport() {
+	<div class="card">
+		<h2>Export Bookmarks</h2>
+		<p class="text-muted text-sm mb-2">Download your bookmarks in different formats.</p>
+		<div class="flex gap-1">
+			<a href="/admin/export?format=html" class="btn btn-primary">Download HTML (Netscape)</a>
+			<a href="/admin/export?format=json" class="btn btn-secondary">Download JSON</a>
+		</div>
+		<p class="text-sm text-muted mt-2">
+			<strong>HTML</strong>: Compatible with browsers and Shaarli. |
+			<strong>JSON</strong>: Full backup with all fields for Gongyu restore.
+		</p>
+	</div>
+}
+
+templ settingsTwitter(settings map[string]string, csrf string) {
+	<div class="card">
+		<h2>Twitter / X Settings</h2>
+		<p class="text-sm text-muted mb-2">Configure Twitter API credentials to auto-post bookmarks.</p>
+		<form method="POST" action="/admin/settings">
+			@csrfField(csrf)
+			<input type="hidden" name="tab" value="twitter"/>
+			<div class="form-group">
+				<label for="twitter_api_key">API Key</label>
+				<input type="text" id="twitter_api_key" name="twitter_api_key" value={ settings["twitter_api_key"] }/>
+			</div>
+			<div class="form-group">
+				<label for="twitter_api_secret">API Secret</label>
+				<input type="password" id="twitter_api_secret" name="twitter_api_secret" value={ settings["twitter_api_secret"] }/>
+			</div>
+			<div class="form-group">
+				<label for="twitter_access_token">Access Token</label>
+				<input type="text" id="twitter_access_token" name="twitter_access_token" value={ settings["twitter_access_token"] }/>
+			</div>
+			<div class="form-group">
+				<label for="twitter_access_secret">Access Token Secret</label>
+				<input type="password" id="twitter_access_secret" name="twitter_access_secret" value={ settings["twitter_access_secret"] }/>
+			</div>
+			<button type="submit" class="btn btn-primary">Save</button>
+		</form>
+	</div>
+}
+
+templ settingsMastodon(settings map[string]string, csrf string) {
+	<div class="card">
+		<h2>Mastodon Settings</h2>
+		<p class="text-sm text-muted mb-2">Configure Mastodon to auto-post bookmarks.</p>
+		<form method="POST" action="/admin/settings">
+			@csrfField(csrf)
+			<input type="hidden" name="tab" value="mastodon"/>
+			<div class="form-group">
+				<label for="mastodon_instance">Instance URL</label>
+				<input type="text" id="mastodon_instance" name="mastodon_instance" value={ settings["mastodon_instance"] } placeholder="mastodon.social"/>
+			</div>
+			<div class="form-group">
+				<label for="mastodon_access_token">Access Token</label>
+				<input type="password" id="mastodon_access_token" name="mastodon_access_token" value={ settings["mastodon_access_token"] }/>
+			</div>
+			<button type="submit" class="btn btn-primary">Save</button>
+		</form>
+	</div>
+}
+
+templ settingsBluesky(settings map[string]string, csrf string) {
+	<div class="card">
+		<h2>Bluesky Settings</h2>
+		<p class="text-sm text-muted mb-2">Configure Bluesky to auto-post bookmarks.</p>
+		<form method="POST" action="/admin/settings">
+			@csrfField(csrf)
+			<input type="hidden" name="tab" value="bluesky"/>
+			<div class="form-group">
+				<label for="bluesky_handle">Handle</label>
+				<input type="text" id="bluesky_handle" name="bluesky_handle" value={ settings["bluesky_handle"] } placeholder="you.bsky.social"/>
+			</div>
+			<div class="form-group">
+				<label for="bluesky_app_password">App Password</label>
+				<input type="password" id="bluesky_app_password" name="bluesky_app_password" value={ settings["bluesky_app_password"] }/>
+			</div>
+			<button type="submit" class="btn btn-primary">Save</button>
+		</form>
+	</div>
+}
+
+templ settingsDanger(totalBookmarks int64, csrf string) {
+	<div class="card" style="border-color:var(--danger)">
+		<h2 style="color:var(--danger)">Danger Zone</h2>
+		<p class="text-sm text-muted mb-2">
+			Delete all { fmt.Sprintf("%d", totalBookmarks) } bookmarks. This cannot be undone.
+		</p>
+		<form method="POST" action="/admin/bookmarks/delete-all" onsubmit="return confirm('Are you absolutely sure?')">
+			@csrfField(csrf)
+			<div class="form-group">
+				<label for="confirmation">
+					Type <strong>DELETE ALL BOOKMARKS</strong> to confirm
+				</label>
+				<input type="text" id="confirmation" name="confirmation" placeholder="DELETE ALL BOOKMARKS"/>
+			</div>
+			<button type="submit" class="btn btn-danger">Delete All Bookmarks</button>
+		</form>
+	</div>
+}

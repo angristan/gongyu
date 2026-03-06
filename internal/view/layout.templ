@@ -1,0 +1,65 @@
+package view
+
+templ Layout(title string, ld LayoutData) {
+	<!DOCTYPE html>
+	<html lang="en">
+	<head>
+		<meta charset="utf-8"/>
+		<meta name="viewport" content="width=device-width, initial-scale=1"/>
+		<title>{ title } - Gongyu</title>
+		<link rel="icon" href={ "/static/images/logo.png?v=" + ld.StaticVersion }/>
+		<link rel="alternate" type="application/atom+xml" title="Gongyu Feed" href="/feed"/>
+		<link rel="stylesheet" href={ "/static/style.css?v=" + ld.StaticVersion }/>
+		<script src="https://unpkg.com/htmx.org@2.0.4"></script>
+	</head>
+	<body>
+		<header>
+			<div class="container">
+				<div>
+					<a href="/" class="logo">
+						<img src={ "/static/images/logo.png?v=" + ld.StaticVersion } alt="Gongyu"/>
+						Gongyu
+					</a>
+					<p class="tagline">A simple bookmark manager</p>
+				</div>
+				<nav>
+					if ld.User != nil {
+						<a href="/admin/dashboard">Dashboard</a>
+						<a href="/admin/bookmarks/create">+ Add</a>
+						<form method="POST" action="/logout" class="inline-form">
+							@csrfField(ld.CsrfToken)
+							<button type="submit" class="btn btn-sm btn-secondary">Logout</button>
+						</form>
+					} else {
+						<a href="/login">Login</a>
+					}
+				</nav>
+			</div>
+		</header>
+		<main>
+			<div class="container">
+				if ld.Flash != "" {
+					<div class="flash">{ ld.Flash }</div>
+				}
+				{ children... }
+			</div>
+		</main>
+		<footer>
+			<div class="container footer-inner">
+				<p>Powered by <a href="https://github.com/angristan/gongyu">Gongyu</a></p>
+				<div class="footer-icons">
+					<a href="/feed" title="RSS feed">
+						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg>
+					</a>
+				</div>
+			</div>
+		</footer>
+	</body>
+	</html>
+}
+
+templ csrfField(token string) {
+	if token != "" {
+		<input type="hidden" name="_csrf" value={ token }/>
+	}
+}

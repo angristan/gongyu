@@ -1,0 +1,80 @@
+package view
+
+import "fmt"
+
+templ HomePage(data HomeData) {
+	@Layout("Gongyu", data.LayoutData) {
+		<div class="search-bar">
+			<svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+			<input
+				type="search"
+				name="q"
+				value={ data.Query }
+				placeholder="Search bookmarks..."
+				autofocus?={ data.Query != "" }
+			if data.Query != "" {
+				onfocus="this.setSelectionRange(this.value.length,this.value.length)"
+			}
+				hx-get="/"
+				hx-trigger="input changed delay:300ms, search"
+				hx-target="#results"
+				hx-select="#results"
+				hx-push-url="true"
+				/>
+		</div>
+		<div id="results">
+			if data.Query != "" {
+				<p class="text-muted text-sm mb-2">{ searchSummary(data.Total, data.Query) }</p>
+			}
+			<div class="card" style="padding:0">
+				if len(data.Bookmarks) > 0 {
+					for _, b := range data.Bookmarks {
+						<div class="bookmark-card">
+							if b.ThumbnailUrl != "" {
+								<img src={ b.ThumbnailUrl } alt="" class="bookmark-thumb" loading="lazy"/>
+							}
+							<div class="bookmark-info">
+								<a href={ templ.URL(b.Url) } class="bookmark-title" target="_blank" rel="noopener">{ b.Title }</a>
+								if b.Description != "" {
+									<p class="bookmark-desc">{ b.Description }</p>
+								}
+								<div class="bookmark-meta">
+									<span class="badge">{ Domain(b.Url) }</span>
+									<span>{ Timeago(b.CreatedAt) }</span>
+									<a href={ templ.SafeURL("/b/" + b.ShortUrl) } style="font-size:0.8rem">permalink</a>
+								</div>
+							</div>
+						</div>
+					}
+				} else {
+					<div style="padding:2rem;text-align:center">
+						<p class="text-muted">No bookmarks found.</p>
+					</div>
+				}
+			</div>
+			if data.LastPage > 1 {
+				@Pagination(data.Page, data.LastPage, data.Query)
+			}
+		</div>
+	}
+}
+
+templ Pagination(page, lastPage int, query string) {
+	<div class="pagination">
+		if page > 1 {
+			<a href={ templ.SafeURL(fmt.Sprintf("?q=%s&page=%d", QueryEscape(query), page-1)) }>&laquo; Prev</a>
+		}
+		for _, item := range paginationItems(page, lastPage) {
+			if item.Ellipsis {
+				<span class="ellipsis">&hellip;</span>
+			} else if item.Active {
+				<span class="active">{ fmt.Sprintf("%d", item.Page) }</span>
+			} else {
+				<a href={ templ.SafeURL(fmt.Sprintf("?q=%s&page=%d", QueryEscape(query), item.Page)) }>{ fmt.Sprintf("%d", item.Page) }</a>
+			}
+		}
+		if page < lastPage {
+			<a href={ templ.SafeURL(fmt.Sprintf("?q=%s&page=%d", QueryEscape(query), page+1)) }>Next &raquo;</a>
+		}
+	</div>
+}
