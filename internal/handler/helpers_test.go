@@ -150,7 +150,9 @@ func newTestHandler(store model.Store) http.Handler {
 }
 
 func newTestHandlerWithDeps(store model.Store, fetcher metadataFetcher, socialClient socialSharer) http.Handler {
-	h, err := New(store, testEncKey, "http://localhost", gongyu.StaticFS, background.New(1), &http.Client{})
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // cancel immediately so the rate-limiter cleanup goroutine exits
+	h, err := New(ctx, store, testEncKey, "http://localhost", gongyu.StaticFS, background.New(1), &http.Client{})
 	if err != nil {
 		panic(err)
 	}

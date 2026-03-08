@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"crypto/hmac"
 	"log/slog"
 	"net"
@@ -89,9 +90,9 @@ type entry struct {
 	lastSeen time.Time
 }
 
-func newIPLimiter() *ipLimiter {
+func newIPLimiter(ctx context.Context) *ipLimiter {
 	l := &ipLimiter{limiters: make(map[string]*entry)}
-	go l.cleanup()
+	go l.cleanup(ctx)
 	return l
 }
 
@@ -110,16 +111,22 @@ func (l *ipLimiter) allow(ip string) bool {
 }
 
 // cleanup removes entries not seen for 10 minutes.
-func (l *ipLimiter) cleanup() {
+func (l *ipLimiter) cleanup(ctx context.Context) {
+	ticker := time.NewTicker(time.Minute)
+	defer ticker.Stop()
 	for {
-		time.Sleep(time.Minute)
-		l.mu.Lock()
-		for ip, e := range l.limiters {
-			if time.Since(e.lastSeen) > 10*time.Minute {
-				delete(l.limiters, ip)
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			l.mu.Lock()
+			for ip, e := range l.limiters {
+				if time.Since(e.lastSeen) > 10*time.Minute {
+					delete(l.limiters, ip)
+				}
 			}
+			l.mu.Unlock()
 		}
-		l.mu.Unlock()
 	}
 }
 

@@ -51,8 +51,9 @@ type socialSharer interface {
 	ShareBookmark(ctx context.Context, bg *background.Runner, store model.Store, encKey []byte, b *model.Bookmark)
 }
 
-// New creates a Handler.
-func New(store model.Store, encKey []byte, baseURL string, staticFS embed.FS, bg *background.Runner, httpClient *http.Client) (*Handler, error) {
+// New creates a Handler. The context controls the lifetime of background
+// goroutines such as the rate-limiter cleanup loop.
+func New(ctx context.Context, store model.Store, encKey []byte, baseURL string, staticFS embed.FS, bg *background.Runner, httpClient *http.Client) (*Handler, error) {
 	if bg == nil {
 		bg = background.New(1)
 	}
@@ -75,7 +76,7 @@ func New(store model.Store, encKey []byte, baseURL string, staticFS embed.FS, bg
 		SocialClient:     social.NewClient(httpClient),
 		StaticFS:         staticSub,
 		StaticVersion:    staticVersion,
-		loginLimiter:     newIPLimiter(),
+		loginLimiter:     newIPLimiter(ctx),
 	}, nil
 }
 

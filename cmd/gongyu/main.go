@@ -103,14 +103,16 @@ func run(ctx context.Context, getenv func(string) string) error {
 		}
 	})
 
-	h, err := handler.New(db, encKey, cfg.BaseURL, gongyu.StaticFS, bg, newHTTPClient())
+	h, err := handler.New(ctx, db, encKey, cfg.BaseURL, gongyu.StaticFS, bg, newHTTPClient())
 	if err != nil {
 		return fmt.Errorf("create handler: %w", err)
 	}
 
 	srv := &http.Server{
-		Addr:    cfg.Addr,
-		Handler: h.Routes(),
+		Addr:              cfg.Addr,
+		Handler:           h.Routes(),
+		ReadHeaderTimeout: 5 * time.Second,
+		IdleTimeout:       120 * time.Second,
 	}
 
 	errCh := make(chan error, 1)
