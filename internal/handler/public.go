@@ -19,7 +19,7 @@ func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.render(w, r, view.HomePage(view.HomeData{
+	h.render(w, r, view.HomePage(view.BookmarkListData{
 		LayoutData: h.layoutData(w, r),
 		Bookmarks:  result.Bookmarks,
 		Page:       result.CurrentPage,

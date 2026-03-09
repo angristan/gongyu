@@ -19,7 +19,8 @@ type LayoutData struct {
 	CsrfToken     string
 }
 
-type HomeData struct {
+// BookmarkListData is shared by the public home page and admin bookmarks list.
+type BookmarkListData struct {
 	LayoutData
 	Bookmarks []model.Bookmark
 	Page      int
@@ -56,15 +57,6 @@ type DashboardData struct {
 	TopDomains []model.TopDomainsRow
 	Period     string
 	Since      time.Time
-}
-
-type AdminBookmarksData struct {
-	LayoutData
-	Bookmarks []model.Bookmark
-	Page      int
-	LastPage  int
-	Total     int
-	Query     string
 }
 
 type BookmarkFormData struct {

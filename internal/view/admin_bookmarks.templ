@@ -2,7 +2,7 @@ package view
 
 import "fmt"
 
-templ AdminBookmarksPage(data AdminBookmarksData) {
+templ AdminBookmarksPage(data BookmarkListData) {
 	@Layout("Bookmarks", data.LayoutData) {
 		<div class="flex-between mb-2">
 			<h1 style="margin-bottom:0">Bookmarks</h1>
@@ -64,28 +64,9 @@ templ AdminBookmarksPage(data AdminBookmarksData) {
 				}
 			</div>
 			if data.LastPage > 1 {
-				@AdminPagination(data.Page, data.LastPage, data.Query)
+				@Pagination(data.Page, data.LastPage, data.Query)
 			}
 		</div>
 	}
 }
 
-templ AdminPagination(page, lastPage int, query string) {
-	<div class="pagination">
-		if page > 1 {
-			<a href={ templ.SafeURL(fmt.Sprintf("?q=%s&page=%d", QueryEscape(query), page-1)) }>&laquo; Prev</a>
-		}
-		for _, item := range paginationItems(page, lastPage) {
-			if item.Ellipsis {
-				<span class="ellipsis">&hellip;</span>
-			} else if item.Active {
-				<span class="active">{ fmt.Sprintf("%d", item.Page) }</span>
-			} else {
-				<a href={ templ.SafeURL(fmt.Sprintf("?q=%s&page=%d", QueryEscape(query), item.Page)) }>{ fmt.Sprintf("%d", item.Page) }</a>
-			}
-		}
-		if page < lastPage {
-			<a href={ templ.SafeURL(fmt.Sprintf("?q=%s&page=%d", QueryEscape(query), page+1)) }>Next &raquo;</a>
-		}
-	</div>
-}

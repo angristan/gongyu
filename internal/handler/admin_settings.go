@@ -10,27 +10,12 @@ import (
 	"github.com/angristan/gongyu/internal/view"
 )
 
-var settingsKeys = []struct {
-	Key       string
-	Encrypted bool
-}{
-	{"twitter_api_key", false},
-	{"twitter_api_secret", true},
-	{"twitter_access_token", false},
-	{"twitter_access_secret", true},
-	{"mastodon_instance", false},
-	{"mastodon_access_token", true},
-	{"bluesky_handle", false},
-	{"bluesky_app_password", true},
-}
-
 func (h *Handler) AdminSettings(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-
 	values := model.GetSettings(ctx, h.Store, social.Keys(), h.EncKey)
 
-	settings := make(map[string]string, len(settingsKeys))
-	for _, s := range settingsKeys {
+	settings := make(map[string]string, len(social.SettingDefs()))
+	for _, s := range social.SettingDefs() {
 		val := values[s.Key]
 		if s.Encrypted && val != "" {
 			settings[s.Key] = "••••••••"
@@ -59,7 +44,7 @@ func (h *Handler) AdminUpdateSettings(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 
-	for _, s := range settingsKeys {
+	for _, s := range social.SettingDefs() {
 		if _, submitted := r.PostForm[s.Key]; !submitted {
 			continue
 		}

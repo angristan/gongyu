@@ -36,7 +36,7 @@ func (h *Handler) AdminBookmarks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.render(w, r, view.AdminBookmarksPage(view.AdminBookmarksData{
+	h.render(w, r, view.AdminBookmarksPage(view.BookmarkListData{
 		LayoutData: h.layoutData(w, r),
 		Bookmarks:  result.Bookmarks,
 		Page:       result.CurrentPage,
@@ -62,33 +62,31 @@ func (h *Handler) AdminCreateBookmark(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
-	bookmarkURL := form.URL
-	bookmarkTitle := form.Title
-	description := form.Description
 
-	errors := form.Validate()
-	if len(errors) > 0 {
+	formValues := map[string]string{"url": form.URL, "title": form.Title, "description": form.Description}
+
+	if errors := form.Validate(); len(errors) > 0 {
 		h.render(w, r, view.AdminBookmarkFormPage(view.BookmarkFormData{
 			LayoutData: h.layoutData(w, r),
 			IsCreate:   true,
 			Errors:     errors,
-			Form:       map[string]string{"url": bookmarkURL, "title": bookmarkTitle, "description": description},
+			Form:       formValues,
 		}))
 		return
 	}
 
-	if existing, err := h.Store.GetBookmarkByURL(r.Context(), bookmarkURL); err == nil {
+	if existing, err := h.Store.GetBookmarkByURL(r.Context(), form.URL); err == nil {
 		h.render(w, r, view.AdminBookmarkFormPage(view.BookmarkFormData{
 			LayoutData: h.layoutData(w, r),
 			IsCreate:   true,
 			Errors:     []string{"A bookmark with this URL already exists."},
 			Existing:   &existing,
-			Form:       map[string]string{"url": bookmarkURL, "title": bookmarkTitle, "description": description},
+			Form:       formValues,
 		}))
 		return
 	}
 
-	bookmarkTitle = title.Clean(bookmarkTitle)
+	form.Title = title.Clean(form.Title)
 	shortURL, err := model.UniqueShortURL(r.Context(), h.Store)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -98,9 +96,9 @@ func (h *Handler) AdminCreateBookmark(w http.ResponseWriter, r *http.Request) {
 
 	b, err := h.Store.CreateBookmark(r.Context(), model.CreateBookmarkParams{
 		ShortUrl:    shortURL,
-		Url:         bookmarkURL,
-		Title:       bookmarkTitle,
-		Description: description,
+		Url:         form.URL,
+		Title:       form.Title,
+		Description: form.Description,
 		CreatedAt:   now,
 		UpdatedAt:   now,
 	})
@@ -109,12 +107,13 @@ func (h *Handler) AdminCreateBookmark(w http.ResponseWriter, r *http.Request) {
 			LayoutData: h.layoutData(w, r),
 			IsCreate:   true,
 			Errors:     []string{"Failed to create bookmark: " + err.Error()},
-			Form:       map[string]string{"url": bookmarkURL, "title": bookmarkTitle, "description": description},
+			Form:       formValues,
 		}))
 		return
 	}
 
 	// Fetch thumbnail in background (detached from request context)
+	bookmarkURL := form.URL
 	h.Background.Do(func(ctx context.Context) {
 		meta, err := h.ThumbnailFetcher.FetchMetadata(ctx, bookmarkURL)
 		if err == nil && meta.OGImage != "" {

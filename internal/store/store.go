@@ -272,26 +272,19 @@ func (s *Store) paginateBookmarks(ctx context.Context, page, perPage int) (*mode
 	}, nil
 }
 
+var tsQueryReplacer = strings.NewReplacer(
+	"\"", "", "'", "", "*", "", "(", "", ")", "",
+	":", "", "^", "", "-", "", "+", "", "&", "", "|", "", "!", "",
+)
+
 func buildTSQuery(query string) string {
-	query = strings.TrimSpace(query)
-	if query == "" {
-		return ""
-	}
-	replacer := strings.NewReplacer(
-		"\"", "", "'", "", "*", "", "(", "", ")", "",
-		":", "", "^", "", "-", "", "+", "", "&", "", "|", "", "!", "",
-	)
-	query = replacer.Replace(query)
-	words := strings.Fields(query)
+	words := strings.Fields(tsQueryReplacer.Replace(query))
 	if len(words) == 0 {
 		return ""
 	}
-	var parts []string
-	for _, w := range words {
-		w = strings.TrimSpace(w)
-		if w != "" {
-			parts = append(parts, w+":*")
-		}
+	parts := make([]string, len(words))
+	for i, w := range words {
+		parts[i] = w + ":*"
 	}
 	return strings.Join(parts, " & ")
 }

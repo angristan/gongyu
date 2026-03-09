@@ -11,6 +11,8 @@ import (
 func (h *Handler) Routes() http.Handler {
 	mux := http.NewServeMux()
 
+	admin := auth.RequireAuth
+
 	// Static files with immutable cache headers (cache-busted via ?v= query param)
 	mux.Handle("GET /static/", cacheControl(http.StripPrefix("/static/", http.FileServer(http.FS(h.StaticFS)))))
 
@@ -36,23 +38,23 @@ func (h *Handler) Routes() http.Handler {
 	mux.HandleFunc("GET /bookmarklet", h.Bookmarklet)
 
 	// Admin routes (auth-required)
-	mux.Handle("GET /admin/dashboard", auth.RequireAuth(http.HandlerFunc(h.AdminDashboard)))
+	mux.Handle("GET /admin/dashboard", admin(http.HandlerFunc(h.AdminDashboard)))
 
-	mux.Handle("GET /admin/bookmarks", auth.RequireAuth(http.HandlerFunc(h.AdminBookmarks)))
-	mux.Handle("GET /admin/bookmarks/create", auth.RequireAuth(http.HandlerFunc(h.AdminCreateBookmarkPage)))
-	mux.Handle("POST /admin/bookmarks", auth.RequireAuth(http.HandlerFunc(h.AdminCreateBookmark)))
-	mux.Handle("GET /admin/bookmarks/{id}/edit", auth.RequireAuth(http.HandlerFunc(h.AdminEditBookmarkPage)))
-	mux.Handle("POST /admin/bookmarks/{id}", auth.RequireAuth(http.HandlerFunc(h.AdminUpdateBookmark)))
-	mux.Handle("POST /admin/bookmarks/{id}/delete", auth.RequireAuth(http.HandlerFunc(h.AdminDeleteBookmark)))
-	mux.Handle("POST /admin/bookmarks/delete-all", auth.RequireAuth(http.HandlerFunc(h.AdminDeleteAllBookmarks)))
-	mux.Handle("POST /admin/bookmarks/fetch-metadata", auth.RequireAuth(http.HandlerFunc(h.FetchMetadataAPI)))
+	mux.Handle("GET /admin/bookmarks", admin(http.HandlerFunc(h.AdminBookmarks)))
+	mux.Handle("GET /admin/bookmarks/create", admin(http.HandlerFunc(h.AdminCreateBookmarkPage)))
+	mux.Handle("POST /admin/bookmarks", admin(http.HandlerFunc(h.AdminCreateBookmark)))
+	mux.Handle("GET /admin/bookmarks/{id}/edit", admin(http.HandlerFunc(h.AdminEditBookmarkPage)))
+	mux.Handle("POST /admin/bookmarks/{id}", admin(http.HandlerFunc(h.AdminUpdateBookmark)))
+	mux.Handle("POST /admin/bookmarks/{id}/delete", admin(http.HandlerFunc(h.AdminDeleteBookmark)))
+	mux.Handle("POST /admin/bookmarks/delete-all", admin(http.HandlerFunc(h.AdminDeleteAllBookmarks)))
+	mux.Handle("POST /admin/bookmarks/fetch-metadata", admin(http.HandlerFunc(h.FetchMetadataAPI)))
 
-	mux.Handle("GET /admin/import", auth.RequireAuth(http.HandlerFunc(h.AdminImportPage)))
-	mux.Handle("POST /admin/import", auth.RequireAuth(http.HandlerFunc(h.AdminImport)))
-	mux.Handle("GET /admin/export", auth.RequireAuth(http.HandlerFunc(h.AdminExport)))
+	mux.Handle("GET /admin/import", admin(http.HandlerFunc(h.AdminImportPage)))
+	mux.Handle("POST /admin/import", admin(http.HandlerFunc(h.AdminImport)))
+	mux.Handle("GET /admin/export", admin(http.HandlerFunc(h.AdminExport)))
 
-	mux.Handle("GET /admin/settings", auth.RequireAuth(http.HandlerFunc(h.AdminSettings)))
-	mux.Handle("POST /admin/settings", auth.RequireAuth(http.HandlerFunc(h.AdminUpdateSettings)))
+	mux.Handle("GET /admin/settings", admin(http.HandlerFunc(h.AdminSettings)))
+	mux.Handle("POST /admin/settings", admin(http.HandlerFunc(h.AdminUpdateSettings)))
 
 	// Wrap with global middleware
 	var handler http.Handler = mux

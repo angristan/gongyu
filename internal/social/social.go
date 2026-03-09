@@ -8,14 +8,34 @@ import (
 	"github.com/angristan/gongyu/internal/model"
 )
 
-// Keys returns the setting keys used by social providers.
-func Keys() []string {
-	return []string{
-		"twitter_api_key", "twitter_api_secret",
-		"twitter_access_token", "twitter_access_secret",
-		"mastodon_instance", "mastodon_access_token",
-		"bluesky_handle", "bluesky_app_password",
+// SettingDef describes a social provider setting.
+type SettingDef struct {
+	Key       string
+	Encrypted bool
+}
+
+// SettingDefs returns all social provider setting definitions.
+func SettingDefs() []SettingDef {
+	return []SettingDef{
+		{"twitter_api_key", false},
+		{"twitter_api_secret", true},
+		{"twitter_access_token", false},
+		{"twitter_access_secret", true},
+		{"mastodon_instance", false},
+		{"mastodon_access_token", true},
+		{"bluesky_handle", false},
+		{"bluesky_app_password", true},
 	}
+}
+
+// Keys returns just the setting key names.
+func Keys() []string {
+	defs := SettingDefs()
+	keys := make([]string, len(defs))
+	for i, d := range defs {
+		keys[i] = d.Key
+	}
+	return keys
 }
 
 // Client posts bookmarks to social providers.
