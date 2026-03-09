@@ -5,9 +5,18 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/angristan/gongyu/internal/background"
 	"github.com/angristan/gongyu/internal/model"
 )
+
+// Keys returns the setting keys used by social providers.
+func Keys() []string {
+	return []string{
+		"twitter_api_key", "twitter_api_secret",
+		"twitter_access_token", "twitter_access_secret",
+		"mastodon_instance", "mastodon_access_token",
+		"bluesky_handle", "bluesky_app_password",
+	}
+}
 
 // Client posts bookmarks to social providers.
 type Client struct {
@@ -21,64 +30,56 @@ func NewClient(httpClient *http.Client) *Client {
 	return &Client{httpClient: httpClient}
 }
 
-func (c *Client) ShareBookmark(ctx context.Context, bg *background.Runner, store model.Store, encKey []byte, b *model.Bookmark) {
-	get := func(key string) string {
-		return model.GetSetting(ctx, store, key, encKey)
+// PostAll posts a bookmark to all configured social providers synchronously.
+// Intended to be called from a background task.
+func (c *Client) PostAll(ctx context.Context, b *model.Bookmark, settings map[string]string) {
+	if hasTwitter(settings) {
+		if err := c.PostToTwitter(ctx,
+			settings["twitter_api_key"], settings["twitter_api_secret"],
+			settings["twitter_access_token"], settings["twitter_access_secret"],
+			b.Title, b.Url,
+		); err != nil {
+			slog.Error("twitter post failed", "error", err)
+		}
 	}
 
-	if hasTwitterProvider(get) {
-		apiKey := get("twitter_api_key")
-		apiSecret := get("twitter_api_secret")
-		accessToken := get("twitter_access_token")
-		accessSecret := get("twitter_access_secret")
-		bg.Do(func(taskCtx context.Context) {
-			if err := c.PostToTwitter(taskCtx, apiKey, apiSecret, accessToken, accessSecret, b.Title, b.Url); err != nil {
-				slog.Error("twitter post failed", "error", err)
-			}
-		})
+	if hasMastodon(settings) {
+		if err := c.PostToMastodon(ctx,
+			settings["mastodon_instance"], settings["mastodon_access_token"],
+			b.Title, b.Url,
+		); err != nil {
+			slog.Error("mastodon post failed", "error", err)
+		}
 	}
 
-	if hasMastodonProvider(get) {
-		instance := get("mastodon_instance")
-		accessToken := get("mastodon_access_token")
-		bg.Do(func(taskCtx context.Context) {
-			if err := c.PostToMastodon(taskCtx, instance, accessToken, b.Title, b.Url); err != nil {
-				slog.Error("mastodon post failed", "error", err)
-			}
-		})
-	}
-
-	if hasBlueskyProvider(get) {
-		handle := get("bluesky_handle")
-		appPassword := get("bluesky_app_password")
-		bg.Do(func(taskCtx context.Context) {
-			if err := c.PostToBluesky(taskCtx, handle, appPassword, b.Title, b.Url, b.ThumbnailUrl, b.Description); err != nil {
-				slog.Error("bluesky post failed", "error", err)
-			}
-		})
+	if hasBluesky(settings) {
+		if err := c.PostToBluesky(ctx,
+			settings["bluesky_handle"], settings["bluesky_app_password"],
+			b.Title, b.Url, b.ThumbnailUrl, b.Description,
+		); err != nil {
+			slog.Error("bluesky post failed", "error", err)
+		}
 	}
 }
 
-func HasSocialProviders(ctx context.Context, store model.Store, encKey []byte) bool {
-	get := func(key string) string {
-		return model.GetSetting(ctx, store, key, encKey)
-	}
-	return hasTwitterProvider(get) || hasMastodonProvider(get) || hasBlueskyProvider(get)
+// HasProviders reports whether any social provider is configured.
+func HasProviders(settings map[string]string) bool {
+	return hasTwitter(settings) || hasMastodon(settings) || hasBluesky(settings)
 }
 
-func hasTwitterProvider(get func(string) string) bool {
-	return get("twitter_api_key") != "" &&
-		get("twitter_api_secret") != "" &&
-		get("twitter_access_token") != "" &&
-		get("twitter_access_secret") != ""
+func hasTwitter(s map[string]string) bool {
+	return s["twitter_api_key"] != "" &&
+		s["twitter_api_secret"] != "" &&
+		s["twitter_access_token"] != "" &&
+		s["twitter_access_secret"] != ""
 }
 
-func hasMastodonProvider(get func(string) string) bool {
-	return get("mastodon_instance") != "" &&
-		get("mastodon_access_token") != ""
+func hasMastodon(s map[string]string) bool {
+	return s["mastodon_instance"] != "" &&
+		s["mastodon_access_token"] != ""
 }
 
-func hasBlueskyProvider(get func(string) string) bool {
-	return get("bluesky_handle") != "" &&
-		get("bluesky_app_password") != ""
+func hasBluesky(s map[string]string) bool {
+	return s["bluesky_handle"] != "" &&
+		s["bluesky_app_password"] != ""
 }

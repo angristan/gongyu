@@ -205,7 +205,7 @@ func TestMiddleware(t *testing.T) {
 
 	// Valid session cookie → user set
 	req = httptest.NewRequest("GET", "/", nil)
-	req.AddCookie(&http.Cookie{Name: cookieName, Value: "valid-token"})
+	req.AddCookie(&http.Cookie{Name: CookieName, Value: "valid-token"})
 	w = httptest.NewRecorder()
 	gotUser = nil
 	mw.ServeHTTP(w, req)
@@ -215,7 +215,7 @@ func TestMiddleware(t *testing.T) {
 
 	// Expired session → no user, session deleted
 	req = httptest.NewRequest("GET", "/", nil)
-	req.AddCookie(&http.Cookie{Name: cookieName, Value: "expired"})
+	req.AddCookie(&http.Cookie{Name: CookieName, Value: "expired"})
 	w = httptest.NewRecorder()
 	gotUser = nil
 	mw.ServeHTTP(w, req)
@@ -228,7 +228,7 @@ func TestMiddleware(t *testing.T) {
 
 	// Invalid token → no user
 	req = httptest.NewRequest("GET", "/", nil)
-	req.AddCookie(&http.Cookie{Name: cookieName, Value: "nonexistent"})
+	req.AddCookie(&http.Cookie{Name: CookieName, Value: "nonexistent"})
 	w = httptest.NewRecorder()
 	gotUser = nil
 	mw.ServeHTTP(w, req)

@@ -18,7 +18,7 @@ type contextKey string
 const userKey contextKey = "user"
 
 const (
-	cookieName    = "gongyu_session"
+	CookieName    = "gongyu_session"
 	sessionMaxAge = 30 * 24 * time.Hour
 )
 
@@ -31,8 +31,8 @@ func CheckPassword(hash, password string) bool {
 	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) == nil
 }
 
-func generateToken() (string, error) {
-	b := make([]byte, 32)
+func GenerateToken(size int) (string, error) {
+	b := make([]byte, size)
 	if _, err := rand.Read(b); err != nil {
 		return "", err
 	}
@@ -40,7 +40,7 @@ func generateToken() (string, error) {
 }
 
 func Login(w http.ResponseWriter, r *http.Request, store model.Store, user *model.User, remember bool) error {
-	token, err := generateToken()
+	token, err := GenerateToken(32)
 	if err != nil {
 		return err
 	}
@@ -58,34 +58,33 @@ func Login(w http.ResponseWriter, r *http.Request, store model.Store, user *mode
 	}
 
 	http.SetCookie(w, &http.Cookie{
-		Name:     cookieName,
+		Name:     CookieName,
 		Value:    token,
 		Path:     "/",
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
-		Secure:   isHTTPS(r),
+		Secure:   IsHTTPS(r),
 		MaxAge:   int(maxAge.Seconds()),
 	})
 	return nil
 }
 
-func isHTTPS(r *http.Request) bool {
+func IsHTTPS(r *http.Request) bool {
 	if r.TLS != nil {
 		return true
 	}
-	proto := r.Header.Get("X-Forwarded-Proto")
-	return proto == "https"
+	return r.Header.Get("X-Forwarded-Proto") == "https"
 }
 
 func Logout(w http.ResponseWriter, r *http.Request, store model.Store) {
-	cookie, err := r.Cookie(cookieName)
+	cookie, err := r.Cookie(CookieName)
 	if err == nil {
 		if err := store.DeleteSession(r.Context(), cookie.Value); err != nil {
 			slog.Error("failed to delete session", "error", err)
 		}
 	}
 	http.SetCookie(w, &http.Cookie{
-		Name: cookieName, Value: "", Path: "/", HttpOnly: true, MaxAge: -1,
+		Name: CookieName, Value: "", Path: "/", HttpOnly: true, MaxAge: -1,
 	})
 }
 
@@ -97,7 +96,7 @@ func UserFromContext(ctx context.Context) *model.User {
 func Middleware(store model.Store) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			cookie, err := r.Cookie(cookieName)
+			cookie, err := r.Cookie(CookieName)
 			if err != nil {
 				next.ServeHTTP(w, r)
 				return

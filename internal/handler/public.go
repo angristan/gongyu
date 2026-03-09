@@ -5,20 +5,15 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
-	"strconv"
 
 	"github.com/angristan/gongyu/internal/feed"
 	"github.com/angristan/gongyu/internal/view"
 )
 
 func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
-	query := r.URL.Query().Get("q")
-	page, _ := strconv.Atoi(r.URL.Query().Get("page")) //nolint:errcheck // defaults to 0, clamped below
-	if page < 1 {
-		page = 1
-	}
+	query, page := searchParams(r)
 
-	result, err := h.Store.SearchBookmarks(r.Context(), query, page, 20)
+	result, err := h.Store.SearchBookmarks(r.Context(), query, page, defaultPerPage)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return

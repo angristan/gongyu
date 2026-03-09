@@ -49,7 +49,7 @@ func TestAdminUpdateSettings(t *testing.T) {
 		getSetting: func(ctx context.Context, key string) (model.Setting, error) {
 			return model.Setting{}, sql.ErrNoRows
 		},
-		upsertSetting: func(ctx context.Context, key, value string, encrypted int64) error {
+		upsertSetting: func(ctx context.Context, key, value string, encrypted bool) error {
 			saved[key] = value
 			return nil
 		},
@@ -90,7 +90,7 @@ func TestAdminUpdateSettings(t *testing.T) {
 func TestAdminUpdateSettingsOnlyWritesSubmittedKeys(t *testing.T) {
 	saved := map[string]string{}
 	store := &mockStore{
-		upsertSetting: func(ctx context.Context, key, value string, encrypted int64) error {
+		upsertSetting: func(ctx context.Context, key, value string, encrypted bool) error {
 			saved[key] = value
 			return nil
 		},
@@ -141,7 +141,7 @@ func TestAdminUpdateSettingsOnlyWritesSubmittedKeys(t *testing.T) {
 func TestAdminUpdateSettingsClearsSubmittedEmptyValue(t *testing.T) {
 	saved := map[string]string{}
 	store := &mockStore{
-		upsertSetting: func(ctx context.Context, key, value string, encrypted int64) error {
+		upsertSetting: func(ctx context.Context, key, value string, encrypted bool) error {
 			saved[key] = value
 			return nil
 		},

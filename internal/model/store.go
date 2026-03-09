@@ -95,9 +95,13 @@ type Store interface {
 	GetUserByID(ctx context.Context, id int64) (User, error)
 	CountUsers(ctx context.Context) (int64, error)
 
+	// Bookmarks (thumbnail)
+	UpdateBookmarkThumbnail(ctx context.Context, id int64, thumbnailURL string) error
+
 	// Settings
 	GetSetting(ctx context.Context, key string) (Setting, error)
-	UpsertSetting(ctx context.Context, key, value string, encrypted int64) error
+	GetSettings(ctx context.Context, keys []string) (map[string]Setting, error)
+	UpsertSetting(ctx context.Context, key, value string, encrypted bool) error
 
 	// Sessions
 	CreateSession(ctx context.Context, arg CreateSessionParams) error

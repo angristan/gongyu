@@ -30,6 +30,7 @@ type mockStore struct {
 	shortURLExists           func(ctx context.Context, shortUrl string) (bool, error)
 	createBookmark           func(ctx context.Context, arg model.CreateBookmarkParams) (model.Bookmark, error)
 	updateBookmark           func(ctx context.Context, arg model.UpdateBookmarkParams) error
+	updateBookmarkThumbnail  func(ctx context.Context, id int64, thumbnailURL string) error
 	deleteBookmark           func(ctx context.Context, id int64) error
 	deleteAllBookmarks       func(ctx context.Context) (int64, error)
 	bulkImportBookmarks      func(ctx context.Context, bookmarks []model.Bookmark) (int, int, error)
@@ -41,7 +42,8 @@ type mockStore struct {
 	getUserByID              func(ctx context.Context, id int64) (model.User, error)
 	countUsers               func(ctx context.Context) (int64, error)
 	getSetting               func(ctx context.Context, key string) (model.Setting, error)
-	upsertSetting            func(ctx context.Context, key, value string, encrypted int64) error
+	getSettings              func(ctx context.Context, keys []string) (map[string]model.Setting, error)
+	upsertSetting            func(ctx context.Context, key, value string, encrypted bool) error
 	createSession            func(ctx context.Context, arg model.CreateSessionParams) error
 	getSession               func(ctx context.Context, token string) (model.Session, error)
 	deleteSession            func(ctx context.Context, token string) error
@@ -85,6 +87,12 @@ func (m *mockStore) CreateBookmark(ctx context.Context, arg model.CreateBookmark
 func (m *mockStore) UpdateBookmark(ctx context.Context, arg model.UpdateBookmarkParams) error {
 	return m.updateBookmark(ctx, arg)
 }
+func (m *mockStore) UpdateBookmarkThumbnail(ctx context.Context, id int64, thumbnailURL string) error {
+	if m.updateBookmarkThumbnail != nil {
+		return m.updateBookmarkThumbnail(ctx, id, thumbnailURL)
+	}
+	return nil
+}
 func (m *mockStore) DeleteBookmark(ctx context.Context, id int64) error {
 	return m.deleteBookmark(ctx, id)
 }
@@ -118,7 +126,23 @@ func (m *mockStore) CountUsers(ctx context.Context) (int64, error) {
 func (m *mockStore) GetSetting(ctx context.Context, key string) (model.Setting, error) {
 	return m.getSetting(ctx, key)
 }
-func (m *mockStore) UpsertSetting(ctx context.Context, key, value string, encrypted int64) error {
+func (m *mockStore) GetSettings(ctx context.Context, keys []string) (map[string]model.Setting, error) {
+	if m.getSettings != nil {
+		return m.getSettings(ctx, keys)
+	}
+	// Fall back to individual GetSetting calls for backwards compatibility.
+	result := make(map[string]model.Setting, len(keys))
+	if m.getSetting != nil {
+		for _, key := range keys {
+			s, err := m.getSetting(ctx, key)
+			if err == nil {
+				result[key] = s
+			}
+		}
+	}
+	return result, nil
+}
+func (m *mockStore) UpsertSetting(ctx context.Context, key, value string, encrypted bool) error {
 	return m.upsertSetting(ctx, key, value, encrypted)
 }
 func (m *mockStore) CreateSession(ctx context.Context, arg model.CreateSessionParams) error {
@@ -177,12 +201,12 @@ func (s stubMetadataFetcher) FetchMetadata(ctx context.Context, rawURL string) (
 }
 
 type stubSocialClient struct {
-	share func(ctx context.Context, bg *background.Runner, store model.Store, encKey []byte, b *model.Bookmark)
+	postAll func(ctx context.Context, b *model.Bookmark, settings map[string]string)
 }
 
-func (s stubSocialClient) ShareBookmark(ctx context.Context, bg *background.Runner, store model.Store, encKey []byte, b *model.Bookmark) {
-	if s.share != nil {
-		s.share(ctx, bg, store, encKey, b)
+func (s stubSocialClient) PostAll(ctx context.Context, b *model.Bookmark, settings map[string]string) {
+	if s.postAll != nil {
+		s.postAll(ctx, b, settings)
 	}
 }
 

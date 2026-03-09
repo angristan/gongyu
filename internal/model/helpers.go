@@ -2,14 +2,11 @@ package model
 
 import (
 	"context"
-	"crypto/aes"
-	"crypto/cipher"
 	"crypto/rand"
-	"encoding/base64"
-	"errors"
 	"fmt"
-	"io"
 	"math/big"
+
+	"github.com/angristan/gongyu/internal/crypto"
 )
 
 const shortURLChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
@@ -42,7 +39,7 @@ func UniqueShortURL(ctx context.Context, store Store) (string, error) {
 	}
 }
 
-// GetSetting retrieves a setting value, decrypting if needed.
+// GetSetting retrieves a single setting value, decrypting if needed.
 func GetSetting(ctx context.Context, store Store, key string, encKey []byte) string {
 	s, err := store.GetSetting(ctx, key)
 	if err != nil {
@@ -51,8 +48,8 @@ func GetSetting(ctx context.Context, store Store, key string, encKey []byte) str
 	if s.Value == "" {
 		return ""
 	}
-	if s.Encrypted != 0 && len(encKey) > 0 {
-		dec, err := decrypt(s.Value, encKey)
+	if s.Encrypted && len(encKey) > 0 {
+		dec, err := crypto.Decrypt(s.Value, encKey)
 		if err != nil {
 			return ""
 		}
@@ -61,61 +58,40 @@ func GetSetting(ctx context.Context, store Store, key string, encKey []byte) str
 	return s.Value
 }
 
+// GetSettings retrieves multiple settings at once, decrypting as needed.
+// Returns a map of key → plaintext value (missing/empty keys are omitted).
+func GetSettings(ctx context.Context, store Store, keys []string, encKey []byte) map[string]string {
+	settings, err := store.GetSettings(ctx, keys)
+	if err != nil {
+		return map[string]string{}
+	}
+	result := make(map[string]string, len(settings))
+	for key, s := range settings {
+		if s.Value == "" {
+			continue
+		}
+		if s.Encrypted && len(encKey) > 0 {
+			dec, err := crypto.Decrypt(s.Value, encKey)
+			if err != nil {
+				continue
+			}
+			result[key] = dec
+		} else {
+			result[key] = s.Value
+		}
+	}
+	return result
+}
+
 // SetSetting stores a setting, encrypting if requested.
 func SetSetting(ctx context.Context, store Store, key, value string, encrypted bool, encKey []byte) error {
 	storeValue := value
 	if encrypted && len(encKey) > 0 && value != "" {
-		enc, err := encrypt(value, encKey)
+		enc, err := crypto.Encrypt(value, encKey)
 		if err != nil {
 			return fmt.Errorf("encrypt setting: %w", err)
 		}
 		storeValue = enc
 	}
-	var encInt int64
-	if encrypted {
-		encInt = 1
-	}
-	return store.UpsertSetting(ctx, key, storeValue, encInt)
-}
-
-func encrypt(plaintext string, key []byte) (string, error) {
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return "", err
-	}
-	gcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return "", err
-	}
-	nonce := make([]byte, gcm.NonceSize())
-	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
-		return "", err
-	}
-	ciphertext := gcm.Seal(nonce, nonce, []byte(plaintext), nil)
-	return base64.StdEncoding.EncodeToString(ciphertext), nil
-}
-
-func decrypt(encoded string, key []byte) (string, error) {
-	ciphertext, err := base64.StdEncoding.DecodeString(encoded)
-	if err != nil {
-		return "", err
-	}
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return "", err
-	}
-	gcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return "", err
-	}
-	nonceSize := gcm.NonceSize()
-	if len(ciphertext) < nonceSize {
-		return "", errors.New("ciphertext too short")
-	}
-	nonce, ciphertext := ciphertext[:nonceSize], ciphertext[nonceSize:]
-	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
-	if err != nil {
-		return "", err
-	}
-	return string(plaintext), nil
+	return store.UpsertSetting(ctx, key, storeValue, encrypted)
 }

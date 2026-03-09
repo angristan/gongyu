@@ -24,7 +24,7 @@ func (h *Handler) Bookmarklet(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	hasSocial := social.HasSocialProviders(r.Context(), h.Store, h.EncKey)
+	hasSocial := social.HasProviders(h.socialSettings(r.Context()))
 
 	h.render(w, r, view.BookmarkletPage(view.BookmarkletData{
 		LayoutData:   h.layoutData(w, r),

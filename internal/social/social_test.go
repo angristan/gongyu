@@ -9,11 +9,9 @@ func TestProviderReadiness(t *testing.T) {
 		want   bool
 	}{
 		{
-			name: "twitter requires full config",
-			values: map[string]string{
-				"twitter_api_key": "key",
-			},
-			want: false,
+			name:   "twitter requires full config",
+			values: map[string]string{"twitter_api_key": "key"},
+			want:   false,
 		},
 		{
 			name: "twitter is ready with full config",
@@ -26,11 +24,9 @@ func TestProviderReadiness(t *testing.T) {
 			want: true,
 		},
 		{
-			name: "mastodon requires token",
-			values: map[string]string{
-				"mastodon_instance": "mastodon.social",
-			},
-			want: false,
+			name:   "mastodon requires token",
+			values: map[string]string{"mastodon_instance": "mastodon.social"},
+			want:   false,
 		},
 		{
 			name: "mastodon is ready with instance and token",
@@ -41,11 +37,9 @@ func TestProviderReadiness(t *testing.T) {
 			want: true,
 		},
 		{
-			name: "bluesky requires app password",
-			values: map[string]string{
-				"bluesky_handle": "user.bsky.social",
-			},
-			want: false,
+			name:   "bluesky requires app password",
+			values: map[string]string{"bluesky_handle": "user.bsky.social"},
+			want:   false,
 		},
 		{
 			name: "bluesky is ready with full config",
@@ -59,13 +53,9 @@ func TestProviderReadiness(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			get := func(key string) string {
-				return tt.values[key]
-			}
-
-			got := hasTwitterProvider(get) || hasMastodonProvider(get) || hasBlueskyProvider(get)
+			got := HasProviders(tt.values)
 			if got != tt.want {
-				t.Errorf("provider readiness = %v, want %v", got, tt.want)
+				t.Errorf("HasProviders() = %v, want %v", got, tt.want)
 			}
 		})
 	}

@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"crypto/hmac"
-	"crypto/rand"
 	"crypto/sha256"
 	"embed"
 	"encoding/hex"
@@ -24,10 +23,7 @@ import (
 	"github.com/angristan/gongyu/internal/view"
 )
 
-const (
-	sessionCookieName   = "gongyu_session"
-	guestCSRFCookieName = "gongyu_csrf"
-)
+const guestCSRFCookieName = "gongyu_csrf"
 
 // Handler holds dependencies shared across all HTTP handlers.
 type Handler struct {
@@ -48,7 +44,7 @@ type metadataFetcher interface {
 }
 
 type socialSharer interface {
-	ShareBookmark(ctx context.Context, bg *background.Runner, store model.Store, encKey []byte, b *model.Bookmark)
+	PostAll(ctx context.Context, b *model.Bookmark, settings map[string]string)
 }
 
 // New creates a Handler. The context controls the lifetime of background
@@ -98,7 +94,7 @@ func csrfToken(sessionToken string, key []byte) string {
 }
 
 func (h *Handler) formCSRFToken(w http.ResponseWriter, r *http.Request) string {
-	if c, err := r.Cookie(sessionCookieName); err == nil && c.Value != "" {
+	if c, err := r.Cookie(auth.CookieName); err == nil && c.Value != "" {
 		return csrfToken(c.Value, h.EncKey)
 	}
 
@@ -106,7 +102,7 @@ func (h *Handler) formCSRFToken(w http.ResponseWriter, r *http.Request) string {
 		return c.Value
 	}
 
-	token, err := randomToken(32)
+	token, err := auth.GenerateToken(32)
 	if err != nil {
 		slog.Error("failed to generate guest CSRF token", "error", err)
 		return ""
@@ -118,19 +114,11 @@ func (h *Handler) formCSRFToken(w http.ResponseWriter, r *http.Request) string {
 		Path:     "/",
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
-		Secure:   authIsHTTPS(r),
+		Secure:   auth.IsHTTPS(r),
 		MaxAge:   int((24 * time.Hour).Seconds()),
 	})
 
 	return token
-}
-
-func randomToken(size int) (string, error) {
-	b := make([]byte, size)
-	if _, err := rand.Read(b); err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(b), nil
 }
 
 // hashFS computes a short content hash of all files in the FS.
@@ -169,4 +157,9 @@ func (h *Handler) jsonResponse(w http.ResponseWriter, status int, data any) {
 			slog.Error("json encode failed", "error", err)
 		}
 	}
+}
+
+// socialSettings resolves the current social provider settings.
+func (h *Handler) socialSettings(ctx context.Context) map[string]string {
+	return model.GetSettings(ctx, h.Store, social.Keys(), h.EncKey)
 }

@@ -142,6 +142,13 @@ func (s *Store) UpdateBookmark(ctx context.Context, arg model.UpdateBookmarkPara
 	return s.q.UpdateBookmark(ctx, postgres.UpdateBookmarkParams(arg))
 }
 
+func (s *Store) UpdateBookmarkThumbnail(ctx context.Context, id int64, thumbnailURL string) error {
+	_, err := s.sqlDB.ExecContext(ctx,
+		`UPDATE bookmarks SET thumbnail_url = $1, updated_at = NOW() WHERE id = $2`,
+		thumbnailURL, id)
+	return err
+}
+
 func (s *Store) DeleteBookmark(ctx context.Context, id int64) error {
 	return s.q.DeleteBookmark(ctx, id)
 }
@@ -332,14 +339,33 @@ func (s *Store) CountUsers(ctx context.Context) (int64, error) {
 
 func (s *Store) GetSetting(ctx context.Context, key string) (model.Setting, error) {
 	st, err := s.q.GetSetting(ctx, key)
-	return model.Setting(st), err
+	if err != nil {
+		return model.Setting{}, err
+	}
+	return model.Setting{Key: st.Key, Value: st.Value, Encrypted: st.Encrypted != 0}, nil
 }
 
-func (s *Store) UpsertSetting(ctx context.Context, key, value string, encrypted int64) error {
+func (s *Store) GetSettings(ctx context.Context, keys []string) (map[string]model.Setting, error) {
+	result := make(map[string]model.Setting, len(keys))
+	for _, key := range keys {
+		st, err := s.GetSetting(ctx, key)
+		if err != nil {
+			continue
+		}
+		result[key] = st
+	}
+	return result, nil
+}
+
+func (s *Store) UpsertSetting(ctx context.Context, key, value string, encrypted bool) error {
+	var enc int64
+	if encrypted {
+		enc = 1
+	}
 	return s.q.UpsertSetting(ctx, postgres.UpsertSettingParams{
 		Key:       key,
 		Value:     value,
-		Encrypted: encrypted,
+		Encrypted: enc,
 	})
 }
 

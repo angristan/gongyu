@@ -15,14 +15,22 @@ import (
 	"github.com/angristan/gongyu/internal/view"
 )
 
-func (h *Handler) AdminBookmarks(w http.ResponseWriter, r *http.Request) {
-	query := r.URL.Query().Get("q")
-	page, _ := strconv.Atoi(r.URL.Query().Get("page")) //nolint:errcheck // defaults to 0, clamped below
+const defaultPerPage = 20
+
+// searchParams extracts search query and page number from the request.
+func searchParams(r *http.Request) (query string, page int) {
+	query = r.URL.Query().Get("q")
+	page, _ = strconv.Atoi(r.URL.Query().Get("page")) //nolint:errcheck // defaults to 0, clamped below
 	if page < 1 {
 		page = 1
 	}
+	return
+}
 
-	result, err := h.Store.SearchBookmarks(r.Context(), query, page, 20)
+func (h *Handler) AdminBookmarks(w http.ResponseWriter, r *http.Request) {
+	query, page := searchParams(r)
+
+	result, err := h.Store.SearchBookmarks(r.Context(), query, page, defaultPerPage)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
@@ -39,7 +47,7 @@ func (h *Handler) AdminBookmarks(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) AdminCreateBookmarkPage(w http.ResponseWriter, r *http.Request) {
-	hasSocial := social.HasSocialProviders(r.Context(), h.Store, h.EncKey)
+	hasSocial := social.HasProviders(h.socialSettings(r.Context()))
 	h.render(w, r, view.AdminBookmarkFormPage(view.BookmarkFormData{
 		LayoutData: h.layoutData(w, r),
 		IsCreate:   true,
@@ -110,18 +118,17 @@ func (h *Handler) AdminCreateBookmark(w http.ResponseWriter, r *http.Request) {
 	h.Background.Do(func(ctx context.Context) {
 		meta, err := h.ThumbnailFetcher.FetchMetadata(ctx, bookmarkURL)
 		if err == nil && meta.OGImage != "" {
-			if err := h.Store.UpdateBookmark(ctx, model.UpdateBookmarkParams{
-				ID: b.ID, Url: b.Url, Title: b.Title, Description: b.Description,
-				ThumbnailUrl: meta.OGImage, ShaarliShortUrl: b.ShaarliShortUrl,
-				UpdatedAt: time.Now().UTC(),
-			}); err != nil {
+			if err := h.Store.UpdateBookmarkThumbnail(ctx, b.ID, meta.OGImage); err != nil {
 				slog.Error("failed to update thumbnail", "error", err)
 			}
 		}
 	})
 
 	if form.Share {
-		h.SocialClient.ShareBookmark(r.Context(), h.Background, h.Store, h.EncKey, &b)
+		settings := h.socialSettings(r.Context())
+		h.Background.Do(func(ctx context.Context) {
+			h.SocialClient.PostAll(ctx, &b, settings)
+		})
 	}
 
 	if form.Source == "bookmarklet" {

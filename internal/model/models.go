@@ -25,7 +25,7 @@ type Session struct {
 type Setting struct {
 	Key       string `json:"key"`
 	Value     string `json:"value"`
-	Encrypted int64  `json:"encrypted"`
+	Encrypted bool   `json:"encrypted"`
 }
 
 type User struct {

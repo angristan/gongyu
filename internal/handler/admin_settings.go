@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/angristan/gongyu/internal/model"
+	"github.com/angristan/gongyu/internal/social"
 	"github.com/angristan/gongyu/internal/view"
 )
 
@@ -25,9 +26,12 @@ var settingsKeys = []struct {
 
 func (h *Handler) AdminSettings(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	settings := map[string]string{}
+
+	values := model.GetSettings(ctx, h.Store, social.Keys(), h.EncKey)
+
+	settings := make(map[string]string, len(settingsKeys))
 	for _, s := range settingsKeys {
-		val := model.GetSetting(ctx, h.Store, s.Key, h.EncKey)
+		val := values[s.Key]
 		if s.Encrypted && val != "" {
 			settings[s.Key] = "••••••••"
 		} else {
