@@ -56,7 +56,11 @@ func (h *Handler) AdminUpdateSettings(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	for _, s := range settingsKeys {
-		val := strings.TrimSpace(r.FormValue(s.Key))
+		if _, submitted := r.PostForm[s.Key]; !submitted {
+			continue
+		}
+
+		val := strings.TrimSpace(r.PostFormValue(s.Key))
 		if s.Encrypted && val == "••••••••" {
 			continue
 		}
