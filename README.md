@@ -1,15 +1,15 @@
 <p align="center">
-  <img src="public/images/logo.png" alt="Gongyu" width="120" height="120">
+  <img src="static/images/logo.png" alt="Gongyu" width="120" height="120">
 </p>
 
 # Gongyu
 
-A modern, self-hosted, single-tenant bookmark manager inspired by [Shaarli](https://github.com/shaarli/Shaarli). Built with Laravel 12, React, Mantine UI, and Inertia.js.
+A modern, self-hosted, single-tenant bookmark manager inspired by [Shaarli](https://github.com/shaarli/Shaarli). Built with Go, PostgreSQL, and htmx. Ships as a single binary with embedded templates and static assets.
 
 ## Features
 
 - **Bookmark Management** - Save, organize, and search your bookmarks
-- **Full-Text Search** - Fast search powered by SQLite FTS5 or PostgreSQL tsvector
+- **Full-Text Search** - Fast search powered by PostgreSQL tsvector with GIN index
 - **OpenGraph Thumbnails** - Automatically fetches og:image from bookmarked URLs for visual previews
 - **Bookmarklet** - Quick-add bookmarks from any page with a browser bookmarklet
 - **Shaarli Migration** - Three import methods: API, Database file, or HTML export
@@ -18,84 +18,85 @@ A modern, self-hosted, single-tenant bookmark manager inspired by [Shaarli](http
 - **Atom Feed** - Subscribe to your bookmarks at `/feed`
 - **Social Sharing** - Optional auto-posting to Twitter, Mastodon, and Bluesky
 - **Dashboard** - Stats and visualizations of your bookmark collection
-- **Cozy Theme** - Warm, paper-textured aesthetic with automatic dark/light mode
+- **Dark/Light Mode** - Automatic based on system preference
 
 ## Tech Stack
 
-- **Backend**: Laravel 12, PHP 8.4+, [Laravel Actions](https://laravelactions.com/)
-- **Frontend**: React 18, TypeScript, [Mantine 8](https://mantine.dev/), Inertia.js with SSR
-- **Database**: SQLite or PostgreSQL (both fully supported)
+- **Backend**: Go 1.26+, stdlib `net/http` router, [sqlc](https://sqlc.dev) for type-safe SQL
+- **Frontend**: Server-rendered HTML with [templ](https://templ.guide), [htmx](https://htmx.org)
+- **Database**: PostgreSQL with full-text search (tsvector + GIN index)
+- **Migrations**: [goose](https://github.com/pressly/goose) (embedded, run automatically on startup)
+- **Observability**: Optional [OpenTelemetry](https://opentelemetry.io) traces and metrics (enable with `OTEL_EXPORTER_OTLP_ENDPOINT`)
+- **Assets**: Embedded via `go:embed` — single binary, no external files needed
 
-## Requirements
+## Quick Start
 
-- PHP 8.4+
-- Node.js 20+
-- Composer
-- SQLite or PostgreSQL
-
-## Installation
+Requires a running PostgreSQL instance.
 
 ```bash
-# Clone the repository
-git clone https://github.com/your-username/gongyu.git
-cd gongyu
+go build -o gongyu ./cmd/gongyu
+DATABASE_URL=postgres://localhost:5432/gongyu?sslmode=disable ./gongyu
+```
 
-# Install dependencies
-composer install
-npm install
+Visit `http://localhost:8080/setup` to create your admin account.
 
-# Configure environment
-cp .env.example .env
-php artisan key:generate
+## Configuration
 
-# Run migrations
-php artisan migrate
+All configuration is via environment variables:
 
-# Build frontend assets
-npm run build
+| Variable | Default | Description |
+|---|---|---|
+| `DATABASE_URL` | `postgres://localhost:5432/gongyu?sslmode=disable` | PostgreSQL connection string |
+| `LISTEN_ADDR` | `:8080` | HTTP listen address |
+| `BASE_URL` | `http://localhost:8080` | Public URL (for feeds, bookmarklet) |
+| `APP_KEY` | (insecure default) | Secret key for encrypting settings (e.g. API tokens) |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | (disabled) | OpenTelemetry collector endpoint (e.g. `http://localhost:4318`) |
 
-# Start the server
-php artisan serve
+## Docker
+
+```bash
+docker build -t gongyu .
+docker run -p 8080:8080 \
+  -e DATABASE_URL=postgres://user:pass@host:5432/gongyu \
+  -e APP_KEY=your-random-secret-key \
+  gongyu
 ```
 
 ## Development
 
-Run all services concurrently:
+The easiest way to get started is with Docker Compose, which runs PostgreSQL and the app with live reload ([air](https://github.com/air-verse/air)):
 
 ```bash
-composer run dev
+make dev        # start postgres + app with live reload
+make dev-down   # stop and remove volumes
 ```
 
-This starts:
-- Laravel development server
-- Queue worker
-- Log viewer (Pail)
-- Vite dev server with HMR
+The app watches `.go`, `.templ`, `.css`, and `.sql` files. On change it re-runs `templ generate`, `sqlc generate`, and rebuilds.
 
-### Git Hooks
-
-This project uses [Husky](https://typicode.github.io/husky/) for Git hooks. After running `npm install`, a pre-commit hook is automatically set up that runs `composer check`:
-
-- **Pint** - PHP code style (Laravel preset)
-- **PHPStan** - PHP static analysis
-- **Biome** - TypeScript/React linting and formatting
-
-To manually run checks:
+Other useful targets:
 
 ```bash
-# Check for issues
-composer check
+make build      # generate code + build binary
+make test       # generate code + run tests with race detector
+make lint       # generate code + run golangci-lint
+make generate   # run templ + sqlc code generation
+```
 
-# Auto-fix formatting
-composer lint
+### Without Docker
+
+Requires a running PostgreSQL instance:
+
+```bash
+make build
+DATABASE_URL=postgres://localhost:5432/gongyu?sslmode=disable ./gongyu
 ```
 
 ## Setup
 
 1. Visit `/setup` to create your admin account (only available when no users exist)
 2. Log in at `/login`
-3. Configure your bookmarklet in Settings
-4. Optionally configure social media credentials for auto-sharing
+3. Configure your bookmarklet in the Dashboard
+4. Optionally configure social media credentials in Settings
 
 ## Importing from Shaarli
 
@@ -127,10 +128,6 @@ Go to Settings > Import > Restore from Backup to restore bookmarks from a Gongyu
 Go to Settings > Export to download your bookmarks:
 - **HTML**: Netscape bookmark format (compatible with browsers and Shaarli)
 - **JSON**: Full data backup with all fields
-
-## Self-Hosting
-
-See [docs/self-hosting.md](docs/self-hosting.md) for Docker deployment instructions.
 
 ## API / Feeds
 

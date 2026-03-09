@@ -1,0 +1,165 @@
+package handler
+
+import (
+	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"embed"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"io/fs"
+	"log/slog"
+	"net/http"
+	"strings"
+	"time"
+
+	"github.com/a-h/templ"
+	"github.com/angristan/gongyu/internal/auth"
+	"github.com/angristan/gongyu/internal/background"
+	"github.com/angristan/gongyu/internal/model"
+	"github.com/angristan/gongyu/internal/social"
+	"github.com/angristan/gongyu/internal/thumbnail"
+	"github.com/angristan/gongyu/internal/view"
+)
+
+const guestCSRFCookieName = "gongyu_csrf"
+
+// Handler holds dependencies shared across all HTTP handlers.
+type Handler struct {
+	Store      model.Store
+	EncKey     []byte
+	BaseURL    string
+	Background *background.Runner
+
+	ThumbnailFetcher metadataFetcher
+	SocialClient     socialSharer
+	StaticFS         fs.FS
+	StaticVersion    string // content hash for cache busting
+	loginLimiter     *ipLimiter
+}
+
+type metadataFetcher interface {
+	FetchMetadata(ctx context.Context, rawURL string) (*thumbnail.Metadata, error)
+}
+
+type socialSharer interface {
+	PostAll(ctx context.Context, b *model.Bookmark, settings map[string]string)
+}
+
+// New creates a Handler. The context controls the lifetime of background
+// goroutines such as the rate-limiter cleanup loop.
+func New(ctx context.Context, store model.Store, encKey []byte, baseURL string, staticFS embed.FS, bg *background.Runner, httpClient *http.Client) (*Handler, error) {
+	if bg == nil {
+		bg = background.New(1)
+	}
+
+	staticSub, err := fs.Sub(staticFS, "static")
+	if err != nil {
+		return nil, fmt.Errorf("static fs: %w", err)
+	}
+	staticVersion, err := hashFS(staticSub)
+	if err != nil {
+		return nil, fmt.Errorf("hash static fs: %w", err)
+	}
+
+	return &Handler{
+		Store:            store,
+		EncKey:           encKey,
+		BaseURL:          strings.TrimRight(baseURL, "/"),
+		Background:       bg,
+		ThumbnailFetcher: thumbnail.NewFetcher(httpClient),
+		SocialClient:     social.NewClient(httpClient),
+		StaticFS:         staticSub,
+		StaticVersion:    staticVersion,
+		loginLimiter:     newIPLimiter(ctx),
+	}, nil
+}
+
+func (h *Handler) layoutData(w http.ResponseWriter, r *http.Request) view.LayoutData {
+	return view.LayoutData{
+		User:          auth.UserFromContext(r.Context()),
+		BaseURL:       h.BaseURL,
+		Flash:         getFlash(w, r),
+		StaticVersion: h.StaticVersion,
+		CsrfToken:     h.formCSRFToken(w, r),
+	}
+}
+
+// csrfToken derives a CSRF token from the session token using HMAC.
+func csrfToken(sessionToken string, key []byte) string {
+	mac := hmac.New(sha256.New, key)
+	mac.Write([]byte(sessionToken))
+	return hex.EncodeToString(mac.Sum(nil))[:32]
+}
+
+func (h *Handler) formCSRFToken(w http.ResponseWriter, r *http.Request) string {
+	if c, err := r.Cookie(auth.CookieName); err == nil && c.Value != "" {
+		return csrfToken(c.Value, h.EncKey)
+	}
+
+	if c, err := r.Cookie(guestCSRFCookieName); err == nil && c.Value != "" {
+		return c.Value
+	}
+
+	token, err := auth.GenerateToken(32)
+	if err != nil {
+		slog.Error("failed to generate guest CSRF token", "error", err)
+		return ""
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     guestCSRFCookieName,
+		Value:    token,
+		Path:     "/",
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+		Secure:   auth.IsHTTPS(r),
+		MaxAge:   int((24 * time.Hour).Seconds()),
+	})
+
+	return token
+}
+
+// hashFS computes a short content hash of all files in the FS.
+func hashFS(fsys fs.FS) (string, error) {
+	h := sha256.New()
+	if err := fs.WalkDir(fsys, ".", func(path string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() {
+			return err
+		}
+		data, err := fs.ReadFile(fsys, path)
+		if err != nil {
+			return err
+		}
+		h.Write([]byte(path))
+		h.Write(data)
+		return nil
+	}); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(h.Sum(nil))[:12], nil
+}
+
+func (h *Handler) render(w http.ResponseWriter, r *http.Request, component templ.Component) {
+	if err := component.Render(r.Context(), w); err != nil {
+		slog.Error("render failed", "error", err)
+	}
+}
+
+func (h *Handler) jsonResponse(w http.ResponseWriter, status int, data any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	if data != nil {
+		enc := json.NewEncoder(w)
+		enc.SetEscapeHTML(false)
+		if err := enc.Encode(data); err != nil {
+			slog.Error("json encode failed", "error", err)
+		}
+	}
+}
+
+// socialSettings resolves the current social provider settings.
+func (h *Handler) socialSettings(ctx context.Context) map[string]string {
+	return model.GetSettings(ctx, h.Store, social.Keys(), h.EncKey)
+}

@@ -1,0 +1,13 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+  cmd = "go tool templ generate && go tool sqlc generate && go build -o ./tmp/gongyu ./cmd/gongyu"
+  bin = "./tmp/gongyu"
+  include_ext = ["go", "templ", "css", "sql"]
+  exclude_dir = ["tmp", "node_modules"]
+  exclude_regex = ["_templ\\.go$", "postgres/.*\\.go$"]
+  delay = 500
+
+[log]
+  time = false
