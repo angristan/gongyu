@@ -2,6 +2,7 @@ package handler
 
 import (
 	"database/sql"
+	"errors"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -37,7 +38,7 @@ func (h *Handler) ShowBookmark(w http.ResponseWriter, r *http.Request) {
 	shortURL := r.PathValue("shortURL")
 	b, err := h.Store.GetBookmarkByShortURL(r.Context(), shortURL)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			http.NotFound(w, r)
 			return
 		}
