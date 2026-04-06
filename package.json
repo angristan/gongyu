@@ -18,7 +18,7 @@
     "laravel-vite-plugin": "^2.0.0",
     "lefthook": "^2.0.13",
     "typescript": "^5.9.3",
-    "vite": "^7.0.7"
+    "vite": "^7.3.2"
   },
   "dependencies": {
     "@danielgtmn/umami-react": "^1.1.2",
