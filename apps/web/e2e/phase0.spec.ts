@@ -119,7 +119,7 @@ test('renders the SSR shell and persists hydrated theme changes', async ({
     const html = await response.text();
     expect(html).toContain('<html lang="en" data-mode="light">');
     expect(html).toContain('Personal bookmarks');
-    expect(html).toContain('No bookmarks found.');
+    expect(html).toContain('No bookmarks have been saved yet.');
 
     const healthResponse = await request.get('/health');
     expect(healthResponse.status()).toBe(200);
@@ -138,6 +138,10 @@ test('renders the SSR shell and persists hydrated theme changes', async ({
     await expect(
         page.getByRole('heading', { name: 'Gongyu', exact: true }),
     ).toBeVisible();
+    await page.keyboard.press('Tab');
+    await expect(
+        page.getByRole('link', { name: 'Skip to main content' }),
+    ).toBeFocused();
     await page.evaluate(async () => {
         await fetch('/theme', {
             body: 'mode=dark&returnTo=%2F',
@@ -147,6 +151,12 @@ test('renders the SSR shell and persists hydrated theme changes', async ({
     });
     await page.reload();
     await expect(page.locator('html')).toHaveAttribute('data-mode', 'dark');
+    await page.setViewportSize({ height: 800, width: 320 });
+    expect(
+        await page.evaluate(
+            () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+    ).toBe(true);
 });
 
 test('sets up one passkey, rotates sessions, and logs in', async ({
@@ -278,9 +288,21 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
         page.getByText('No matching passkey is registered.'),
     ).toBeVisible();
 
+    const bookmarkletReturn =
+        '/bookmarklet?url=https%3A%2F%2Fexample.com%2Fcaptured&title=Captured%20page&description=Selected%20text&source=bookmarklet';
+    await page.goto(bookmarkletReturn);
+    await expect(page).toHaveURL(/\/login\?returnTo=/u);
     await page.getByRole('button', { name: 'Sign in with passkey' }).click();
-    await expect(page).toHaveURL(/\/admin\/bookmarks$/u);
+    await expect(page).toHaveURL(
+        new RegExp(bookmarkletReturn.replaceAll('?', '\\?'), 'u'),
+    );
+    await expect(page.getByLabel('URL')).toHaveValue(
+        'https://example.com/captured',
+    );
+    await expect(page.getByLabel('Title')).toHaveValue('Captured page');
+    await expect(page.getByLabel('Description')).toHaveValue('Selected text');
 
+    await page.goto('/admin/bookmarks');
     await page.getByRole('link', { name: 'New bookmark' }).click();
     await page.getByLabel('URL').fill('https://example.com/phase-two');
     await page.getByLabel('Title').fill('Phase Two Bookmark');
@@ -291,7 +313,7 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
 
     await page.goto('/?q=cloudflare');
     await expect(page.getByText('Phase Two Bookmark')).toBeVisible();
-    await page.getByRole('link', { name: 'Phase Two Bookmark' }).click();
+    await page.locator('a[href^="/b/"]').click();
     await expect(
         page.getByRole('heading', { name: 'Phase Two Bookmark' }),
     ).toBeVisible();
@@ -307,6 +329,50 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
         .fill('DELETE');
     await page.getByRole('button', { name: 'Delete bookmark' }).click();
     await expect(page.getByText('Updated Phase Two Bookmark')).toHaveCount(0);
+
+    const popupPromise = context.waitForEvent('page');
+    await page.evaluate((path) => {
+        window.open(path, 'gongyu', 'width=600,height=500');
+    }, bookmarkletReturn);
+    const popup = await popupPromise;
+    await popup.waitForURL(/\/bookmarklet\?/u);
+    await popup.getByRole('button', { name: 'Save bookmark' }).click();
+    await expect(popup.getByText('Saved successfully.')).toBeVisible();
+    await popup.waitForEvent('close');
+
+    const duplicatePopupPromise = context.waitForEvent('page');
+    await page.evaluate((path) => {
+        window.open(path, 'gongyu', 'width=600,height=500');
+    }, bookmarkletReturn);
+    const duplicatePopup = await duplicatePopupPromise;
+    await expect(
+        duplicatePopup.getByRole('heading', { name: 'Already bookmarked' }),
+    ).toBeVisible();
+    await duplicatePopup.waitForURL(/\/bookmarklet\?/u);
+    await duplicatePopup.getByRole('button', { name: 'Close' }).click();
+
+    await page.goto('/admin/dashboard?period=30d');
+    await expect(
+        page.getByRole('heading', { name: 'Dashboard' }),
+    ).toBeVisible();
+    await expect(page.getByText('Total bookmarks')).toBeVisible();
+
+    await page.goto('/admin/settings');
+    await page.getByLabel('Twitter API key').fill('browser-test-key');
+    await page.getByLabel('Atom feed item count').fill('250');
+    await page.getByRole('button', { name: 'Save settings' }).click();
+    await expect(page).toHaveURL(/\/admin\/settings\?saved=1$/u);
+    await expect(page.getByLabel('Twitter API key')).toHaveValue(
+        'browser-test-key',
+    );
+    await expect(page.getByLabel('Atom feed item count')).toHaveValue('250');
+
+    const feedResponse = await context.request.get('/feed');
+    expect(feedResponse.status()).toBe(200);
+    expect(feedResponse.headers()['content-type']).toContain(
+        'application/atom+xml',
+    );
+    expect(await feedResponse.text()).toContain('Captured page');
 
     const { stdout } = await execute(
         'bunx',
@@ -358,6 +424,41 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
     }
     await page.getByRole('button', { name: 'Sign in with passkey' }).click();
     await expect(page.getByText(/timed out or was not allowed/u)).toBeVisible();
+});
+
+test('serves public list, search, detail, and feed without JavaScript', async ({
+    browser,
+}) => {
+    test.skip(
+        process.env.STAGING_BASE_URL !== undefined,
+        'Shared staging does not contain the local browser fixture.',
+    );
+    const context = await browser.newContext({
+        baseURL: 'http://localhost:5173',
+        javaScriptEnabled: false,
+    });
+    const page = await context.newPage();
+    await page.goto('/search?q=Captured');
+    await expect(page.getByText('Captured page')).toBeVisible();
+    const detailLink = page.locator('a[href^="/b/"]');
+    await expect(detailLink).toBeVisible();
+    await detailLink.click();
+    await expect(
+        page.getByRole('heading', { name: 'Captured page' }),
+    ).toBeVisible();
+    const canonical = await page
+        .locator('link[rel="canonical"]')
+        .getAttribute('href');
+    expect(canonical).toMatch(/\/b\/[A-Za-z0-9]{8}$/u);
+    expect(
+        await page.locator('meta[property="og:url"]').getAttribute('content'),
+    ).toBe(canonical);
+    expect(await page.locator('meta[property="og:image"]').count()).toBe(0);
+
+    const feed = await context.request.get('/feed');
+    expect(feed.status()).toBe(200);
+    expect(await feed.text()).toContain('Captured page');
+    await context.close();
 });
 
 test('streams an R2 upload into a version 1 Workflow', async ({ request }) => {

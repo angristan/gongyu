@@ -4,7 +4,10 @@
   "type": "module",
   "exports": {
     "./bookmarks": "./src/bookmarks.ts",
+    "./dashboard": "./src/dashboard.ts",
+    "./feed": "./src/feed.ts",
     "./health": "./src/health.ts",
+    "./settings": "./src/settings.ts",
     "./workflows": "./src/workflows.ts"
   },
   "dependencies": {

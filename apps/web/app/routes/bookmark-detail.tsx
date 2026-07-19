@@ -2,7 +2,9 @@ import { LayerCard } from '@cloudflare/kumo/components/layer-card';
 import { BookmarkRepository } from '@gongyu/data/bookmark-repository';
 import { PageShell } from '@gongyu/ui/page-shell';
 import { Effect } from 'effect';
+import { Link, useRouteLoaderData } from 'react-router';
 import { cloudflareRequestContext } from '../platform-context';
+import type { loader as rootLoader } from '../root';
 import type { Route } from './+types/bookmark-detail';
 
 export async function loader({ context, params, request }: Route.LoaderArgs) {
@@ -42,10 +44,30 @@ export function meta({ loaderData }: Route.MetaArgs): Route.MetaDescriptors {
 
 export default function BookmarkDetail({ loaderData }: Route.ComponentProps) {
     const { bookmark } = loaderData;
+    const rootData = useRouteLoaderData<typeof rootLoader>('root');
+    const date = new Intl.DateTimeFormat('en-US', {
+        dateStyle: 'medium',
+        timeZone: 'UTC',
+    }).format(new Date(bookmark.createdAt / 1_000));
     return (
         <PageShell
-            description={bookmark.url}
+            description={`${new URL(bookmark.url).hostname} · ${date}`}
             eyebrow="Bookmark"
+            footer={
+                <div className="flex flex-wrap gap-4">
+                    <Link className="text-kumo-link" to="/">
+                        Back to bookmarks
+                    </Link>
+                    {rootData?.authenticated === true ? (
+                        <Link
+                            className="text-kumo-link"
+                            to={`/admin/bookmarks/${bookmark.shortUrl}/edit`}
+                        >
+                            Edit bookmark
+                        </Link>
+                    ) : null}
+                </div>
+            }
             title={bookmark.title}
         >
             <LayerCard className="max-w-3xl">

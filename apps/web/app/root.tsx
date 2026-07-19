@@ -60,6 +60,12 @@ export function Layout({ children }: { readonly children: ReactNode }) {
                 <Links />
             </head>
             <body>
+                <a
+                    className="fixed left-3 top-3 z-50 -translate-y-20 rounded-md bg-kumo-base px-3 py-2 text-kumo-link shadow focus:translate-y-0"
+                    href="#main-content"
+                >
+                    Skip to main content
+                </a>
                 <LinkProvider component={AppLink}>{children}</LinkProvider>
                 <ScrollRestoration />
                 <Scripts />

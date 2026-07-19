@@ -35,6 +35,7 @@
   ],
   "vars": {
     "APP_ENV": "local",
+    "ENCRYPTION_KEYS": "{\"currentVersion\":1,\"keys\":{\"1\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}}",
     "RP_ID": "localhost",
     "RP_ORIGIN": "http://localhost:5173",
     "SETUP_TOKEN": "local-development-bootstrap-token"

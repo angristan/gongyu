@@ -55,11 +55,18 @@ export interface BookmarkRepositoryShape {
     readonly findByShortUrl: (
         shortUrl: string,
     ) => Effect.Effect<Bookmark | null, D1StoreFailure>;
+    readonly findByUrl: (
+        url: string,
+    ) => Effect.Effect<Bookmark | null, D1StoreFailure>;
     readonly list: (input: {
         readonly page: number;
         readonly perPage: number;
         readonly query?: string;
     }) => Effect.Effect<BookmarkPage, D1StoreFailure>;
+    readonly listForFeed: (
+        limit: number,
+    ) => Effect.Effect<ReadonlyArray<Bookmark>, D1StoreFailure>;
+    readonly latestUpdatedAt: Effect.Effect<number | null, D1StoreFailure>;
     readonly remove: (
         shortUrl: string,
     ) => Effect.Effect<boolean, D1StoreFailure>;
@@ -133,6 +140,15 @@ export function makeBookmarkRepository(
                  WHERE short_url = ? AND deletion_state = 'active'`,
                 [shortUrl],
             ),
+    );
+
+    const findByUrl = Effect.fn('BookmarkRepository.findByUrl')((url: string) =>
+        d1Store.first(
+            Bookmark,
+            `${bookmarkProjection()}
+                 WHERE url = ? AND deletion_state = 'active'`,
+            [url],
+        ),
     );
 
     const findByShaarliHash = Effect.fn('BookmarkRepository.findByShaarliHash')(
@@ -360,6 +376,36 @@ export function makeBookmarkRepository(
         });
     });
 
+    const listForFeed = Effect.fn('BookmarkRepository.listForFeed')(function* (
+        limit: number,
+    ) {
+        const result = yield* d1Store.query(
+            Bookmark,
+            `${bookmarkProjection()}
+                 WHERE deletion_state = 'active'
+                 ORDER BY created_at DESC, id DESC
+                 LIMIT ?`,
+            [Math.max(1, Math.floor(limit))],
+        );
+        return result.rows;
+    });
+
+    const latestUpdatedAt = d1Store
+        .first(
+            class LatestUpdatedRow extends Schema.Class<LatestUpdatedRow>(
+                'LatestUpdatedRow',
+            )({ value: Schema.NullOr(Schema.Number) }) {},
+            `
+                SELECT MAX(updated_at) AS value
+                FROM bookmarks
+                WHERE deletion_state = 'active'
+            `,
+        )
+        .pipe(
+            Effect.map((row) => row?.value ?? null),
+            Effect.withSpan('BookmarkRepository.latestUpdatedAt'),
+        );
+
     const remove = Effect.fn('BookmarkRepository.remove')(function* (
         shortUrl: string,
     ) {
@@ -479,7 +525,10 @@ export function makeBookmarkRepository(
         create,
         findByShaarliHash,
         findByShortUrl,
+        findByUrl,
         list,
+        listForFeed,
+        latestUpdatedAt,
         remove,
         update,
     };
