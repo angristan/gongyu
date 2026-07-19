@@ -1,19 +1,22 @@
 import { Button } from '@cloudflare/kumo/components/button';
 import { LayerCard } from '@cloudflare/kumo/components/layer-card';
 import { BookmarkRepository } from '@gongyu/data/bookmark-repository';
+import { SettingsRepository } from '@gongyu/data/settings-repository';
 import {
     BookmarkValidationError,
     DuplicateBookmarkError,
     decodeBookmarkInput,
 } from '@gongyu/domain/bookmarks';
+import { configuredProviders } from '@gongyu/domain/social';
 import { PageShell } from '@gongyu/ui/page-shell';
 import { Effect } from 'effect';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { data, Form, Link, redirect, useRouteLoaderData } from 'react-router';
 import {
     requireAuthenticatedMutation,
     requireAuthentication,
 } from '../auth/session.server';
+import { MetadataPreview } from '../bookmarks/metadata-preview';
 import { failure, success } from '../effect/result';
 import { cloudflareRequestContext } from '../platform-context';
 import type { loader as rootLoader } from '../root';
@@ -46,6 +49,12 @@ export async function loader({ context, request }: Route.LoaderArgs) {
         );
     }
     const url = location.searchParams.get('url') ?? '';
+    const providers = await effect.runPromise(
+        Effect.gen(function* () {
+            const settings = yield* SettingsRepository;
+            return configuredProviders(yield* settings.get);
+        }),
+    );
     const existing =
         url === ''
             ? null
@@ -64,6 +73,7 @@ export async function loader({ context, request }: Route.LoaderArgs) {
             title: location.searchParams.get('title') ?? '',
             url,
         },
+        providers,
     };
 }
 
@@ -89,13 +99,19 @@ export async function action({ context, request }: Route.ActionArgs) {
         url: value('url'),
     };
     const source = value('source');
+    const shareSocial = formData.get('share_social') === 'on';
     const result = await effect.runPromise(
         Effect.gen(function* () {
             const decoded = yield* decodeBookmarkInput(input);
             const bookmarks = yield* BookmarkRepository;
+            const settings = yield* SettingsRepository;
+            const socialProviders = shareSocial
+                ? configuredProviders(yield* settings.get)
+                : [];
             return yield* bookmarks.create({
                 ...decoded,
                 createdAt: Date.now() * 1_000,
+                socialProviders,
             });
         }).pipe(Effect.match({ onFailure: failure, onSuccess: success })),
     );
@@ -144,6 +160,9 @@ export default function Bookmarklet({
     const saved = actionData !== undefined && 'saved' in actionData;
     const urlError = 'url' in errors ? errors.url : undefined;
     const titleError = 'title' in errors ? errors.title : undefined;
+    const [url, setUrl] = useState(values.url ?? '');
+    const [title, setTitle] = useState(values.title ?? '');
+    const [description, setDescription] = useState(values.description ?? '');
 
     useEffect(() => {
         if (installLink.current !== null) {
@@ -255,13 +274,20 @@ export default function Bookmarklet({
                                 <span>{field.label}</span>
                                 <input
                                     className="w-full rounded-md border border-kumo-line bg-kumo-base px-3 py-2"
-                                    defaultValue={values[field.name] ?? ''}
                                     maxLength={
                                         field.name === 'url' ? 2048 : 500
                                     }
                                     name={field.name}
+                                    onChange={(event) => {
+                                        if (field.name === 'url') {
+                                            setUrl(event.currentTarget.value);
+                                        } else {
+                                            setTitle(event.currentTarget.value);
+                                        }
+                                    }}
                                     required
                                     type={field.type}
+                                    value={field.name === 'url' ? url : title}
                                 />
                                 {(field.name === 'url'
                                     ? urlError
@@ -274,14 +300,45 @@ export default function Bookmarklet({
                                 )}
                             </label>
                         ))}
+                        <MetadataPreview
+                            csrfToken={csrfToken}
+                            onCandidates={(candidates) => {
+                                if (title === '' && candidates.title !== null) {
+                                    setTitle(candidates.title);
+                                }
+                                if (
+                                    description === '' &&
+                                    candidates.description !== null
+                                ) {
+                                    setDescription(candidates.description);
+                                }
+                            }}
+                            url={url}
+                        />
                         <label className="block space-y-2 text-sm font-medium text-kumo-default">
                             <span>Description</span>
                             <textarea
                                 className="min-h-28 w-full rounded-md border border-kumo-line bg-kumo-base px-3 py-2"
-                                defaultValue={values.description ?? ''}
                                 name="description"
+                                onChange={(event) =>
+                                    setDescription(event.currentTarget.value)
+                                }
+                                value={description}
                             />
                         </label>
+                        {loaderData.providers.length === 0 ? null : (
+                            <label className="flex items-center gap-2 text-sm text-kumo-default">
+                                <input
+                                    defaultChecked
+                                    name="share_social"
+                                    type="checkbox"
+                                />
+                                <span>
+                                    Share through{' '}
+                                    {loaderData.providers.join(', ')}
+                                </span>
+                            </label>
+                        )}
                         <div className="flex flex-wrap gap-3">
                             <Button type="submit">Save bookmark</Button>
                             <Button

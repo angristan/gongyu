@@ -202,19 +202,19 @@ it.layer(TestLayer)('production bookmark repository', (it) => {
                 const id = `metadata:${bookmark.shortUrl}:1`;
                 const first = yield* bookmarks.claimOutbox({
                     id,
-                    leaseDurationMs: 100,
+                    leaseDurationMicros: 100,
                     now: 100,
                     token: 'first',
                 });
                 const concurrent = yield* bookmarks.claimOutbox({
                     id,
-                    leaseDurationMs: 100,
+                    leaseDurationMicros: 100,
                     now: 150,
                     token: 'second',
                 });
                 const reclaimed = yield* bookmarks.claimOutbox({
                     id,
-                    leaseDurationMs: 100,
+                    leaseDurationMicros: 100,
                     now: 201,
                     token: 'second',
                 });

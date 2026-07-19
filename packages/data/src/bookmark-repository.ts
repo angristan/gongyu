@@ -5,8 +5,12 @@ import {
     BookmarkPage,
     DuplicateBookmarkError,
 } from '@gongyu/domain/bookmarks';
+import {
+    type SocialProvider,
+    SocialSourceSnapshot,
+} from '@gongyu/domain/social';
 import { Context, Effect, Schema } from 'effect';
-import type { D1Store, D1StoreFailure } from './d1-store';
+import type { D1Statement, D1Store, D1StoreFailure } from './d1-store';
 
 const SHORT_URL_ALPHABET =
     'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -27,6 +31,7 @@ export class OutboxLease extends Schema.Class<OutboxLease>('OutboxLease')({
 
 export interface CreateBookmarkInput extends BookmarkInput {
     readonly createdAt: number;
+    readonly socialProviders?: ReadonlyArray<SocialProvider>;
 }
 
 export interface UpdateBookmarkInput extends BookmarkInput {
@@ -37,7 +42,7 @@ export interface UpdateBookmarkInput extends BookmarkInput {
 export interface BookmarkRepositoryShape {
     readonly claimOutbox: (input: {
         readonly id: string;
-        readonly leaseDurationMs: number;
+        readonly leaseDurationMicros: number;
         readonly now: number;
         readonly token: string;
     }) => Effect.Effect<OutboxLease | null, D1StoreFailure>;
@@ -113,6 +118,8 @@ function bookmarkProjection(): string {
             description,
             thumbnail_url AS "thumbnailUrl",
             thumbnail_key AS "thumbnailKey",
+            thumbnail_cleanup_key AS "thumbnailCleanupKey",
+            thumbnail_sha256 AS "thumbnailSha256",
             deletion_state AS "deletionState",
             created_at AS "createdAt",
             updated_at AS "updatedAt"
@@ -193,7 +200,7 @@ export function makeBookmarkRepository(
         }
 
         const outboxId = `metadata:${shortUrl}:1`;
-        yield* d1Store.batch([
+        const statements: D1Statement[] = [
             {
                 sql: `
                     INSERT INTO bookmarks (
@@ -235,7 +242,41 @@ export function makeBookmarkRepository(
                     input.createdAt,
                 ],
             },
-        ]);
+        ];
+        for (const provider of new Set(input.socialProviders ?? [])) {
+            const deliveryId = `social:${shortUrl}:${provider}:v1`;
+            const source = SocialSourceSnapshot.make({
+                description: input.description,
+                originalUrl: input.url,
+                schemaVersion: 1,
+                shortUrl,
+                title: input.title,
+            });
+            statements.push({
+                sql: `
+                    INSERT INTO social_deliveries (
+                        id,
+                        bookmark_short_url,
+                        provider,
+                        state,
+                        formatting_version,
+                        source_json,
+                        created_at,
+                        updated_at
+                    )
+                    VALUES (?, ?, ?, 'waiting_metadata', 1, ?, ?, ?)
+                `,
+                parameters: [
+                    deliveryId,
+                    shortUrl,
+                    provider,
+                    JSON.stringify(source),
+                    input.createdAt,
+                    input.createdAt,
+                ],
+            });
+        }
+        yield* d1Store.batch(statements);
 
         const bookmark = yield* findByShortUrl(shortUrl);
         if (bookmark === null) {
@@ -262,21 +303,66 @@ export function makeBookmarkRepository(
             return yield* DuplicateBookmarkError.make({ url: input.url });
         }
 
-        const result = yield* d1Store.run(
-            `
-                UPDATE bookmarks
-                SET url = ?, title = ?, description = ?, updated_at = ?
-                WHERE short_url = ? AND deletion_state = 'active'
-            `,
-            [
-                input.url,
-                input.title,
-                input.description,
-                input.updatedAt,
-                input.shortUrl,
-            ],
-        );
-        if (result.changes === 0) {
+        const results = yield* d1Store.batch([
+            {
+                sql: `
+                    UPDATE bookmarks
+                    SET
+                        url = ?,
+                        title = ?,
+                        description = ?,
+                        metadata_state = 'pending',
+                        metadata_error_code = NULL,
+                        metadata_attempted_at = NULL,
+                        thumbnail_url = NULL,
+                        thumbnail_content_type = NULL,
+                        thumbnail_size = NULL,
+                        thumbnail_width = NULL,
+                        thumbnail_height = NULL,
+                        thumbnail_sha256 = NULL,
+                        updated_at = ?
+                    WHERE short_url = ? AND deletion_state = 'active'
+                `,
+                parameters: [
+                    input.url,
+                    input.title,
+                    input.description,
+                    input.updatedAt,
+                    input.shortUrl,
+                ],
+            },
+            {
+                sql: `
+                    INSERT INTO outbox (
+                        id,
+                        bookmark_short_url,
+                        kind,
+                        state,
+                        payload_version,
+                        available_at,
+                        created_at,
+                        updated_at
+                    )
+                    SELECT ?, ?, 'metadata', 'pending', 1, ?, ?, ?
+                    WHERE EXISTS (
+                        SELECT 1 FROM bookmarks
+                        WHERE short_url = ?
+                          AND deletion_state = 'active'
+                          AND updated_at = ?
+                    )
+                `,
+                parameters: [
+                    `metadata:${input.shortUrl}:${input.updatedAt}`,
+                    input.shortUrl,
+                    input.updatedAt,
+                    input.updatedAt,
+                    input.updatedAt,
+                    input.shortUrl,
+                    input.updatedAt,
+                ],
+            },
+        ]);
+        if ((results[0]?.changes ?? 0) === 0) {
             return yield* BookmarkNotFoundError.make({
                 shortUrl: input.shortUrl,
             });
@@ -354,6 +440,8 @@ export function makeBookmarkRepository(
                     b.description,
                     b.thumbnail_url AS "thumbnailUrl",
                     b.thumbnail_key AS "thumbnailKey",
+                    b.thumbnail_cleanup_key AS "thumbnailCleanupKey",
+                    b.thumbnail_sha256 AS "thumbnailSha256",
                     b.deletion_state AS "deletionState",
                     b.created_at AS "createdAt",
                     b.updated_at AS "updatedAt"
@@ -413,7 +501,10 @@ export function makeBookmarkRepository(
         if (bookmark === null) {
             return false;
         }
-        if (bookmark.thumbnailKey === null) {
+        if (
+            bookmark.thumbnailKey === null &&
+            bookmark.thumbnailCleanupKey === null
+        ) {
             const result = yield* d1Store.run(
                 'DELETE FROM bookmarks WHERE short_url = ?',
                 [shortUrl],
@@ -458,7 +549,7 @@ export function makeBookmarkRepository(
     const claimOutbox = Effect.fn('BookmarkRepository.claimOutbox')(
         (input: {
             readonly id: string;
-            readonly leaseDurationMs: number;
+            readonly leaseDurationMicros: number;
             readonly now: number;
             readonly token: string;
         }) =>
@@ -487,7 +578,7 @@ export function makeBookmarkRepository(
                 `,
                 [
                     input.token,
-                    input.now + input.leaseDurationMs,
+                    input.now + input.leaseDurationMicros,
                     input.now,
                     input.id,
                     input.now,

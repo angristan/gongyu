@@ -97,6 +97,15 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                         <li key={bookmark.id}>
                             <LayerCard>
                                 <article className="space-y-2 p-5">
+                                    {bookmark.thumbnailSha256 ===
+                                    null ? null : (
+                                        <img
+                                            alt=""
+                                            className="mb-4 max-h-72 w-full rounded-md object-cover"
+                                            loading="lazy"
+                                            src={`/thumbnails/${bookmark.shortUrl}/${bookmark.thumbnailSha256}`}
+                                        />
+                                    )}
                                     <h2 className="text-lg font-semibold text-kumo-default">
                                         <a
                                             className="text-kumo-link"

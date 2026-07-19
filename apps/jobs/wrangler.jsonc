@@ -26,6 +26,37 @@
       "bucket_name": "gongyu-phase0-uploads"
     }
   ],
+  "queues": {
+    "producers": [
+      {
+        "binding": "JOBS_QUEUE",
+        "queue": "gongyu-phase0-jobs"
+      }
+    ],
+    "consumers": [
+      {
+        "queue": "gongyu-phase0-jobs",
+        "dead_letter_queue": "gongyu-phase0-jobs-dlq",
+        "max_batch_size": 5,
+        "max_batch_timeout": 2,
+        "max_retries": 5,
+        "max_concurrency": 2
+      },
+      {
+        "queue": "gongyu-phase0-jobs-dlq",
+        "max_batch_size": 5,
+        "max_batch_timeout": 2,
+        "max_retries": 1,
+        "max_concurrency": 1
+      }
+    ]
+  },
+  "triggers": {
+    "crons": ["* * * * *"]
+  },
+  "vars": {
+    "ENCRYPTION_KEYS": "{\"currentVersion\":1,\"keys\":{\"1\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}}"
+  },
   "workflows": [
     {
       "binding": "PHASE0_WORKFLOW",
@@ -50,6 +81,34 @@
           "bucket_name": "gongyu-phase0-staging-uploads"
         }
       ],
+      "queues": {
+        "producers": [
+          {
+            "binding": "JOBS_QUEUE",
+            "queue": "gongyu-phase0-staging-jobs"
+          }
+        ],
+        "consumers": [
+          {
+            "queue": "gongyu-phase0-staging-jobs",
+            "dead_letter_queue": "gongyu-phase0-staging-jobs-dlq",
+            "max_batch_size": 5,
+            "max_batch_timeout": 2,
+            "max_retries": 5,
+            "max_concurrency": 2
+          },
+          {
+            "queue": "gongyu-phase0-staging-jobs-dlq",
+            "max_batch_size": 5,
+            "max_batch_timeout": 2,
+            "max_retries": 1,
+            "max_concurrency": 1
+          }
+        ]
+      },
+      "triggers": {
+        "crons": ["* * * * *"]
+      },
       "workflows": [
         {
           "binding": "PHASE0_WORKFLOW",

@@ -1,18 +1,22 @@
 import { Button } from '@cloudflare/kumo/components/button';
 import { LayerCard } from '@cloudflare/kumo/components/layer-card';
 import { BookmarkRepository } from '@gongyu/data/bookmark-repository';
+import { SettingsRepository } from '@gongyu/data/settings-repository';
 import {
     BookmarkValidationError,
     DuplicateBookmarkError,
     decodeBookmarkInput,
 } from '@gongyu/domain/bookmarks';
+import { configuredProviders } from '@gongyu/domain/social';
 import { PageShell } from '@gongyu/ui/page-shell';
 import { Effect } from 'effect';
+import { useState } from 'react';
 import { data, Form, Link, redirect, useRouteLoaderData } from 'react-router';
 import {
     requireAuthenticatedMutation,
     requireAuthentication,
 } from '../auth/session.server';
+import { MetadataPreview } from '../bookmarks/metadata-preview';
 import { failure, success } from '../effect/result';
 import { cloudflareRequestContext } from '../platform-context';
 import type { loader as rootLoader } from '../root';
@@ -22,15 +26,21 @@ export function meta(): Route.MetaDescriptors {
     return [{ title: 'New bookmark · Gongyu' }];
 }
 
-export function loader({ context, request }: Route.LoaderArgs) {
-    const { authentication } = context.get(cloudflareRequestContext);
+export async function loader({ context, request }: Route.LoaderArgs) {
+    const { authentication, effect } = context.get(cloudflareRequestContext);
     if (!authentication.authenticated) {
         const location = new URL(request.url);
         return redirect(
             `/login?returnTo=${encodeURIComponent(`${location.pathname}${location.search}`)}`,
         );
     }
-    return null;
+    const providers = await effect.runPromise(
+        Effect.gen(function* () {
+            const settings = yield* SettingsRepository;
+            return configuredProviders(yield* settings.get);
+        }),
+    );
+    return { providers };
 }
 
 export async function action({ context, request }: Route.ActionArgs) {
@@ -48,6 +58,7 @@ export async function action({ context, request }: Route.ActionArgs) {
     const url = formData.get('url');
     const title = formData.get('title');
     const description = formData.get('description');
+    const shareSocial = formData.get('share_social') === 'on';
     const input = {
         description:
             typeof description === 'string' && description !== ''
@@ -60,9 +71,14 @@ export async function action({ context, request }: Route.ActionArgs) {
         Effect.gen(function* () {
             const decoded = yield* decodeBookmarkInput(input);
             const bookmarks = yield* BookmarkRepository;
+            const settings = yield* SettingsRepository;
+            const socialProviders = shareSocial
+                ? configuredProviders(yield* settings.get)
+                : [];
             return yield* bookmarks.create({
                 ...decoded,
                 createdAt: Date.now() * 1_000,
+                socialProviders,
             });
         }).pipe(
             Effect.match({
@@ -92,7 +108,10 @@ export async function action({ context, request }: Route.ActionArgs) {
     throw result.error;
 }
 
-export default function AdminBookmarkNew({ actionData }: Route.ComponentProps) {
+export default function AdminBookmarkNew({
+    actionData,
+    loaderData,
+}: Route.ComponentProps) {
     const rootData = useRouteLoaderData<typeof rootLoader>('root');
     const csrfToken = rootData?.csrfToken ?? '';
     const values = actionData?.input ?? {
@@ -101,6 +120,9 @@ export default function AdminBookmarkNew({ actionData }: Route.ComponentProps) {
         url: '',
     };
     const errors = actionData?.errors ?? {};
+    const [url, setUrl] = useState(values.url);
+    const [title, setTitle] = useState(values.title);
+    const [description, setDescription] = useState(values.description ?? '');
     return (
         <PageShell
             description="The submitted title and description remain authoritative. Metadata enrichment runs separately."
@@ -119,11 +141,14 @@ export default function AdminBookmarkNew({ actionData }: Route.ComponentProps) {
                         <span>URL</span>
                         <input
                             className="w-full rounded-md border border-kumo-line bg-kumo-base px-3 py-2"
-                            defaultValue={values.url}
                             maxLength={2048}
                             name="url"
+                            onChange={(event) =>
+                                setUrl(event.currentTarget.value)
+                            }
                             required
                             type="url"
+                            value={url}
                         />
                         {errors.url === undefined ? null : (
                             <span className="text-kumo-danger">
@@ -131,24 +156,57 @@ export default function AdminBookmarkNew({ actionData }: Route.ComponentProps) {
                             </span>
                         )}
                     </label>
+                    <MetadataPreview
+                        csrfToken={csrfToken}
+                        onCandidates={(candidates) => {
+                            if (title === '' && candidates.title !== null) {
+                                setTitle(candidates.title);
+                            }
+                            if (
+                                description === '' &&
+                                candidates.description !== null
+                            ) {
+                                setDescription(candidates.description);
+                            }
+                        }}
+                        url={url}
+                    />
                     <label className="block space-y-2 text-sm font-medium text-kumo-default">
                         <span>Title</span>
                         <input
                             className="w-full rounded-md border border-kumo-line bg-kumo-base px-3 py-2"
-                            defaultValue={values.title}
                             maxLength={500}
                             name="title"
+                            onChange={(event) =>
+                                setTitle(event.currentTarget.value)
+                            }
                             required
+                            value={title}
                         />
                     </label>
                     <label className="block space-y-2 text-sm font-medium text-kumo-default">
                         <span>Description</span>
                         <textarea
                             className="min-h-32 w-full rounded-md border border-kumo-line bg-kumo-base px-3 py-2"
-                            defaultValue={values.description ?? ''}
                             name="description"
+                            onChange={(event) =>
+                                setDescription(event.currentTarget.value)
+                            }
+                            value={description}
                         />
                     </label>
+                    {loaderData.providers.length === 0 ? null : (
+                        <label className="flex items-center gap-2 text-sm text-kumo-default">
+                            <input
+                                defaultChecked
+                                name="share_social"
+                                type="checkbox"
+                            />
+                            <span>
+                                Share through {loaderData.providers.join(', ')}
+                            </span>
+                        </label>
+                    )}
                     <Button type="submit">Save bookmark</Button>
                 </Form>
             </LayerCard>

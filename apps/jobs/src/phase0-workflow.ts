@@ -72,8 +72,12 @@ export class Phase0Workflow extends WorkflowEntrypoint<
         event: Readonly<WorkflowEvent<Phase0WorkflowPayload>>,
         step: WorkflowStep,
     ) {
+        if (this.env.ENCRYPTION_KEYS === undefined) {
+            throw new NonRetryableError('ENCRYPTION_KEYS is not configured.');
+        }
         const effect = makeJobsEffectRunner({
             database: this.env.DB,
+            encryptionKeyring: this.env.ENCRYPTION_KEYS,
             invocationId: event.instanceId,
             objectStorage: this.env.UPLOADS,
             trigger: 'workflow',

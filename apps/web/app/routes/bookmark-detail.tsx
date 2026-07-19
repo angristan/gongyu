@@ -28,6 +28,10 @@ export function meta({ loaderData }: Route.MetaArgs): Route.MetaDescriptors {
     }
     const description =
         loaderData.bookmark.description ?? loaderData.bookmark.url;
+    const imageUrl =
+        loaderData.bookmark.thumbnailSha256 === null
+            ? null
+            : `${new URL(loaderData.canonicalUrl).origin}/thumbnails/${loaderData.bookmark.shortUrl}/${loaderData.bookmark.thumbnailSha256}`;
     return [
         { title: `${loaderData.bookmark.title} · Gongyu` },
         { name: 'description', content: description },
@@ -35,9 +39,18 @@ export function meta({ loaderData }: Route.MetaArgs): Route.MetaDescriptors {
         { property: 'og:description', content: description },
         { property: 'og:url', content: loaderData.canonicalUrl },
         { property: 'og:type', content: 'article' },
-        { name: 'twitter:card', content: 'summary' },
+        ...(imageUrl === null
+            ? []
+            : [{ property: 'og:image', content: imageUrl }]),
+        {
+            name: 'twitter:card',
+            content: imageUrl === null ? 'summary' : 'summary_large_image',
+        },
         { name: 'twitter:title', content: loaderData.bookmark.title },
         { name: 'twitter:description', content: description },
+        ...(imageUrl === null
+            ? []
+            : [{ name: 'twitter:image', content: imageUrl }]),
         { tagName: 'link', rel: 'canonical', href: loaderData.canonicalUrl },
     ];
 }
@@ -72,6 +85,14 @@ export default function BookmarkDetail({ loaderData }: Route.ComponentProps) {
         >
             <LayerCard className="max-w-3xl">
                 <article className="space-y-5 p-6">
+                    {bookmark.thumbnailSha256 === null ? null : (
+                        <img
+                            alt=""
+                            className="max-h-96 w-full rounded-md object-cover"
+                            loading="lazy"
+                            src={`/thumbnails/${bookmark.shortUrl}/${bookmark.thumbnailSha256}`}
+                        />
+                    )}
                     {bookmark.description === null ? null : (
                         <p className="whitespace-pre-wrap text-kumo-default">
                             {bookmark.description}
