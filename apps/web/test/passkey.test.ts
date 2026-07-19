@@ -145,6 +145,21 @@ it.layer(D1StoreTest)('SimpleWebAuthn on Workerd', (it) => {
     );
 });
 
+it.effect('rejects a valid registration for the wrong challenge', () =>
+    Effect.gen(function* () {
+        const failure = yield* Effect.tryPromise(() =>
+            verifyRegistrationResponse({
+                expectedChallenge: 'wrong-challenge',
+                expectedOrigin: 'https://dev.dontneeda.pw',
+                expectedRPID: 'dev.dontneeda.pw',
+                response: noneAttestation,
+            }),
+        ).pipe(Effect.flip);
+
+        assert.instanceOf(failure, Error);
+    }),
+);
+
 it.effect('rejects a valid registration for the wrong RP ID', () =>
     Effect.gen(function* () {
         const failure = yield* Effect.tryPromise(() =>

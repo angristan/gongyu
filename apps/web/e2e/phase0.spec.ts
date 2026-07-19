@@ -101,6 +101,27 @@ const WorkflowQueryResult = Schema.Array(
     }),
 );
 
+test('renders the SSR shell and persists hydrated theme changes', async ({
+    page,
+    request,
+}) => {
+    const response = await request.get('/');
+    expect(response.status()).toBe(200);
+    const html = await response.text();
+    expect(html).toContain('<html lang="en" data-mode="light">');
+    expect(html).toContain('Gongyu on Cloudflare');
+    expect(html).toContain('first-unconstrained');
+
+    await page.goto('/');
+    await expect(
+        page.getByRole('heading', { name: 'Gongyu on Cloudflare' }),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Use dark mode' }).click();
+    await expect(page.locator('html')).toHaveAttribute('data-mode', 'dark');
+    await page.reload();
+    await expect(page.locator('html')).toHaveAttribute('data-mode', 'dark');
+});
+
 test('enforces one discoverable passkey and updates its counter', async ({
     context,
     page,

@@ -1,6 +1,6 @@
 import { env } from 'cloudflare:workers';
 import { assert, it } from '@effect/vitest';
-import { Effect, Layer, Schema } from 'effect';
+import { Effect, Layer, Schema, Tracer } from 'effect';
 import { D1DecodeError, D1Store, makeD1Store } from '../app/effect/d1-store';
 import {
     claimJob,
@@ -45,6 +45,41 @@ it.layer(D1StoreTest)('native D1 query adapter', (it) => {
             assert.strictEqual(result.rows[0]?.ok, 1);
             assert.isAtLeast(result.meta.rowsRead, 0);
             assert.isNotNull(yield* d1Store.getBookmark);
+        }),
+    );
+
+    it.effect('annotates query spans with D1 metadata', () =>
+        Effect.gen(function* () {
+            const spans: Tracer.NativeSpan[] = [];
+            const tracer = Tracer.make({
+                span(options) {
+                    const span = new Tracer.NativeSpan(options);
+                    spans.push(span);
+                    return span;
+                },
+            });
+            const d1Store = yield* D1Store;
+
+            yield* d1Store
+                .query(HealthRow, 'SELECT 1 AS ok')
+                .pipe(Effect.provideService(Tracer.Tracer, tracer));
+            yield* Effect.yieldNow;
+
+            const querySpan = spans.find(
+                (span) => span.name === 'D1Store.query',
+            );
+            assert.isDefined(querySpan);
+            assert.strictEqual(
+                querySpan?.attributes.get('db.system.name'),
+                'sqlite',
+            );
+            assert.strictEqual(
+                querySpan?.attributes.get('db.operation.name'),
+                'execute',
+            );
+            assert.isNumber(querySpan?.attributes.get('d1.duration_ms'));
+            assert.isNumber(querySpan?.attributes.get('d1.rows_read'));
+            assert.isNumber(querySpan?.attributes.get('d1.rows_written'));
         }),
     );
 
