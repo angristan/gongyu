@@ -5,6 +5,21 @@ import { Schema } from 'effect';
 
 const execute = promisify(execFile);
 
+function d1Arguments(command: string): string[] {
+    const target =
+        process.env.STAGING_BASE_URL === undefined
+            ? ['gongyu-phase0-local', '--local']
+            : ['DB', '--env', 'staging', '--remote'];
+    return [
+        'wrangler',
+        'd1',
+        'execute',
+        ...target,
+        '--json',
+        `--command=${command}`,
+    ];
+}
+
 const PublicKeyResponse = Schema.Struct({
     clientExtensionResults: Schema.Struct({}),
     id: Schema.String,
@@ -200,15 +215,12 @@ test('enforces one discoverable passkey and updates its counter', async ({
         page.getByText('Passkey authentication succeeded.'),
     ).toBeVisible();
 
-    const { stdout } = await execute('bunx', [
-        'wrangler',
-        'd1',
-        'execute',
-        'gongyu-phase0-local',
-        '--local',
-        '--json',
-        '--command=SELECT counter, last_used_at AS lastUsedAt FROM phase0_passkey',
-    ]);
+    const { stdout } = await execute(
+        'bunx',
+        d1Arguments(
+            'SELECT counter, last_used_at AS lastUsedAt FROM phase0_passkey',
+        ),
+    );
     const query = await Schema.decodeUnknownPromise(D1QueryResult)(
         JSON.parse(stdout),
     );
@@ -241,15 +253,12 @@ test('streams an R2 upload into a version 1 Workflow', async ({ request }) => {
     await expect
         .poll(
             async () => {
-                const { stdout } = await execute('bunx', [
-                    'wrangler',
-                    'd1',
-                    'execute',
-                    'gongyu-phase0-local',
-                    '--local',
-                    '--json',
-                    '--command=SELECT instance_id AS instanceId, object_key AS objectKey, status FROM phase0_workflow_runs',
-                ]);
+                const { stdout } = await execute(
+                    'bunx',
+                    d1Arguments(
+                        'SELECT instance_id AS instanceId, object_key AS objectKey, status FROM phase0_workflow_runs',
+                    ),
+                );
                 const query = await Schema.decodeUnknownPromise(
                     WorkflowQueryResult,
                 )(JSON.parse(stdout));
