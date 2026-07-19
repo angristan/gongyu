@@ -3,6 +3,7 @@
   "include": [
     ".react-router/types/**/*",
     "app/**/*",
+    "test/**/*",
     "workers/**/*",
     "worker-configuration.d.ts"
   ],
@@ -19,6 +20,6 @@
     "resolveJsonModule": true,
     "rootDirs": [".", "./.react-router/types"],
     "target": "ES2022",
-    "types": ["vite/client"]
+    "types": ["vite/client", "@cloudflare/vitest-pool-workers/types"]
   }
 }
