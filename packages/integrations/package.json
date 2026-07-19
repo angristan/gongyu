@@ -4,9 +4,13 @@
   "type": "module",
   "exports": {
     "./encryption": "./src/encryption.ts",
-    "./r2-store": "./src/r2-store.ts"
+    "./metadata-client": "./src/metadata-client.ts",
+    "./thumbnail-client": "./src/thumbnail-client.ts",
+    "./r2-store": "./src/r2-store.ts",
+    "./social-clients": "./src/social-clients.ts"
   },
   "dependencies": {
+    "@gongyu/domain": "workspace:*",
     "effect": "4.0.0-beta.97"
   }
 }

@@ -1,0 +1,166 @@
+import { env } from 'cloudflare:workers';
+import { assert, it } from '@effect/vitest';
+import {
+    BookmarkRepository,
+    makeBookmarkRepository,
+} from '@gongyu/data/bookmark-repository';
+import { D1Store, makeD1Store } from '@gongyu/data/d1-store';
+import {
+    MetadataRepository,
+    makeMetadataRepository,
+} from '@gongyu/data/metadata-repository';
+import { SettingsRepository } from '@gongyu/data/settings-repository';
+import {
+    makeSocialRepository,
+    SocialRepository,
+} from '@gongyu/data/social-repository';
+import {
+    makeWorkRepository,
+    WorkRepository,
+} from '@gongyu/data/work-repository';
+import { QueueJobMessage } from '@gongyu/domain/jobs';
+import { MetadataCandidate } from '@gongyu/domain/metadata';
+import { Settings } from '@gongyu/domain/settings';
+import { MetadataClient } from '@gongyu/integrations/metadata-client';
+import { makeR2Store, R2Store } from '@gongyu/integrations/r2-store';
+import {
+    ProviderReceipt,
+    SocialClients,
+} from '@gongyu/integrations/social-clients';
+import { ThumbnailClient } from '@gongyu/integrations/thumbnail-client';
+import { processQueueJob } from '@gongyu/jobs/processor';
+import { Effect, Layer, Schema } from 'effect';
+
+const D1StoreTest = Layer.succeed(
+    D1Store,
+    makeD1Store(env.DB.withSession('first-primary')),
+);
+const TestLayer = Layer.mergeAll(
+    D1StoreTest,
+    Layer.provide(
+        Layer.effect(
+            BookmarkRepository,
+            Effect.gen(function* () {
+                return makeBookmarkRepository(yield* D1Store);
+            }),
+        ),
+        D1StoreTest,
+    ),
+    Layer.provide(
+        Layer.effect(
+            MetadataRepository,
+            Effect.gen(function* () {
+                return makeMetadataRepository(yield* D1Store);
+            }),
+        ),
+        D1StoreTest,
+    ),
+    Layer.provide(
+        Layer.effect(
+            SocialRepository,
+            Effect.gen(function* () {
+                return makeSocialRepository(yield* D1Store);
+            }),
+        ),
+        D1StoreTest,
+    ),
+    Layer.provide(
+        Layer.effect(
+            WorkRepository,
+            Effect.gen(function* () {
+                return makeWorkRepository(yield* D1Store);
+            }),
+        ),
+        D1StoreTest,
+    ),
+    Layer.succeed(MetadataClient, {
+        fetch: () =>
+            Effect.succeed(
+                MetadataCandidate.make({
+                    description: 'Extracted summary',
+                    imageUrl: null,
+                    title: 'Extracted title',
+                }),
+            ),
+    }),
+    Layer.succeed(ThumbnailClient, {
+        fetch: () => Effect.die(new Error('No image should be fetched.')),
+    }),
+    Layer.succeed(R2Store, makeR2Store(env.UPLOADS)),
+    Layer.succeed(SettingsRepository, {
+        get: Effect.succeed(
+            Settings.make({
+                blueskyAppPassword: '',
+                blueskyHandle: '',
+                feedCount: 50,
+                mastodonAccessToken: 'token',
+                mastodonInstance: 'https://social.example',
+                twitterAccessSecret: '',
+                twitterAccessToken: '',
+                twitterApiKey: '',
+                twitterApiSecret: '',
+            }),
+        ),
+        save: () => Effect.void,
+    }),
+    Layer.succeed(SocialClients, {
+        deliver: () =>
+            Effect.succeed(ProviderReceipt.make({ remoteId: 'remote-123' })),
+    }),
+);
+
+class StateRow extends Schema.Class<StateRow>('StateRow')({
+    state: Schema.String,
+}) {}
+
+it.effect('processes metadata then one immutable social delivery', () =>
+    Effect.gen(function* () {
+        const bookmarks = yield* BookmarkRepository;
+        const d1 = yield* D1Store;
+        const bookmark = yield* bookmarks.create({
+            createdAt: Date.now() * 1_000 - 1_000,
+            description: null,
+            socialProviders: ['mastodon'],
+            title: 'Submitted title',
+            url: 'https://example.com/processor',
+        });
+        const metadataMessage = QueueJobMessage.make({
+            bookmarkShortUrl: bookmark.shortUrl,
+            jobId: `metadata:${bookmark.shortUrl}:1`,
+            kind: 'metadata',
+            version: 1,
+        });
+        const metadataOutcome = yield* processQueueJob(metadataMessage);
+        assert.isNull(metadataOutcome.retryDelaySeconds);
+        const metadataJob = yield* d1.first(
+            StateRow,
+            'SELECT state FROM jobs WHERE id = ?',
+            [metadataMessage.jobId],
+        );
+        assert.strictEqual(metadataJob?.state, 'completed');
+
+        const deliveryId = `social:${bookmark.shortUrl}:mastodon:v1`;
+        const delivery = yield* d1.first(
+            StateRow,
+            'SELECT state FROM social_deliveries WHERE id = ?',
+            [deliveryId],
+        );
+        assert.strictEqual(delivery?.state, 'queued');
+
+        const socialOutcome = yield* processQueueJob(
+            QueueJobMessage.make({
+                bookmarkShortUrl: bookmark.shortUrl,
+                jobId: deliveryId,
+                kind: 'social',
+                version: 1,
+            }),
+        );
+        assert.isNull(socialOutcome.retryDelaySeconds);
+        const delivered = yield* d1.first(
+            StateRow,
+            'SELECT state FROM social_deliveries WHERE id = ?',
+            [deliveryId],
+        );
+        assert.strictEqual(delivered?.state, 'delivered');
+    }).pipe(Effect.provide(TestLayer)),
+);

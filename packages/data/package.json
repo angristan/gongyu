@@ -6,8 +6,11 @@
     "./bookmark-repository": "./src/bookmark-repository.ts",
     "./dashboard-repository": "./src/dashboard-repository.ts",
     "./d1-store": "./src/d1-store.ts",
+    "./metadata-repository": "./src/metadata-repository.ts",
     "./phase0-repository": "./src/phase0-repository.ts",
-    "./settings-repository": "./src/settings-repository.ts"
+    "./settings-repository": "./src/settings-repository.ts",
+    "./social-repository": "./src/social-repository.ts",
+    "./work-repository": "./src/work-repository.ts"
   },
   "dependencies": {
     "@gongyu/domain": "workspace:*",

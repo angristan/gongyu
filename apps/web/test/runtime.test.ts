@@ -64,6 +64,8 @@ it.effect(
         Effect.gen(function* () {
             const runner = makeJobsEffectRunner({
                 database: env.DB,
+                encryptionKeyring:
+                    '{"currentVersion":1,"keys":{"1":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="}}',
                 invocationId: 'workflow-test',
                 objectStorage: env.UPLOADS,
                 trigger: 'workflow',

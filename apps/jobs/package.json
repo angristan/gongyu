@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./processor": "./src/processor.ts",
     "./runtime": "./src/runtime.ts",
     "./workflow": "./src/phase0-workflow.ts"
   },

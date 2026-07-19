@@ -1,19 +1,26 @@
 import { Button } from '@cloudflare/kumo/components/button';
 import { LayerCard } from '@cloudflare/kumo/components/layer-card';
 import { BookmarkRepository } from '@gongyu/data/bookmark-repository';
+import { MetadataRepository } from '@gongyu/data/metadata-repository';
 import {
     BookmarkNotFoundError,
     BookmarkValidationError,
     DuplicateBookmarkError,
     decodeBookmarkInput,
 } from '@gongyu/domain/bookmarks';
+import { R2Store } from '@gongyu/integrations/r2-store';
 import { PageShell } from '@gongyu/ui/page-shell';
 import { Effect } from 'effect';
+import { useState } from 'react';
 import { data, Form, Link, redirect, useRouteLoaderData } from 'react-router';
 import {
     requireAuthenticatedMutation,
     requireAuthentication,
 } from '../auth/session.server';
+import {
+    type MetadataCandidates,
+    MetadataPreview,
+} from '../bookmarks/metadata-preview';
 import { failure, success } from '../effect/result';
 import { cloudflareRequestContext } from '../platform-context';
 import type { loader as rootLoader } from '../root';
@@ -74,7 +81,18 @@ export async function action({ context, params, request }: Route.ActionArgs) {
         const removed = await effect.runPromise(
             Effect.gen(function* () {
                 const bookmarks = yield* BookmarkRepository;
-                return yield* bookmarks.remove(shortUrl);
+                const bookmark = yield* bookmarks.findByShortUrl(shortUrl);
+                if (bookmark === null) {
+                    return false;
+                }
+                const removed = yield* bookmarks.remove(shortUrl);
+                if (removed && bookmark.thumbnailKey !== null) {
+                    const r2 = yield* R2Store;
+                    yield* r2.delete(bookmark.thumbnailKey);
+                    const metadata = yield* MetadataRepository;
+                    yield* metadata.finalizeDeletion(shortUrl);
+                }
+                return removed;
             }),
         );
         if (!removed) {
@@ -148,6 +166,12 @@ export default function AdminBookmarkEdit({
     const urlError = 'url' in errors ? errors.url : undefined;
     const confirmationError =
         'confirmation' in errors ? errors.confirmation : undefined;
+    const [url, setUrl] = useState(values.url);
+    const [title, setTitle] = useState(values.title);
+    const [description, setDescription] = useState(values.description ?? '');
+    const [candidates, setCandidates] = useState<MetadataCandidates | null>(
+        null,
+    );
     return (
         <PageShell
             description={`Stable short URL: ${loaderData.bookmark.shortUrl}`}
@@ -168,11 +192,14 @@ export default function AdminBookmarkEdit({
                             <span>URL</span>
                             <input
                                 className="w-full rounded-md border border-kumo-line bg-kumo-base px-3 py-2"
-                                defaultValue={values.url}
                                 maxLength={2048}
                                 name="url"
+                                onChange={(event) =>
+                                    setUrl(event.currentTarget.value)
+                                }
                                 required
                                 type="url"
+                                value={url}
                             />
                             {urlError === undefined ? null : (
                                 <span className="text-kumo-danger">
@@ -180,22 +207,62 @@ export default function AdminBookmarkEdit({
                                 </span>
                             )}
                         </label>
+                        <MetadataPreview
+                            csrfToken={csrfToken}
+                            onCandidates={setCandidates}
+                            url={url}
+                        />
+                        {candidates === null ? null : (
+                            <div className="flex flex-wrap gap-3">
+                                {candidates.title === null ? null : (
+                                    <Button
+                                        onClick={() =>
+                                            setTitle(candidates.title ?? title)
+                                        }
+                                        type="button"
+                                        variant="secondary"
+                                    >
+                                        Use fetched title
+                                    </Button>
+                                )}
+                                {candidates.description === null ? null : (
+                                    <Button
+                                        onClick={() =>
+                                            setDescription(
+                                                candidates.description ??
+                                                    description,
+                                            )
+                                        }
+                                        type="button"
+                                        variant="secondary"
+                                    >
+                                        Use fetched description
+                                    </Button>
+                                )}
+                            </div>
+                        )}
                         <label className="block space-y-2 text-sm font-medium text-kumo-default">
                             <span>Title</span>
                             <input
                                 className="w-full rounded-md border border-kumo-line bg-kumo-base px-3 py-2"
-                                defaultValue={values.title}
                                 maxLength={500}
                                 name="title"
+                                onChange={(event) =>
+                                    setTitle(event.currentTarget.value)
+                                }
                                 required
+                                value={title}
                             />
                         </label>
                         <label className="block space-y-2 text-sm font-medium text-kumo-default">
                             <span>Description</span>
                             <textarea
                                 className="min-h-32 w-full rounded-md border border-kumo-line bg-kumo-base px-3 py-2"
-                                defaultValue={values.description ?? ''}
                                 name="description"
+                                onChange={(event) =>
+                                    setDescription(event.currentTarget.value)
+                                }
+                                value={description}
                             />
                         </label>
                         <Button type="submit">Save changes</Button>

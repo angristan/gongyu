@@ -12,10 +12,22 @@ import {
     makeDashboardRepository,
 } from '@gongyu/data/dashboard-repository';
 import {
+    MetadataRepository,
+    makeMetadataRepository,
+} from '@gongyu/data/metadata-repository';
+import {
     makeSettingsRepository,
     SettingsRepository,
 } from '@gongyu/data/settings-repository';
+import {
+    makeWorkRepository,
+    WorkRepository,
+} from '@gongyu/data/work-repository';
 import { Encryption, makeEncryption } from '@gongyu/integrations/encryption';
+import {
+    MetadataClient,
+    makeMetadataClient,
+} from '@gongyu/integrations/metadata-client';
 import { makeR2Store, R2Store } from '@gongyu/integrations/r2-store';
 import { Context, Effect, Logger, ManagedRuntime } from 'effect';
 
@@ -34,10 +46,13 @@ export type RequestServices =
     | DashboardRepository
     | D1Store
     | Encryption
+    | MetadataClient
+    | MetadataRepository
     | R2Store
     | RequestInfo
     | SessionService
-    | SettingsRepository;
+    | SettingsRepository
+    | WorkRepository;
 
 export interface RequestEffectRunner {
     readonly runPromise: <A, E>(
@@ -63,11 +78,16 @@ export function makeRequestEffectRunner(options: {
         makeDashboardRepository(d1Store, bookmarkRepository),
     );
     const encryption = Encryption.of(makeEncryption(options.encryptionKeyring));
+    const metadataClient = MetadataClient.of(makeMetadataClient());
+    const metadataRepository = MetadataRepository.of(
+        makeMetadataRepository(d1Store),
+    );
     const r2Store = makeR2Store(options.bucket);
     const sessionService = SessionService.of(makeSessionService(d1Store));
     const settingsRepository = SettingsRepository.of(
         makeSettingsRepository(d1Store, encryption),
     );
+    const workRepository = WorkRepository.of(makeWorkRepository(d1Store));
     const requestInfo = RequestInfo.of({
         requestId: options.requestId,
         sessionConstraint: options.sessionConstraint,
@@ -86,9 +106,12 @@ export function makeRequestEffectRunner(options: {
                 Effect.provideService(DashboardRepository, dashboardRepository),
                 Effect.provideService(D1Store, d1Store),
                 Effect.provideService(Encryption, encryption),
+                Effect.provideService(MetadataClient, metadataClient),
+                Effect.provideService(MetadataRepository, metadataRepository),
                 Effect.provideService(R2Store, r2Store),
                 Effect.provideService(SessionService, sessionService),
                 Effect.provideService(SettingsRepository, settingsRepository),
+                Effect.provideService(WorkRepository, workRepository),
                 Effect.provideService(RequestInfo, requestInfo),
             ),
         );
