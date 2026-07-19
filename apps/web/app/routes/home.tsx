@@ -1,6 +1,7 @@
 import { Button } from '@cloudflare/kumo/components/button';
 import { LayerCard } from '@cloudflare/kumo/components/layer-card';
 import { Form, useRouteLoaderData } from 'react-router';
+import { loadPhase0Status } from '../effect/phase0';
 import { cloudflareRequestContext } from '../platform-context';
 import type { loader as rootLoader } from '../root';
 import type { Route } from './+types/home';
@@ -15,12 +16,14 @@ export function meta(): Route.MetaDescriptors {
     ];
 }
 
-export function loader({ context }: Route.LoaderArgs) {
-    const { env, requestId } = context.get(cloudflareRequestContext);
+export async function loader({ context }: Route.LoaderArgs) {
+    const { effect, env, requestId } = context.get(cloudflareRequestContext);
+    const status = await effect.runPromise(loadPhase0Status());
 
     return {
         environment: env.APP_ENV,
         requestId,
+        ...status,
     };
 }
 
@@ -39,21 +42,39 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                     Gongyu on Cloudflare
                 </h1>
                 <p className="max-w-2xl text-lg text-kumo-subtle">
-                    React Router SSR, Kumo, and request-scoped Worker context
-                    are running together.
+                    React Router SSR, Kumo, Effect, and a native D1 Session are
+                    running together.
                 </p>
             </div>
 
             <LayerCard className="max-w-2xl">
                 <div className="space-y-4 p-6">
-                    <div>
-                        <p className="text-sm text-kumo-subtle">
-                            Request identifier
-                        </p>
-                        <code className="text-sm text-kumo-default">
-                            {loaderData.requestId}
-                        </code>
-                    </div>
+                    <dl className="grid gap-3 text-sm sm:grid-cols-2">
+                        <div>
+                            <dt className="text-kumo-subtle">Database</dt>
+                            <dd className="font-medium text-kumo-default">
+                                {loaderData.databaseReady
+                                    ? 'ready'
+                                    : 'unavailable'}
+                            </dd>
+                        </div>
+                        <div>
+                            <dt className="text-kumo-subtle">D1 Session</dt>
+                            <dd className="font-medium text-kumo-default">
+                                {loaderData.sessionConstraint}
+                            </dd>
+                        </div>
+                        <div className="sm:col-span-2">
+                            <dt className="text-kumo-subtle">
+                                Request identifier
+                            </dt>
+                            <dd>
+                                <code className="text-kumo-default">
+                                    {loaderData.requestId}
+                                </code>
+                            </dd>
+                        </div>
+                    </dl>
 
                     <Form method="post" action="/theme">
                         <input type="hidden" name="mode" value={nextMode} />
