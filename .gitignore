@@ -13,6 +13,11 @@
 /.zed
 /auth.json
 /node_modules
+**/node_modules
+*.tsbuildinfo
+/apps/*/.react-router
+/apps/*/.wrangler
+/apps/*/build
 /public/build
 /public/hot
 /bootstrap/ssr

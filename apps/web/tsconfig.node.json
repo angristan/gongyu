@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "react-router.config.ts",
+    "vite.config.ts",
+    "vitest.config.ts"
+  ],
+  "compilerOptions": {
+    "composite": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "target": "ES2022",
+    "types": ["node"]
+  }
+}
