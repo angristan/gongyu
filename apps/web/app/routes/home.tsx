@@ -1,6 +1,6 @@
 import { Button } from '@cloudflare/kumo/components/button';
 import { LayerCard } from '@cloudflare/kumo/components/layer-card';
-import { Form, useRouteLoaderData } from 'react-router';
+import { Form, Link, useRouteLoaderData } from 'react-router';
 import { loadPhase0Status } from '../effect/phase0';
 import { cloudflareRequestContext } from '../platform-context';
 import type { loader as rootLoader } from '../root';
@@ -75,6 +75,15 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                             </dd>
                         </div>
                     </dl>
+
+                    <div className="flex flex-wrap gap-3">
+                        <Link
+                            className="text-sm font-medium text-kumo-link"
+                            to="/passkey"
+                        >
+                            Open passkey spike
+                        </Link>
+                    </div>
 
                     <Form method="post" action="/theme">
                         <input type="hidden" name="mode" value={nextMode} />

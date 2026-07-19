@@ -9,6 +9,7 @@
     "dev": "react-router dev",
     "preview": "bun run build && vite preview",
     "test": "vitest run",
+    "test:e2e": "playwright test",
     "typecheck": "bun run cf-typegen && react-router typegen && tsc -b"
   },
   "dependencies": {
@@ -26,6 +27,7 @@
     "@cloudflare/vite-plugin": "1.43.3",
     "@cloudflare/vitest-pool-workers": "0.18.4",
     "@effect/vitest": "4.0.0-beta.97",
+    "@playwright/test": "1.61.1",
     "@react-router/dev": "8.2.0",
     "@tailwindcss/vite": "4.3.2",
     "@types/node": "26.1.1",
