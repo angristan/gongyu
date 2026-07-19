@@ -1,16 +1,16 @@
 import { env } from 'cloudflare:workers';
 import { assert, it } from '@effect/vitest';
-import type { RegistrationResponseJSON } from '@simplewebauthn/server';
-import { verifyRegistrationResponse } from '@simplewebauthn/server';
-import { cose, isoBase64URL, isoCrypto } from '@simplewebauthn/server/helpers';
-import { Effect, Layer } from 'effect';
-import { D1Store, makeD1Store } from '../app/effect/d1-store';
 import {
     beginAuthentication,
     beginRegistration,
     finishRegistration,
     PasskeyError,
-} from '../app/passkeys/service';
+} from '@gongyu/auth/service';
+import { D1Store, makeD1Store } from '@gongyu/data/d1-store';
+import type { RegistrationResponseJSON } from '@simplewebauthn/server';
+import { verifyRegistrationResponse } from '@simplewebauthn/server';
+import { cose, isoBase64URL, isoCrypto } from '@simplewebauthn/server/helpers';
+import { Effect, Layer } from 'effect';
 
 const configuration = {
     origin: 'https://gongyu.test',

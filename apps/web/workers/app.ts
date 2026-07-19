@@ -1,13 +1,14 @@
 import { createRequestHandler, RouterContextProvider } from 'react-router';
 import { makeRequestEffectRunner } from '../app/effect/runtime';
 import { cloudflareRequestContext } from '../app/platform-context';
+import { traceHttpRequest } from './observability';
+
+export { Phase0Workflow } from '@gongyu/jobs/workflow';
 
 const requestHandler = createRequestHandler(
     () => import('virtual:react-router/server-build'),
     import.meta.env.MODE,
 );
-
-export { Phase0Workflow } from './phase0-workflow';
 
 export default {
     fetch(request, env, executionContext) {
@@ -29,6 +30,11 @@ export default {
             requestId,
         });
 
-        return requestHandler(request, context);
+        return traceHttpRequest({
+            method: request.method,
+            operation: () => requestHandler(request, context),
+            requestId,
+            sessionConstraint,
+        });
     },
 } satisfies ExportedHandler<Env>;

@@ -1,5 +1,5 @@
+import { beginRegistration } from '@gongyu/auth/service';
 import { runPasskeyJson } from '../passkeys/http.server';
-import { beginRegistration } from '../passkeys/service';
 import { cloudflareRequestContext } from '../platform-context';
 import type { Route } from './+types/passkey-registration-options';
 

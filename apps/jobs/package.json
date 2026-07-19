@@ -1,0 +1,25 @@
+{
+  "name": "@gongyu/jobs",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./runtime": "./src/runtime.ts",
+    "./workflow": "./src/phase0-workflow.ts"
+  },
+  "scripts": {
+    "cf-typegen": "wrangler types worker-configuration.d.ts",
+    "check": "bun run typecheck && wrangler deploy --dry-run --env=\"\"",
+    "deploy:staging": "wrangler deploy --env staging",
+    "typecheck": "bun run cf-typegen && tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@gongyu/data": "workspace:*",
+    "@gongyu/domain": "workspace:*",
+    "@gongyu/integrations": "workspace:*",
+    "effect": "4.0.0-beta.97"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3",
+    "wrangler": "4.109.0"
+  }
+}

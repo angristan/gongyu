@@ -1,0 +1,11 @@
+{
+  "name": "@gongyu/integrations",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./r2-store": "./src/r2-store.ts"
+  },
+  "dependencies": {
+    "effect": "4.0.0-beta.97"
+  }
+}

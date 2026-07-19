@@ -104,7 +104,7 @@ function makeMeta(meta: D1Meta): D1QueryMeta {
 }
 
 function annotateMeta(meta: D1QueryMeta) {
-    return Effect.annotateCurrentSpan({
+    const attributes = {
         'db.operation.name': 'execute',
         'db.system.name': 'sqlite',
         'd1.changes': meta.changes,
@@ -120,6 +120,13 @@ function annotateMeta(meta: D1QueryMeta) {
         ...(meta.totalAttempts === undefined
             ? {}
             : { 'd1.total_attempts': meta.totalAttempts }),
+    };
+
+    return Effect.gen(function* () {
+        yield* Effect.annotateCurrentSpan(attributes);
+        yield* Effect.logInfo('d1.operation.completed').pipe(
+            Effect.annotateLogs(attributes),
+        );
     });
 }
 
@@ -203,7 +210,7 @@ export function makeD1Store(session: D1DatabaseSession): D1Store['Service'] {
             catch: (cause) => makeStoreError('batch', cause),
         });
         const metadata = results.map((result) => makeMeta(result.meta));
-        yield* Effect.annotateCurrentSpan({
+        const attributes = {
             'db.operation.name': 'batch',
             'db.system.name': 'sqlite',
             'd1.batch_statements': statements.length,
@@ -215,7 +222,11 @@ export function makeD1Store(session: D1DatabaseSession): D1Store['Service'] {
                 (total, meta) => total + meta.rowsWritten,
                 0,
             ),
-        });
+        };
+        yield* Effect.annotateCurrentSpan(attributes);
+        yield* Effect.logInfo('d1.batch.completed').pipe(
+            Effect.annotateLogs(attributes),
+        );
         return metadata;
     });
 

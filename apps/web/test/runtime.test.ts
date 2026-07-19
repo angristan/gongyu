@@ -1,7 +1,8 @@
 import { env } from 'cloudflare:workers';
 import { assert, it } from '@effect/vitest';
+import { D1Store } from '@gongyu/data/d1-store';
+import { JobsInvocationInfo, makeJobsEffectRunner } from '@gongyu/jobs/runtime';
 import { Effect, Schema } from 'effect';
-import { D1Store } from '../app/effect/d1-store';
 import { makeRequestEffectRunner, RequestInfo } from '../app/effect/runtime';
 
 class SessionProbeRow extends Schema.Class<SessionProbeRow>('SessionProbeRow')({
@@ -53,4 +54,34 @@ it.effect('runs authenticated and mutation work in a primary D1 Session', () =>
         assert.strictEqual(result.ok, 1);
         assert.isAtLeast(result.rowsRead, 0);
     }),
+);
+
+it.effect(
+    'runs jobs invocations through their own primary-session boundary',
+    () =>
+        Effect.gen(function* () {
+            const runner = makeJobsEffectRunner({
+                database: env.DB,
+                invocationId: 'workflow-test',
+                objectStorage: env.UPLOADS,
+                trigger: 'workflow',
+            });
+            const result = yield* Effect.promise(() =>
+                runner.runPromise(
+                    Effect.gen(function* () {
+                        const invocation = yield* JobsInvocationInfo;
+                        const d1Store = yield* D1Store;
+                        const row = yield* d1Store.first(
+                            SessionProbeRow,
+                            'SELECT 1 AS ok',
+                        );
+                        return { invocation, ok: row?.ok };
+                    }),
+                ),
+            );
+
+            assert.strictEqual(result.invocation.invocationId, 'workflow-test');
+            assert.strictEqual(result.invocation.trigger, 'workflow');
+            assert.strictEqual(result.ok, 1);
+        }),
 );

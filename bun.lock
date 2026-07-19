@@ -9,10 +9,29 @@
         "lefthook": "2.1.10",
       },
     },
+    "apps/jobs": {
+      "name": "@gongyu/jobs",
+      "dependencies": {
+        "@gongyu/data": "workspace:*",
+        "@gongyu/domain": "workspace:*",
+        "@gongyu/integrations": "workspace:*",
+        "effect": "4.0.0-beta.97",
+      },
+      "devDependencies": {
+        "typescript": "6.0.3",
+        "wrangler": "4.109.0",
+      },
+    },
     "apps/web": {
       "name": "@gongyu/web",
       "dependencies": {
         "@cloudflare/kumo": "2.7.0",
+        "@gongyu/auth": "workspace:*",
+        "@gongyu/data": "workspace:*",
+        "@gongyu/domain": "workspace:*",
+        "@gongyu/integrations": "workspace:*",
+        "@gongyu/jobs": "workspace:*",
+        "@gongyu/ui": "workspace:*",
         "@phosphor-icons/react": "2.1.10",
         "@simplewebauthn/browser": "13.3.0",
         "@simplewebauthn/server": "13.3.2",
@@ -37,6 +56,42 @@
         "vite": "8.1.4",
         "vitest": "4.1.10",
         "wrangler": "4.109.0",
+      },
+    },
+    "packages/auth": {
+      "name": "@gongyu/auth",
+      "dependencies": {
+        "@gongyu/data": "workspace:*",
+        "@simplewebauthn/server": "13.3.2",
+        "effect": "4.0.0-beta.97",
+      },
+    },
+    "packages/data": {
+      "name": "@gongyu/data",
+      "dependencies": {
+        "effect": "4.0.0-beta.97",
+      },
+    },
+    "packages/domain": {
+      "name": "@gongyu/domain",
+      "dependencies": {
+        "effect": "4.0.0-beta.97",
+      },
+    },
+    "packages/integrations": {
+      "name": "@gongyu/integrations",
+      "dependencies": {
+        "effect": "4.0.0-beta.97",
+      },
+    },
+    "packages/ui": {
+      "name": "@gongyu/ui",
+      "dependencies": {
+        "@cloudflare/kumo": "2.7.0",
+        "react": "19.2.7",
+      },
+      "devDependencies": {
+        "@types/react": "19.2.17",
       },
     },
   },
@@ -212,6 +267,18 @@
     "@floating-ui/react-dom": ["@floating-ui/react-dom@2.1.9", "", { "dependencies": { "@floating-ui/dom": "^1.8.0" }, "peerDependencies": { "react": ">=16.8.0", "react-dom": ">=16.8.0" } }, "sha512-JDjEFGCpImxDCA7JJKviA0M9+RtmJdj0m/NVU5IMgBK+AmZouAQQ7/+2GLH0GXXY0YMw9oXPB8hKdbPYg5QLYg=="],
 
     "@floating-ui/utils": ["@floating-ui/utils@0.2.12", "", {}, "sha512-HpCo8tmWzLVad5s2d19EhAz5zqrrQ6s69qd6moPMQvkOuSwDT1YgRfWSVuc4ennqrgv3OHppiOGMQ7oC13yIww=="],
+
+    "@gongyu/auth": ["@gongyu/auth@workspace:packages/auth"],
+
+    "@gongyu/data": ["@gongyu/data@workspace:packages/data"],
+
+    "@gongyu/domain": ["@gongyu/domain@workspace:packages/domain"],
+
+    "@gongyu/integrations": ["@gongyu/integrations@workspace:packages/integrations"],
+
+    "@gongyu/jobs": ["@gongyu/jobs@workspace:apps/jobs"],
+
+    "@gongyu/ui": ["@gongyu/ui@workspace:packages/ui"],
 
     "@gongyu/web": ["@gongyu/web@workspace:apps/web"],
 

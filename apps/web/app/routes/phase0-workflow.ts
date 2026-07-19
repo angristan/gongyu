@@ -1,6 +1,6 @@
+import { Phase0WorkflowPayload } from '@gongyu/domain/workflows';
 import { Schema } from 'effect';
 import { cloudflareRequestContext } from '../platform-context';
-import { Phase0WorkflowPayload } from '../workflows/contracts';
 import type { Route } from './+types/phase0-workflow';
 
 export async function action({ context, request }: Route.ActionArgs) {

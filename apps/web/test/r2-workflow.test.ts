@@ -1,8 +1,12 @@
 import { env } from 'cloudflare:workers';
 import { assert, it } from '@effect/vitest';
+import { Phase0WorkflowPayload } from '@gongyu/domain/workflows';
+import {
+    makeR2Store,
+    R2Store,
+    R2StoreError,
+} from '@gongyu/integrations/r2-store';
 import { Effect, Layer, Schema } from 'effect';
-import { makeR2Store, R2Store, R2StoreError } from '../app/effect/r2-store';
-import { Phase0WorkflowPayload } from '../app/workflows/contracts';
 
 const R2StoreTest = Layer.succeed(R2Store)(makeR2Store(env.UPLOADS));
 

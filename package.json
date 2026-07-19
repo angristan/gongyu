@@ -10,14 +10,14 @@
   ],
   "scripts": {
     "build": "bun run --cwd apps/web build",
-    "check": "bun run --cwd apps/web check",
-    "deploy:staging": "bun run --cwd apps/web deploy:staging",
+    "check": "bun run --cwd apps/web check && bun run --cwd apps/jobs check",
+    "deploy:staging": "bun run --cwd apps/jobs deploy:staging && bun run --cwd apps/web deploy:staging",
     "dev": "bun run --cwd apps/web dev",
     "format": "bunx biome check --write .",
     "lint": "bunx biome check .",
     "prepare": "[ -d .git ] && lefthook install || true",
     "test": "bun run --cwd apps/web test",
-    "typecheck": "bun run --cwd apps/web typecheck"
+    "typecheck": "bun run --cwd apps/web typecheck && bun run --cwd apps/jobs typecheck"
   },
   "devDependencies": {
     "@biomejs/biome": "2.3.15",

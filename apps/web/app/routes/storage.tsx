@@ -1,9 +1,13 @@
 import { Button } from '@cloudflare/kumo/components/button';
 import { LayerCard } from '@cloudflare/kumo/components/layer-card';
+import {
+    UploadResponse,
+    WorkflowStartResponse,
+} from '@gongyu/domain/workflows';
+import { PageShell } from '@gongyu/ui/page-shell';
 import { Schema } from 'effect';
 import { useState } from 'react';
 import { Link } from 'react-router';
-import { UploadResponse, WorkflowStartResponse } from '../workflows/contracts';
 import type { Route } from './+types/storage';
 
 export function meta(): Route.MetaDescriptors {
@@ -69,20 +73,16 @@ export default function StorageSpike() {
     }
 
     return (
-        <main className="mx-auto flex min-h-screen max-w-3xl flex-col justify-center gap-8 px-6 py-16">
-            <div className="space-y-3">
-                <p className="text-sm font-medium text-kumo-subtle">
-                    Phase 0 · R2 and Workflows
-                </p>
-                <h1 className="text-4xl font-semibold text-kumo-default">
-                    Stream an immutable Workflow source
-                </h1>
-                <p className="text-kumo-subtle">
-                    The Workflow receives only a versioned R2 reference, never
-                    the file body.
-                </p>
-            </div>
-
+        <PageShell
+            description="The Workflow receives only a versioned private R2 reference, never the file body."
+            eyebrow="Platform foundation · R2 and Workflows"
+            footer={
+                <Link className="text-kumo-link" to="/">
+                    Return to runtime status
+                </Link>
+            }
+            title="Stream an immutable Workflow source"
+        >
             <LayerCard>
                 <div className="space-y-5 p-6">
                     <input
@@ -100,10 +100,6 @@ export default function StorageSpike() {
                     </Button>
                 </div>
             </LayerCard>
-
-            <Link className="text-sm text-kumo-link" to="/">
-                Return to runtime status
-            </Link>
-        </main>
+        </PageShell>
     );
 }

@@ -1,0 +1,12 @@
+{
+  "name": "@gongyu/data",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./d1-store": "./src/d1-store.ts",
+    "./phase0-repository": "./src/phase0-repository.ts"
+  },
+  "dependencies": {
+    "effect": "4.0.0-beta.97"
+  }
+}

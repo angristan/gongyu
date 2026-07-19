@@ -1,5 +1,5 @@
+import { R2Store } from '@gongyu/integrations/r2-store';
 import { Effect } from 'effect';
-import { R2Store } from '../effect/r2-store';
 import { cloudflareRequestContext } from '../platform-context';
 import type { Route } from './+types/phase0-upload';
 

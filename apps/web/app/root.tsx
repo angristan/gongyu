@@ -1,4 +1,5 @@
 import { type LinkComponentProps, LinkProvider } from '@cloudflare/kumo/utils';
+import { PageShell } from '@gongyu/ui/page-shell';
 import { forwardRef, type ReactNode } from 'react';
 import {
     isRouteErrorResponse,
@@ -74,13 +75,5 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
         detail = error.message;
     }
 
-    return (
-        <main className="mx-auto flex min-h-screen max-w-3xl flex-col justify-center gap-4 px-6">
-            <p className="text-sm font-medium text-kumo-subtle">Gongyu</p>
-            <h1 className="text-3xl font-semibold text-kumo-default">
-                {title}
-            </h1>
-            <p className="text-kumo-subtle">{detail}</p>
-        </main>
-    );
+    return <PageShell description={detail} eyebrow="Gongyu" title={title} />;
 }

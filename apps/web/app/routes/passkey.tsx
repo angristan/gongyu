@@ -1,16 +1,17 @@
 import { Button } from '@cloudflare/kumo/components/button';
 import { LayerCard } from '@cloudflare/kumo/components/layer-card';
 import {
+    AuthenticationOptionsEnvelope,
+    RegistrationOptionsEnvelope,
+} from '@gongyu/auth/contracts';
+import { PageShell } from '@gongyu/ui/page-shell';
+import {
     startAuthentication,
     startRegistration,
 } from '@simplewebauthn/browser';
 import { Schema } from 'effect';
 import { useState } from 'react';
 import { Link } from 'react-router';
-import {
-    AuthenticationOptionsEnvelope,
-    RegistrationOptionsEnvelope,
-} from '../passkeys/contracts';
 import type { Route } from './+types/passkey';
 
 class ApiErrorEnvelope extends Schema.Class<ApiErrorEnvelope>(
@@ -105,20 +106,16 @@ export default function PasskeySpike() {
     }
 
     return (
-        <main className="mx-auto flex min-h-screen max-w-3xl flex-col justify-center gap-8 px-6 py-16">
-            <div className="space-y-3">
-                <p className="text-sm font-medium text-kumo-subtle">
-                    Phase 0 · WebAuthn
-                </p>
-                <h1 className="text-4xl font-semibold text-kumo-default">
-                    Single-passkey validation
-                </h1>
-                <p className="text-kumo-subtle">
-                    This spike exercises SimpleWebAuthn inside the Workers
-                    runtime using the exact local RP ID and origin.
-                </p>
-            </div>
-
+        <PageShell
+            description="SimpleWebAuthn runs inside the Workers runtime with an exact environment RP ID and origin."
+            eyebrow="Platform foundation · WebAuthn"
+            footer={
+                <Link className="text-kumo-link" to="/">
+                    Return to runtime status
+                </Link>
+            }
+            title="Single-passkey validation"
+        >
             <LayerCard>
                 <div className="space-y-5 p-6">
                     <p aria-live="polite" className="text-kumo-default">
@@ -143,10 +140,6 @@ export default function PasskeySpike() {
                     </div>
                 </div>
             </LayerCard>
-
-            <Link className="text-sm text-kumo-link" to="/">
-                Return to runtime status
-            </Link>
-        </main>
+        </PageShell>
     );
 }
