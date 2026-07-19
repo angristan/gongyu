@@ -83,6 +83,12 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                         >
                             Open passkey spike
                         </Link>
+                        <Link
+                            className="text-sm font-medium text-kumo-link"
+                            to="/storage"
+                        >
+                            Open storage spike
+                        </Link>
                     </div>
 
                     <Form method="post" action="/theme">

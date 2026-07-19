@@ -55,6 +55,37 @@ const D1QueryResult = Schema.Array(
     }),
 );
 
+const WorkflowPayload = Schema.Struct({
+    operation: Schema.Literal('phase0.import'),
+    source: Schema.Struct({
+        bucket: Schema.Literal('uploads'),
+        contentType: Schema.String,
+        etag: Schema.String,
+        key: Schema.String,
+        size: Schema.Number,
+    }),
+    version: Schema.Literal(1),
+});
+const UploadResponse = Schema.Struct({
+    workflowPayload: WorkflowPayload,
+});
+const WorkflowStartResponse = Schema.Struct({
+    instanceId: Schema.String,
+    status: Schema.Literal('queued'),
+});
+const WorkflowQueryResult = Schema.Array(
+    Schema.Struct({
+        results: Schema.Array(
+            Schema.Struct({
+                instanceId: Schema.String,
+                objectKey: Schema.String,
+                status: Schema.String,
+            }),
+        ),
+        success: Schema.Boolean,
+    }),
+);
+
 test('enforces one discoverable passkey and updates its counter', async ({
     context,
     page,
@@ -184,4 +215,53 @@ test('enforces one discoverable passkey and updates its counter', async ({
     expect(query[0]?.success).toBe(true);
     expect(query[0]?.results[0]?.counter).toBeGreaterThan(0);
     expect(query[0]?.results[0]?.lastUsedAt).toBeGreaterThan(0);
+});
+
+test('streams an R2 upload into a version 1 Workflow', async ({ request }) => {
+    const source = '{"bookmarks":[{"title":"Gongyu"}]}';
+    const uploadResponse = await request.post('/api/phase0/uploads', {
+        data: source,
+        headers: { 'Content-Type': 'application/json' },
+    });
+    expect(uploadResponse.status()).toBe(201);
+    const upload = await Schema.decodeUnknownPromise(UploadResponse)(
+        await uploadResponse.json(),
+    );
+    expect(upload.workflowPayload.source.size).toBe(Buffer.byteLength(source));
+    expect(upload.workflowPayload.source.key).toMatch(/^phase0\/uploads\//);
+
+    const workflowResponse = await request.post('/api/phase0/workflows', {
+        data: upload.workflowPayload,
+    });
+    expect(workflowResponse.status()).toBe(202);
+    const workflow = await Schema.decodeUnknownPromise(WorkflowStartResponse)(
+        await workflowResponse.json(),
+    );
+
+    await expect
+        .poll(
+            async () => {
+                const { stdout } = await execute('bunx', [
+                    'wrangler',
+                    'd1',
+                    'execute',
+                    'gongyu-phase0-local',
+                    '--local',
+                    '--json',
+                    '--command=SELECT instance_id AS instanceId, object_key AS objectKey, status FROM phase0_workflow_runs',
+                ]);
+                const query = await Schema.decodeUnknownPromise(
+                    WorkflowQueryResult,
+                )(JSON.parse(stdout));
+                return query[0]?.results.find(
+                    (row) => row.instanceId === workflow.instanceId,
+                );
+            },
+            { timeout: 20_000 },
+        )
+        .toEqual({
+            instanceId: workflow.instanceId,
+            objectKey: upload.workflowPayload.source.key,
+            status: 'complete',
+        });
 });
