@@ -1,8 +1,9 @@
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
-  "name": "gongyu-cloudflare-web",
-  "main": "./workers/app.ts",
+  "name": "gongyu-cloudflare-jobs",
+  "main": "./src/worker.ts",
   "compatibility_date": "2026-07-15",
+  "workers_dev": false,
   "observability": {
     "enabled": true,
     "head_sampling_rate": 0.1,
@@ -11,7 +12,6 @@
       "head_sampling_rate": 0.1
     }
   },
-  "upload_source_maps": true,
   "d1_databases": [
     {
       "binding": "DB",
@@ -33,14 +33,9 @@
       "name": "gongyu-phase0-workflow"
     }
   ],
-  "vars": {
-    "APP_ENV": "local",
-    "RP_ID": "localhost",
-    "RP_ORIGIN": "http://localhost:5173"
-  },
   "env": {
     "staging": {
-      "name": "gongyu-cloudflare-staging",
+      "name": "gongyu-cloudflare-staging-jobs",
       "d1_databases": [
         {
           "binding": "DB",
@@ -59,15 +54,9 @@
         {
           "binding": "PHASE0_WORKFLOW",
           "class_name": "Phase0Workflow",
-          "name": "gongyu-phase0-staging-workflow",
-          "script_name": "gongyu-cloudflare-staging-jobs"
+          "name": "gongyu-phase0-staging-workflow"
         }
-      ],
-      "vars": {
-        "APP_ENV": "staging",
-        "RP_ID": "gongyu-cloudflare-staging.angristan.workers.dev",
-        "RP_ORIGIN": "https://gongyu-cloudflare-staging.angristan.workers.dev"
-      }
+      ]
     }
   }
 }

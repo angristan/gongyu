@@ -1,0 +1,15 @@
+{
+  "include": ["src/**/*", "worker-configuration.d.ts"],
+  "compilerOptions": {
+    "esModuleInterop": true,
+    "lib": ["ES2022"],
+    "module": "ES2022",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "ES2022",
+    "types": []
+  }
+}

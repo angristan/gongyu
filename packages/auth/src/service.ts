@@ -1,3 +1,4 @@
+import { D1Store } from '@gongyu/data/d1-store';
 import {
     generateAuthenticationOptions,
     generateRegistrationOptions,
@@ -6,7 +7,6 @@ import {
 } from '@simplewebauthn/server';
 import { isoUint8Array } from '@simplewebauthn/server/helpers';
 import { Clock, Effect, Schema } from 'effect';
-import { D1Store } from '../effect/d1-store';
 import {
     AuthenticationVerificationRequest,
     RegistrationVerificationRequest,

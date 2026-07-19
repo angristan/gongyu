@@ -1,5 +1,5 @@
+import { D1Store } from '@gongyu/data/d1-store';
 import { Effect, Schema } from 'effect';
-import { D1Store } from './d1-store';
 import { RequestInfo } from './runtime';
 
 class HealthRow extends Schema.Class<HealthRow>('HealthRow')({

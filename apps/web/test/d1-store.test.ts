@@ -1,14 +1,14 @@
 import { env } from 'cloudflare:workers';
 import { assert, it } from '@effect/vitest';
-import { Effect, Layer, Schema, Tracer } from 'effect';
-import { D1DecodeError, D1Store, makeD1Store } from '../app/effect/d1-store';
+import { D1DecodeError, D1Store, makeD1Store } from '@gongyu/data/d1-store';
 import {
     claimJob,
     completeJob,
     createBookmarkAndJob,
     findBookmarkByShortUrl,
     searchBookmarks,
-} from '../app/effect/phase0-repository';
+} from '@gongyu/data/phase0-repository';
+import { Effect, Layer, Schema, Tracer } from 'effect';
 
 const D1StoreTest = Layer.effect(D1Store)(
     Effect.sync(() => makeD1Store(env.DB.withSession('first-primary'))),

@@ -88,6 +88,14 @@ const WorkflowStartResponse = Schema.Struct({
     instanceId: Schema.String,
     status: Schema.Literal('queued'),
 });
+const HealthResponse = Schema.Struct({
+    databaseReady: Schema.Boolean,
+    environment: Schema.String,
+    requestId: Schema.String,
+    sessionConstraint: Schema.Literal('first-unconstrained'),
+    status: Schema.Literal('ok'),
+});
+
 const WorkflowQueryResult = Schema.Array(
     Schema.Struct({
         results: Schema.Array(
@@ -107,10 +115,20 @@ test('renders the SSR shell and persists hydrated theme changes', async ({
 }) => {
     const response = await request.get('/');
     expect(response.status()).toBe(200);
+    expect(response.headers()['x-request-id']).toBeTruthy();
     const html = await response.text();
     expect(html).toContain('<html lang="en" data-mode="light">');
     expect(html).toContain('Gongyu on Cloudflare');
     expect(html).toContain('first-unconstrained');
+
+    const healthResponse = await request.get('/health');
+    expect(healthResponse.status()).toBe(200);
+    expect(healthResponse.headers()['cache-control']).toBe('no-store');
+    const health = await Schema.decodeUnknownPromise(HealthResponse)(
+        await healthResponse.json(),
+    );
+    expect(health.databaseReady).toBe(true);
+    expect(health.requestId).toBe(healthResponse.headers()['x-request-id']);
 
     await page.goto('/');
     await expect(

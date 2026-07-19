@@ -1,0 +1,14 @@
+{
+  "name": "@gongyu/auth",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./contracts": "./src/contracts.ts",
+    "./service": "./src/service.ts"
+  },
+  "dependencies": {
+    "@gongyu/data": "workspace:*",
+    "@simplewebauthn/server": "13.3.2",
+    "effect": "4.0.0-beta.97"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "name": "@gongyu/ui",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./page-shell": "./src/page-shell.tsx"
+  },
+  "dependencies": {
+    "@cloudflare/kumo": "2.7.0",
+    "react": "19.2.7"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.17"
+  }
+}

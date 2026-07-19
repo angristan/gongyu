@@ -1,0 +1,12 @@
+{
+  "name": "@gongyu/domain",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./health": "./src/health.ts",
+    "./workflows": "./src/workflows.ts"
+  },
+  "dependencies": {
+    "effect": "4.0.0-beta.97"
+  }
+}

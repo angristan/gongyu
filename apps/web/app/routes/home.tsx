@@ -1,5 +1,6 @@
 import { Button } from '@cloudflare/kumo/components/button';
 import { LayerCard } from '@cloudflare/kumo/components/layer-card';
+import { PageShell } from '@gongyu/ui/page-shell';
 import { Form, Link, useRouteLoaderData } from 'react-router';
 import { loadPhase0Status } from '../effect/phase0';
 import { cloudflareRequestContext } from '../platform-context';
@@ -11,7 +12,7 @@ export function meta(): Route.MetaDescriptors {
         { title: 'Gongyu Cloudflare rewrite' },
         {
             name: 'description',
-            content: 'Phase 0 runtime validation for Gongyu.',
+            content: 'Cloudflare platform foundation for Gongyu.',
         },
     ];
 }
@@ -33,20 +34,12 @@ export default function Home({ loaderData }: Route.ComponentProps) {
     const nextMode = currentMode === 'light' ? 'dark' : 'light';
 
     return (
-        <main className="mx-auto flex min-h-screen max-w-4xl flex-col justify-center gap-8 px-6 py-16">
-            <div className="space-y-3">
-                <p className="text-sm font-medium text-kumo-subtle">
-                    Phase 0 · {loaderData.environment}
-                </p>
-                <h1 className="text-4xl font-semibold tracking-tight text-kumo-default sm:text-5xl">
-                    Gongyu on Cloudflare
-                </h1>
-                <p className="max-w-2xl text-lg text-kumo-subtle">
-                    React Router SSR, Kumo, Effect, and a native D1 Session are
-                    running together.
-                </p>
-            </div>
-
+        <PageShell
+            description="React Router SSR, Kumo, Effect, and native Cloudflare services are running through explicit runtime boundaries."
+            eyebrow={`Phase 1 · ${loaderData.environment}`}
+            title="Gongyu on Cloudflare"
+            width="wide"
+        >
             <LayerCard className="max-w-2xl">
                 <div className="space-y-4 p-6">
                     <dl className="grid gap-3 text-sm sm:grid-cols-2">
@@ -100,6 +93,6 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                     </Form>
                 </div>
             </LayerCard>
-        </main>
+        </PageShell>
     );
 }

@@ -1,6 +1,6 @@
+import { D1Store, makeD1Store } from '@gongyu/data/d1-store';
+import { makeR2Store, R2Store } from '@gongyu/integrations/r2-store';
 import { Context, Effect, Layer, ManagedRuntime } from 'effect';
-import { D1Store, makeD1Store } from './d1-store';
-import { makeR2Store, R2Store } from './r2-store';
 
 export interface RequestInfoShape {
     readonly requestId: string;
@@ -41,6 +41,10 @@ export function makeRequestEffectRunner(options: {
     ): Promise<A> =>
         runtime.runPromise(
             effect.pipe(
+                Effect.annotateLogs({
+                    requestId: options.requestId,
+                    sessionConstraint: options.sessionConstraint,
+                }),
                 Effect.provideService(D1Store, d1Store),
                 Effect.provideService(R2Store, r2Store),
                 Effect.provideService(RequestInfo, requestInfo),

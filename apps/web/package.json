@@ -16,6 +16,12 @@
   },
   "dependencies": {
     "@cloudflare/kumo": "2.7.0",
+    "@gongyu/auth": "workspace:*",
+    "@gongyu/data": "workspace:*",
+    "@gongyu/domain": "workspace:*",
+    "@gongyu/integrations": "workspace:*",
+    "@gongyu/jobs": "workspace:*",
+    "@gongyu/ui": "workspace:*",
     "@phosphor-icons/react": "2.1.10",
     "@simplewebauthn/browser": "13.3.0",
     "@simplewebauthn/server": "13.3.2",
