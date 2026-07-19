@@ -1,6 +1,6 @@
 import { D1Store, makeD1Store } from '@gongyu/data/d1-store';
 import { makeR2Store, R2Store } from '@gongyu/integrations/r2-store';
-import { Context, Effect, Layer, ManagedRuntime } from 'effect';
+import { Context, Effect, Logger, ManagedRuntime } from 'effect';
 
 export interface JobsInvocationInfoShape {
     readonly invocationId: string;
@@ -20,7 +20,7 @@ export interface JobsEffectRunner {
     ) => Promise<A>;
 }
 
-const runtime = ManagedRuntime.make(Layer.empty);
+const runtime = ManagedRuntime.make(Logger.layer([Logger.consoleStructured]));
 
 export function makeJobsEffectRunner(options: {
     readonly database: D1Database;
