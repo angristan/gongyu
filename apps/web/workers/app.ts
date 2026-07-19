@@ -7,6 +7,8 @@ const requestHandler = createRequestHandler(
     import.meta.env.MODE,
 );
 
+export { Phase0Workflow } from './phase0-workflow';
+
 export default {
     fetch(request, env, executionContext) {
         const context = new RouterContextProvider();
@@ -17,6 +19,7 @@ export default {
                 : 'first-primary';
         context.set(cloudflareRequestContext, {
             effect: makeRequestEffectRunner({
+                bucket: env.UPLOADS,
                 database: env.DB,
                 requestId,
                 sessionConstraint,

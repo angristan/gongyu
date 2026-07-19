@@ -4,6 +4,7 @@ export default [
     index('routes/home.tsx'),
     route('theme', 'routes/theme.ts'),
     route('passkey', 'routes/passkey.tsx'),
+    route('storage', 'routes/storage.tsx'),
     route(
         'api/passkey/registration/options',
         'routes/passkey-registration-options.ts',
@@ -20,4 +21,6 @@ export default [
         'api/passkey/authentication/verify',
         'routes/passkey-authentication-verify.ts',
     ),
+    route('api/phase0/uploads', 'routes/phase0-upload.ts'),
+    route('api/phase0/workflows', 'routes/phase0-workflow.ts'),
 ] satisfies RouteConfig;
