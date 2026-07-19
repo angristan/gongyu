@@ -130,7 +130,11 @@ test('renders the SSR shell and persists hydrated theme changes', async ({
     expect(health.databaseReady).toBe(true);
     expect(health.requestId).toBe(healthResponse.headers()['x-request-id']);
 
-    await page.goto('/');
+    await page.goto(
+        process.env.STAGING_BASE_URL === undefined
+            ? '/'
+            : `/?staging-smoke=${Date.now()}`,
+    );
     await expect(
         page.getByRole('heading', { name: 'Gongyu', exact: true }),
     ).toBeVisible();
