@@ -26,7 +26,7 @@ export default defineConfig({
         stagingBaseUrl === undefined
             ? {
                   command:
-                      'bunx wrangler d1 migrations apply gongyu-phase0-local --local && bunx wrangler d1 execute gongyu-phase0-local --local --command="DELETE FROM phase0_webauthn_challenges; DELETE FROM phase0_passkey; DELETE FROM phase0_workflow_runs" && bun run build && bunx vite preview --host localhost --port 5173',
+                      'bunx wrangler d1 migrations apply gongyu-phase0-local --local && bunx wrangler d1 execute gongyu-phase0-local --local --command="DELETE FROM sessions; DELETE FROM webauthn_challenges; DELETE FROM passkeys; DELETE FROM jobs; DELETE FROM outbox; DELETE FROM bookmarks; DELETE FROM phase0_webauthn_challenges; DELETE FROM phase0_passkey; DELETE FROM phase0_workflow_runs" && bun run build && bunx vite preview --host localhost --port 5173',
                   reuseExistingServer: false,
                   timeout: 120_000,
                   url: 'http://localhost:5173',

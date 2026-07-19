@@ -12,6 +12,7 @@ import {
     useRouteLoaderData,
 } from 'react-router';
 import type { Route } from './+types/root';
+import { cloudflareRequestContext } from './platform-context';
 import { readThemeMode } from './theme.server';
 import './app.css';
 
@@ -31,8 +32,15 @@ const AppLink = forwardRef<HTMLAnchorElement, LinkComponentProps>(
 );
 AppLink.displayName = 'AppLink';
 
-export async function loader({ request }: Route.LoaderArgs) {
-    return { themeMode: await readThemeMode(request) };
+export async function loader({ context, request }: Route.LoaderArgs) {
+    const { authentication } = context.get(cloudflareRequestContext);
+    return {
+        authenticated: authentication.authenticated,
+        csrfToken: authentication.authenticated
+            ? authentication.csrfToken
+            : null,
+        themeMode: await readThemeMode(request),
+    };
 }
 
 export function Layout({ children }: { readonly children: ReactNode }) {

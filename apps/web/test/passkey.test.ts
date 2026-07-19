@@ -74,14 +74,15 @@ it.layer(D1StoreTest)('SimpleWebAuthn on Workerd', (it) => {
             const d1Store = yield* D1Store;
             yield* d1Store.run(
                 `
-                    INSERT INTO phase0_webauthn_challenges (
+                    INSERT INTO webauthn_challenges (
                         id,
                         ceremony,
+                        registration_mode,
                         challenge,
                         user_id,
                         expires_at
                     )
-                    VALUES (?, 'registration', ?, ?, 0)
+                    VALUES (?, 'registration', 'setup', ?, ?, 0)
                 `,
                 ['expired', noneAttestationChallenge, 'admin-user-id'],
             );
