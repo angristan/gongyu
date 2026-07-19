@@ -3,7 +3,7 @@ import {
     cloudflareTest,
     readD1Migrations,
 } from '@cloudflare/vitest-pool-workers';
-import { defineConfig } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
 
 export default defineConfig(async () => {
     const migrations = await readD1Migrations(
@@ -24,6 +24,7 @@ export default defineConfig(async () => {
             }),
         ],
         test: {
+            exclude: [...configDefaults.exclude, 'e2e/**'],
             setupFiles: ['./test/apply-migrations.ts'],
         },
     };

@@ -18,6 +18,8 @@
 /apps/*/.react-router
 /apps/*/.wrangler
 /apps/*/build
+/apps/*/playwright-report
+/apps/*/test-results
 /public/build
 /public/hot
 /bootstrap/ssr

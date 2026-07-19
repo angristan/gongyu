@@ -42,6 +42,7 @@ export function Layout({ children }: { readonly children: ReactNode }) {
         <html lang="en" data-mode={themeMode}>
             <head>
                 <meta charSet="utf-8" />
+                <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
                 <meta
                     name="viewport"
                     content="width=device-width, initial-scale=1"

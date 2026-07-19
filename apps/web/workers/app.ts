@@ -11,11 +11,15 @@ export default {
     fetch(request, env, executionContext) {
         const context = new RouterContextProvider();
         const requestId = crypto.randomUUID();
+        const sessionConstraint =
+            request.method === 'GET' || request.method === 'HEAD'
+                ? 'first-unconstrained'
+                : 'first-primary';
         context.set(cloudflareRequestContext, {
             effect: makeRequestEffectRunner({
                 database: env.DB,
                 requestId,
-                sessionConstraint: 'first-unconstrained',
+                sessionConstraint,
             }),
             env,
             executionContext,

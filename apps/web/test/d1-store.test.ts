@@ -18,7 +18,24 @@ class HealthRow extends Schema.Class<HealthRow>('HealthRow')({
     ok: Schema.Number,
 }) {}
 
+const Byte = Schema.Int.check(Schema.isBetween({ maximum: 255, minimum: 0 }));
+
+class BlobRow extends Schema.Class<BlobRow>('BlobRow')({
+    value: Schema.Array(Byte),
+}) {}
+
 it.layer(D1StoreTest)('native D1 query adapter', (it) => {
+    it.effect('returns stored BLOB values as raw buffers', () =>
+        Effect.gen(function* () {
+            const d1Store = yield* D1Store;
+            const row = yield* d1Store.first(BlobRow, 'SELECT ? AS value', [
+                new Uint8Array([1, 2, 3]),
+            ]);
+
+            assert.deepEqual(row?.value, [1, 2, 3]);
+        }),
+    );
+
     it.effect('decodes rows and preserves session metadata', () =>
         Effect.gen(function* () {
             const d1Store = yield* D1Store;
