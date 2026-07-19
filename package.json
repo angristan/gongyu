@@ -11,6 +11,7 @@
   "scripts": {
     "build": "bun run --cwd apps/web build",
     "check": "bun run --cwd apps/web check",
+    "deploy:staging": "bun run --cwd apps/web deploy:staging",
     "dev": "bun run --cwd apps/web dev",
     "format": "bunx biome check --write .",
     "lint": "bunx biome check .",

@@ -32,5 +32,36 @@
     "APP_ENV": "local",
     "RP_ID": "localhost",
     "RP_ORIGIN": "http://localhost:5173"
+  },
+  "env": {
+    "staging": {
+      "name": "gongyu-cloudflare-staging",
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "gongyu-phase0-staging",
+          "database_id": "420e6523-3213-4a46-be83-8863988048d1",
+          "migrations_dir": "../../migrations"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "UPLOADS",
+          "bucket_name": "gongyu-phase0-staging-uploads"
+        }
+      ],
+      "workflows": [
+        {
+          "binding": "PHASE0_WORKFLOW",
+          "class_name": "Phase0Workflow",
+          "name": "gongyu-phase0-staging-workflow"
+        }
+      ],
+      "vars": {
+        "APP_ENV": "staging",
+        "RP_ID": "gongyu-cloudflare-staging.angristan.workers.dev",
+        "RP_ORIGIN": "https://gongyu-cloudflare-staging.angristan.workers.dev"
+      }
+    }
   }
 }
