@@ -1,0 +1,29 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "gongyu-cloudflare-web",
+  "main": "./workers/app.ts",
+  "compatibility_date": "2026-07-15",
+  "observability": {
+    "enabled": true
+  },
+  "upload_source_maps": true,
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "gongyu-phase0-local",
+      "database_id": "00000000-0000-0000-0000-000000000001",
+      "migrations_dir": "../../migrations"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "UPLOADS",
+      "bucket_name": "gongyu-phase0-uploads"
+    }
+  ],
+  "vars": {
+    "APP_ENV": "local",
+    "RP_ID": "localhost",
+    "RP_ORIGIN": "http://localhost:5173"
+  }
+}

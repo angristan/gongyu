@@ -12,7 +12,7 @@ pre-commit:
       run: php artisan test --parallel
     biome:
       glob: "*.{js,ts,tsx}"
-      run: npx biome check
+      run: bunx biome check
     typecheck:
       glob: "*.{ts,tsx}"
-      run: npm run typecheck
+      run: bun run typecheck
