@@ -1,0 +1,486 @@
+import {
+    Bookmark,
+    type BookmarkInput,
+    BookmarkNotFoundError,
+    BookmarkPage,
+    DuplicateBookmarkError,
+} from '@gongyu/domain/bookmarks';
+import { Context, Effect, Schema } from 'effect';
+import type { D1Store, D1StoreFailure } from './d1-store';
+
+const SHORT_URL_ALPHABET =
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+const SHORT_URL_RANDOM_CEILING = 248;
+
+class CountRow extends Schema.Class<CountRow>('BookmarkCountRow')({
+    count: Schema.Number,
+}) {}
+
+export class OutboxLease extends Schema.Class<OutboxLease>('OutboxLease')({
+    attempts: Schema.Number,
+    bookmarkShortUrl: Schema.String,
+    id: Schema.String,
+    kind: Schema.String,
+    leaseExpiresAt: Schema.Number,
+    payloadVersion: Schema.Number,
+}) {}
+
+export interface CreateBookmarkInput extends BookmarkInput {
+    readonly createdAt: number;
+}
+
+export interface UpdateBookmarkInput extends BookmarkInput {
+    readonly shortUrl: string;
+    readonly updatedAt: number;
+}
+
+export interface BookmarkRepositoryShape {
+    readonly claimOutbox: (input: {
+        readonly id: string;
+        readonly leaseDurationMs: number;
+        readonly now: number;
+        readonly token: string;
+    }) => Effect.Effect<OutboxLease | null, D1StoreFailure>;
+    readonly completeOutbox: (input: {
+        readonly completedAt: number;
+        readonly id: string;
+        readonly token: string;
+    }) => Effect.Effect<boolean, D1StoreFailure>;
+    readonly create: (
+        input: CreateBookmarkInput,
+    ) => Effect.Effect<Bookmark, DuplicateBookmarkError | D1StoreFailure>;
+    readonly findByShaarliHash: (
+        hash: string,
+    ) => Effect.Effect<Bookmark | null, D1StoreFailure>;
+    readonly findByShortUrl: (
+        shortUrl: string,
+    ) => Effect.Effect<Bookmark | null, D1StoreFailure>;
+    readonly list: (input: {
+        readonly page: number;
+        readonly perPage: number;
+        readonly query?: string;
+    }) => Effect.Effect<BookmarkPage, D1StoreFailure>;
+    readonly remove: (
+        shortUrl: string,
+    ) => Effect.Effect<boolean, D1StoreFailure>;
+    readonly update: (
+        input: UpdateBookmarkInput,
+    ) => Effect.Effect<
+        Bookmark,
+        BookmarkNotFoundError | DuplicateBookmarkError | D1StoreFailure
+    >;
+}
+
+export class BookmarkRepository extends Context.Service<
+    BookmarkRepository,
+    BookmarkRepositoryShape
+>()('@gongyu/data/BookmarkRepository') {}
+
+function randomShortUrl(): string {
+    const result: string[] = [];
+    while (result.length < 8) {
+        const bytes = crypto.getRandomValues(new Uint8Array(8));
+        for (const byte of bytes) {
+            if (byte >= SHORT_URL_RANDOM_CEILING) {
+                continue;
+            }
+            result.push(
+                SHORT_URL_ALPHABET[byte % SHORT_URL_ALPHABET.length] ?? '0',
+            );
+            if (result.length === 8) {
+                break;
+            }
+        }
+    }
+    return result.join('');
+}
+
+function bookmarkProjection(): string {
+    return `
+        SELECT
+            id,
+            short_url AS "shortUrl",
+            shaarli_short_url AS "shaarliShortUrl",
+            url,
+            title,
+            description,
+            thumbnail_url AS "thumbnailUrl",
+            thumbnail_key AS "thumbnailKey",
+            deletion_state AS "deletionState",
+            created_at AS "createdAt",
+            updated_at AS "updatedAt"
+        FROM bookmarks
+    `;
+}
+
+function makeFtsQuery(query: string): string {
+    return query
+        .trim()
+        .split(/\s+/u)
+        .filter((part) => part.length > 0)
+        .map((part) => `"${part.replaceAll('"', '""')}"`)
+        .join(' AND ');
+}
+
+export function makeBookmarkRepository(
+    d1Store: D1Store['Service'],
+): BookmarkRepositoryShape {
+    const findByShortUrl = Effect.fn('BookmarkRepository.findByShortUrl')(
+        (shortUrl: string) =>
+            d1Store.first(
+                Bookmark,
+                `${bookmarkProjection()}
+                 WHERE short_url = ? AND deletion_state = 'active'`,
+                [shortUrl],
+            ),
+    );
+
+    const findByShaarliHash = Effect.fn('BookmarkRepository.findByShaarliHash')(
+        (hash: string) =>
+            d1Store.first(
+                Bookmark,
+                `${bookmarkProjection()}
+                 WHERE shaarli_short_url = ? AND deletion_state = 'active'`,
+                [hash],
+            ),
+    );
+
+    const create = Effect.fn('BookmarkRepository.create')(function* (
+        input: CreateBookmarkInput,
+    ) {
+        const duplicate = yield* d1Store.first(
+            CountRow,
+            'SELECT COUNT(*) AS count FROM bookmarks WHERE url = ?',
+            [input.url],
+        );
+        if ((duplicate?.count ?? 0) > 0) {
+            return yield* DuplicateBookmarkError.make({ url: input.url });
+        }
+
+        let shortUrl = '';
+        for (let attempt = 0; attempt < 8; attempt += 1) {
+            const candidate = randomShortUrl();
+            const existing = yield* d1Store.first(
+                CountRow,
+                'SELECT COUNT(*) AS count FROM bookmarks WHERE short_url = ?',
+                [candidate],
+            );
+            if ((existing?.count ?? 0) === 0) {
+                shortUrl = candidate;
+                break;
+            }
+        }
+        if (shortUrl === '') {
+            return yield* Effect.die(
+                new Error('Unable to allocate a unique bookmark short URL.'),
+            );
+        }
+
+        const outboxId = `metadata:${shortUrl}:1`;
+        yield* d1Store.batch([
+            {
+                sql: `
+                    INSERT INTO bookmarks (
+                        short_url,
+                        url,
+                        title,
+                        description,
+                        created_at,
+                        updated_at
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?)
+                `,
+                parameters: [
+                    shortUrl,
+                    input.url,
+                    input.title,
+                    input.description,
+                    input.createdAt,
+                    input.createdAt,
+                ],
+            },
+            {
+                sql: `
+                    INSERT INTO outbox (
+                        id,
+                        bookmark_short_url,
+                        kind,
+                        state,
+                        payload_version,
+                        created_at,
+                        updated_at
+                    )
+                    VALUES (?, ?, 'metadata', 'pending', 1, ?, ?)
+                `,
+                parameters: [
+                    outboxId,
+                    shortUrl,
+                    input.createdAt,
+                    input.createdAt,
+                ],
+            },
+        ]);
+
+        const bookmark = yield* findByShortUrl(shortUrl);
+        if (bookmark === null) {
+            return yield* Effect.die(
+                new Error('Created bookmark could not be loaded.'),
+            );
+        }
+        return bookmark;
+    });
+
+    const update = Effect.fn('BookmarkRepository.update')(function* (
+        input: UpdateBookmarkInput,
+    ) {
+        const duplicate = yield* d1Store.first(
+            CountRow,
+            `
+                SELECT COUNT(*) AS count
+                FROM bookmarks
+                WHERE url = ? AND short_url <> ?
+            `,
+            [input.url, input.shortUrl],
+        );
+        if ((duplicate?.count ?? 0) > 0) {
+            return yield* DuplicateBookmarkError.make({ url: input.url });
+        }
+
+        const result = yield* d1Store.run(
+            `
+                UPDATE bookmarks
+                SET url = ?, title = ?, description = ?, updated_at = ?
+                WHERE short_url = ? AND deletion_state = 'active'
+            `,
+            [
+                input.url,
+                input.title,
+                input.description,
+                input.updatedAt,
+                input.shortUrl,
+            ],
+        );
+        if (result.changes === 0) {
+            return yield* BookmarkNotFoundError.make({
+                shortUrl: input.shortUrl,
+            });
+        }
+
+        const bookmark = yield* findByShortUrl(input.shortUrl);
+        if (bookmark === null) {
+            return yield* Effect.die(
+                new Error('Updated bookmark could not be loaded.'),
+            );
+        }
+        return bookmark;
+    });
+
+    const list = Effect.fn('BookmarkRepository.list')(function* (input: {
+        readonly page: number;
+        readonly perPage: number;
+        readonly query?: string;
+    }) {
+        const page = Math.max(1, Math.floor(input.page));
+        const perPage = Math.min(100, Math.max(1, Math.floor(input.perPage)));
+        const offset = (page - 1) * perPage;
+        const query = input.query?.trim() ?? '';
+
+        if (query === '') {
+            const [count, rows] = yield* Effect.all([
+                d1Store.first(
+                    CountRow,
+                    `
+                        SELECT COUNT(*) AS count
+                        FROM bookmarks
+                        WHERE deletion_state = 'active'
+                    `,
+                ),
+                d1Store.query(
+                    Bookmark,
+                    `${bookmarkProjection()}
+                     WHERE deletion_state = 'active'
+                     ORDER BY created_at DESC, id DESC
+                     LIMIT ? OFFSET ?`,
+                    [perPage, offset],
+                ),
+            ]);
+            const total = count?.count ?? 0;
+            return BookmarkPage.make({
+                bookmarks: rows.rows,
+                page,
+                pageCount: Math.max(1, Math.ceil(total / perPage)),
+                perPage,
+                total,
+            });
+        }
+
+        const ftsQuery = makeFtsQuery(query);
+        const count = yield* d1Store.first(
+            CountRow,
+            `
+                SELECT COUNT(*) AS count
+                FROM bookmarks_fts
+                JOIN bookmarks AS b ON b.id = bookmarks_fts.rowid
+                WHERE bookmarks_fts MATCH ?
+                  AND b.deletion_state = 'active'
+            `,
+            [ftsQuery],
+        );
+        const rows = yield* d1Store.query(
+            Bookmark,
+            `
+                SELECT
+                    b.id,
+                    b.short_url AS "shortUrl",
+                    b.shaarli_short_url AS "shaarliShortUrl",
+                    b.url,
+                    b.title,
+                    b.description,
+                    b.thumbnail_url AS "thumbnailUrl",
+                    b.thumbnail_key AS "thumbnailKey",
+                    b.deletion_state AS "deletionState",
+                    b.created_at AS "createdAt",
+                    b.updated_at AS "updatedAt"
+                FROM bookmarks_fts
+                JOIN bookmarks AS b ON b.id = bookmarks_fts.rowid
+                WHERE bookmarks_fts MATCH ?
+                  AND b.deletion_state = 'active'
+                ORDER BY bm25(bookmarks_fts), b.created_at DESC, b.id DESC
+                LIMIT ? OFFSET ?
+            `,
+            [ftsQuery, perPage, offset],
+        );
+        const total = count?.count ?? 0;
+        return BookmarkPage.make({
+            bookmarks: rows.rows,
+            page,
+            pageCount: Math.max(1, Math.ceil(total / perPage)),
+            perPage,
+            total,
+        });
+    });
+
+    const remove = Effect.fn('BookmarkRepository.remove')(function* (
+        shortUrl: string,
+    ) {
+        const bookmark = yield* findByShortUrl(shortUrl);
+        if (bookmark === null) {
+            return false;
+        }
+        if (bookmark.thumbnailKey === null) {
+            const result = yield* d1Store.run(
+                'DELETE FROM bookmarks WHERE short_url = ?',
+                [shortUrl],
+            );
+            return result.changes > 0;
+        }
+
+        const now = Date.now() * 1_000;
+        yield* d1Store.batch([
+            {
+                sql: `
+                    UPDATE bookmarks
+                    SET deletion_state = 'pending', updated_at = ?
+                    WHERE short_url = ? AND deletion_state = 'active'
+                `,
+                parameters: [now, shortUrl],
+            },
+            {
+                sql: `
+                    INSERT INTO outbox (
+                        id,
+                        bookmark_short_url,
+                        kind,
+                        state,
+                        payload_version,
+                        created_at,
+                        updated_at
+                    )
+                    VALUES (?, ?, 'thumbnail_delete', 'pending', 1, ?, ?)
+                `,
+                parameters: [
+                    `thumbnail-delete:${shortUrl}:1`,
+                    shortUrl,
+                    now,
+                    now,
+                ],
+            },
+        ]);
+        return true;
+    });
+
+    const claimOutbox = Effect.fn('BookmarkRepository.claimOutbox')(
+        (input: {
+            readonly id: string;
+            readonly leaseDurationMs: number;
+            readonly now: number;
+            readonly token: string;
+        }) =>
+            d1Store.first(
+                OutboxLease,
+                `
+                    UPDATE outbox
+                    SET
+                        state = 'claimed',
+                        claim_token = ?,
+                        lease_expires_at = ?,
+                        attempts = attempts + 1,
+                        updated_at = ?
+                    WHERE id = ?
+                      AND (
+                        state = 'pending'
+                        OR (state = 'claimed' AND lease_expires_at <= ?)
+                      )
+                    RETURNING
+                        id,
+                        bookmark_short_url AS "bookmarkShortUrl",
+                        kind,
+                        lease_expires_at AS "leaseExpiresAt",
+                        attempts,
+                        payload_version AS "payloadVersion"
+                `,
+                [
+                    input.token,
+                    input.now + input.leaseDurationMs,
+                    input.now,
+                    input.id,
+                    input.now,
+                ],
+            ),
+    );
+
+    const completeOutbox = Effect.fn('BookmarkRepository.completeOutbox')(
+        function* (input: {
+            readonly completedAt: number;
+            readonly id: string;
+            readonly token: string;
+        }) {
+            const result = yield* d1Store.run(
+                `
+                    UPDATE outbox
+                    SET
+                        state = 'completed',
+                        claim_token = NULL,
+                        lease_expires_at = NULL,
+                        updated_at = ?
+                    WHERE id = ?
+                      AND state = 'claimed'
+                      AND claim_token = ?
+                `,
+                [input.completedAt, input.id, input.token],
+            );
+            return result.changes === 1;
+        },
+    );
+
+    return {
+        claimOutbox,
+        completeOutbox,
+        create,
+        findByShaarliHash,
+        findByShortUrl,
+        list,
+        remove,
+        update,
+    };
+}

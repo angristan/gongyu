@@ -34,6 +34,7 @@ class CountRow extends Schema.Class<CountRow>('CountRow')({
 
 class ChallengeRow extends Schema.Class<ChallengeRow>('ChallengeRow')({
     challenge: Schema.String,
+    registrationMode: Schema.NullOr(Schema.String),
     userId: Schema.String,
 }) {}
 
@@ -73,11 +74,11 @@ function makePasskeyError(
     });
 }
 
-const hasPasskey = Effect.fn('Passkey.hasPasskey')(function* () {
+export const hasPasskey = Effect.fn('Passkey.hasPasskey')(function* () {
     const d1Store = yield* D1Store;
     const row = yield* d1Store.first(
         CountRow,
-        'SELECT COUNT(*) AS count FROM phase0_passkey',
+        'SELECT COUNT(*) AS count FROM passkeys',
     );
     return (row?.count ?? 0) > 0;
 });
@@ -97,7 +98,7 @@ const loadPasskey = Effect.fn('Passkey.loadPasskey')(function* (
                 transports_json AS "transportsJson",
                 credential_device_type AS "credentialDeviceType",
                 credential_backed_up AS "credentialBackedUp"
-            FROM phase0_passkey
+            FROM passkeys
             WHERE singleton_id = 1
               AND (? IS NULL OR credential_id = ?)
         `,
@@ -121,23 +122,26 @@ const storeChallenge = Effect.fn('Passkey.storeChallenge')(function* (input: {
     readonly challenge: string;
     readonly expiresAt: number;
     readonly id: string;
+    readonly registrationMode?: 'replacement' | 'setup';
     readonly userId: string;
 }) {
     const d1Store = yield* D1Store;
     yield* d1Store.run(
         `
-            INSERT INTO phase0_webauthn_challenges (
+            INSERT INTO webauthn_challenges (
                 id,
                 ceremony,
+                registration_mode,
                 challenge,
                 user_id,
                 expires_at
             )
-            VALUES (?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?)
         `,
         [
             input.id,
             input.ceremony,
+            input.registrationMode ?? null,
             input.challenge,
             input.userId,
             input.expiresAt,
@@ -155,7 +159,7 @@ const consumeChallenge = Effect.fn('Passkey.consumeChallenge')(
         const row = yield* d1Store.first(
             ChallengeRow,
             `
-                UPDATE phase0_webauthn_challenges
+                UPDATE webauthn_challenges
                 SET consumed_at = ?
                 WHERE id = ?
                   AND ceremony = ?
@@ -163,6 +167,7 @@ const consumeChallenge = Effect.fn('Passkey.consumeChallenge')(
                   AND expires_at > ?
                 RETURNING
                     challenge,
+                    registration_mode AS "registrationMode",
                     user_id AS "userId"
             `,
             [input.now, input.id, input.ceremony, input.now],
@@ -182,8 +187,12 @@ const consumeChallenge = Effect.fn('Passkey.consumeChallenge')(
 );
 
 export const beginRegistration = Effect.fn('Passkey.beginRegistration')(
-    function* (configuration: PasskeyConfiguration) {
-        if (yield* hasPasskey()) {
+    function* (
+        configuration: PasskeyConfiguration,
+        registrationMode: 'replacement' | 'setup' = 'setup',
+    ) {
+        const registered = yield* hasPasskey();
+        if (registrationMode === 'setup' && registered) {
             return yield* Effect.fail(
                 makePasskeyError(
                     'already_registered',
@@ -191,10 +200,21 @@ export const beginRegistration = Effect.fn('Passkey.beginRegistration')(
                 ),
             );
         }
+        if (registrationMode === 'replacement' && !registered) {
+            return yield* Effect.fail(
+                makePasskeyError(
+                    'not_registered',
+                    'No passkey is available to replace.',
+                ),
+            );
+        }
 
         const now = yield* Clock.currentTimeMillis;
         const ceremonyId = crypto.randomUUID();
-        const userId = crypto.randomUUID();
+        const userId =
+            registrationMode === 'replacement'
+                ? (yield* loadPasskey()).userId
+                : crypto.randomUUID();
         const options = yield* Effect.tryPromise({
             try: () =>
                 generateRegistrationOptions({
@@ -223,6 +243,7 @@ export const beginRegistration = Effect.fn('Passkey.beginRegistration')(
             challenge: options.challenge,
             expiresAt: now + CHALLENGE_TTL_MS,
             id: ceremonyId,
+            registrationMode,
             userId,
         });
 
@@ -278,34 +299,80 @@ export const finishRegistration = Effect.fn('Passkey.finishRegistration')(
         const { credential, credentialBackedUp, credentialDeviceType } =
             verification.registrationInfo;
         const d1Store = yield* D1Store;
-        yield* d1Store.run(
-            `
-                INSERT INTO phase0_passkey (
-                    singleton_id,
-                    user_id,
-                    credential_id,
-                    public_key,
-                    counter,
-                    transports_json,
-                    credential_device_type,
-                    credential_backed_up,
-                    created_at
+        const credentialValues = [
+            challenge.userId,
+            credential.id,
+            credential.publicKey,
+            credential.counter,
+            JSON.stringify(credential.transports ?? []),
+            credentialDeviceType,
+            credentialBackedUp ? 1 : 0,
+            now,
+        ];
+        if (challenge.registrationMode === 'replacement') {
+            const result = yield* d1Store.run(
+                `
+                    UPDATE passkeys
+                    SET
+                        user_id = ?,
+                        credential_id = ?,
+                        public_key = ?,
+                        counter = ?,
+                        transports_json = ?,
+                        credential_device_type = ?,
+                        credential_backed_up = ?,
+                        created_at = ?,
+                        last_used_at = NULL
+                    WHERE singleton_id = 1
+                `,
+                credentialValues,
+            );
+            if (result.changes !== 1) {
+                return yield* Effect.fail(
+                    makePasskeyError(
+                        'not_registered',
+                        'No passkey is available to replace.',
+                    ),
+                );
+            }
+        } else {
+            yield* d1Store
+                .run(
+                    `
+                        INSERT INTO passkeys (
+                            singleton_id,
+                            user_id,
+                            credential_id,
+                            public_key,
+                            counter,
+                            transports_json,
+                            credential_device_type,
+                            credential_backed_up,
+                            created_at
+                        )
+                        VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?)
+                    `,
+                    credentialValues,
                 )
-                VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?)
-            `,
-            [
-                challenge.userId,
-                credential.id,
-                credential.publicKey,
-                credential.counter,
-                JSON.stringify(credential.transports ?? []),
-                credentialDeviceType,
-                credentialBackedUp ? 1 : 0,
-                now,
-            ],
-        );
+                .pipe(
+                    Effect.mapError((error) =>
+                        error.message.includes('UNIQUE constraint failed')
+                            ? makePasskeyError(
+                                  'already_registered',
+                                  'A passkey is already registered.',
+                              )
+                            : error,
+                    ),
+                );
+        }
 
-        return { verified: true as const };
+        return {
+            registrationMode:
+                challenge.registrationMode === 'replacement'
+                    ? 'replacement'
+                    : 'setup',
+            verified: true,
+        };
     },
 );
 
@@ -338,6 +405,28 @@ export const beginAuthentication = Effect.fn('Passkey.beginAuthentication')(
         });
 
         return { ceremonyId, options };
+    },
+);
+
+export const recoverAdministrator = Effect.fn('Passkey.recoverAdministrator')(
+    function* (input: { readonly now: number; readonly requestId: string }) {
+        const d1Store = yield* D1Store;
+        yield* d1Store.batch([
+            { sql: 'DELETE FROM sessions' },
+            { sql: 'DELETE FROM webauthn_challenges' },
+            { sql: 'DELETE FROM passkeys' },
+            {
+                sql: `
+                    INSERT INTO audit_log (id, event, occurred_at, details_json)
+                    VALUES (?, 'administrator_recovered', ?, ?)
+                `,
+                parameters: [
+                    crypto.randomUUID(),
+                    input.now,
+                    JSON.stringify({ requestId: input.requestId }),
+                ],
+            },
+        ]);
     },
 );
 
@@ -383,6 +472,15 @@ export const finishAuthentication = Effect.fn('Passkey.finishAuthentication')(
                       ),
             ),
         );
+        const { userHandle, ...authenticationResponseFields } =
+            request.response.response;
+        const authenticationResponse = {
+            ...request.response,
+            response:
+                userHandle === null || userHandle === undefined
+                    ? authenticationResponseFields
+                    : { ...authenticationResponseFields, userHandle },
+        };
         const verification = yield* Effect.tryPromise({
             try: () =>
                 verifyAuthenticationResponse({
@@ -396,7 +494,7 @@ export const finishAuthentication = Effect.fn('Passkey.finishAuthentication')(
                     expectedOrigin: configuration.origin,
                     expectedRPID: configuration.rpId,
                     requireUserVerification: true,
-                    response: request.response,
+                    response: authenticationResponse,
                 }),
             catch: (cause) =>
                 makePasskeyError(
@@ -418,7 +516,7 @@ export const finishAuthentication = Effect.fn('Passkey.finishAuthentication')(
         const d1Store = yield* D1Store;
         const meta = yield* d1Store.run(
             `
-                UPDATE phase0_passkey
+                UPDATE passkeys
                 SET
                     counter = ?,
                     credential_device_type = ?,

@@ -118,8 +118,8 @@ test('renders the SSR shell and persists hydrated theme changes', async ({
     expect(response.headers()['x-request-id']).toBeTruthy();
     const html = await response.text();
     expect(html).toContain('<html lang="en" data-mode="light">');
-    expect(html).toContain('Gongyu on Cloudflare');
-    expect(html).toContain('first-unconstrained');
+    expect(html).toContain('Personal bookmarks');
+    expect(html).toContain('No bookmarks found.');
 
     const healthResponse = await request.get('/health');
     expect(healthResponse.status()).toBe(200);
@@ -132,18 +132,27 @@ test('renders the SSR shell and persists hydrated theme changes', async ({
 
     await page.goto('/');
     await expect(
-        page.getByRole('heading', { name: 'Gongyu on Cloudflare' }),
+        page.getByRole('heading', { name: 'Gongyu', exact: true }),
     ).toBeVisible();
-    await page.getByRole('button', { name: 'Use dark mode' }).click();
-    await expect(page.locator('html')).toHaveAttribute('data-mode', 'dark');
+    await page.evaluate(async () => {
+        await fetch('/theme', {
+            body: 'mode=dark&returnTo=%2F',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            method: 'POST',
+        });
+    });
     await page.reload();
     await expect(page.locator('html')).toHaveAttribute('data-mode', 'dark');
 });
 
-test('enforces one discoverable passkey and updates its counter', async ({
+test('sets up one passkey, rotates sessions, and logs in', async ({
     context,
     page,
 }) => {
+    test.skip(
+        process.env.STAGING_BASE_URL !== undefined,
+        'Shared staging passkeys must not be modified by automation.',
+    );
     const client = await context.newCDPSession(page);
     await client.send('WebAuthn.enable');
     const { authenticatorId } = await client.send(
@@ -160,7 +169,10 @@ test('enforces one discoverable passkey and updates its counter', async ({
         },
     );
 
-    await page.goto('/passkey');
+    await page.goto('/setup');
+    await page
+        .getByLabel('Bootstrap token')
+        .fill('local-development-bootstrap-token');
     await page.route(
         '**/api/passkey/registration/verify',
         async (route) => {
@@ -198,7 +210,9 @@ test('enforces one discoverable passkey and updates its counter', async ({
         },
         { times: 1 },
     );
-    await page.getByRole('button', { name: 'Register passkey' }).click();
+    await page
+        .getByRole('button', { name: 'Register administrator passkey' })
+        .click();
     await expect(
         page.getByText('Passkey registration could not be verified.'),
     ).toBeVisible();
@@ -212,15 +226,26 @@ test('enforces one discoverable passkey and updates its counter', async ({
         });
     }
 
-    await page.getByRole('button', { name: 'Register passkey' }).click();
+    await page
+        .getByRole('button', { name: 'Register administrator passkey' })
+        .click();
+    await expect(page).toHaveURL(/\/admin\/bookmarks$/u);
     await expect(
-        page.getByText('Passkey registered successfully.'),
+        page.getByRole('heading', { name: 'Bookmarks' }),
     ).toBeVisible();
+    expect(
+        (await context.cookies()).find(
+            (cookie) => cookie.name === '__Host-gongyu-session',
+        )?.httpOnly,
+    ).toBe(true);
+    expect(
+        (await context.request.get('/admin/bookmarks')).headers()[
+            'cache-control'
+        ],
+    ).toBe('private, no-store');
 
-    await page.getByRole('button', { name: 'Register passkey' }).click();
-    await expect(
-        page.getByText('A passkey is already registered.'),
-    ).toBeVisible();
+    await page.getByRole('button', { name: 'Sign out' }).click();
+    await expect(page).toHaveURL(/\/login$/u);
 
     await page.route(
         '**/api/passkey/authentication/verify',
@@ -244,21 +269,44 @@ test('enforces one discoverable passkey and updates its counter', async ({
         },
         { times: 1 },
     );
-    await page.getByRole('button', { name: 'Authenticate' }).click();
+    await page.getByRole('button', { name: 'Sign in with passkey' }).click();
     await expect(
         page.getByText('No matching passkey is registered.'),
     ).toBeVisible();
 
-    await page.getByRole('button', { name: 'Authenticate' }).click();
+    await page.getByRole('button', { name: 'Sign in with passkey' }).click();
+    await expect(page).toHaveURL(/\/admin\/bookmarks$/u);
+
+    await page.getByRole('link', { name: 'New bookmark' }).click();
+    await page.getByLabel('URL').fill('https://example.com/phase-two');
+    await page.getByLabel('Title').fill('Phase Two Bookmark');
+    await page.getByLabel('Description').fill('Searchable Cloudflare notes');
+    await page.getByRole('button', { name: 'Save bookmark' }).click();
+    await expect(page).toHaveURL(/\/admin\/bookmarks$/u);
+    await expect(page.getByText('Phase Two Bookmark')).toBeVisible();
+
+    await page.goto('/?q=cloudflare');
+    await expect(page.getByText('Phase Two Bookmark')).toBeVisible();
+    await page.getByRole('link', { name: 'Phase Two Bookmark' }).click();
     await expect(
-        page.getByText('Passkey authentication succeeded.'),
+        page.getByRole('heading', { name: 'Phase Two Bookmark' }),
     ).toBeVisible();
+
+    await page.goto('/admin/bookmarks');
+    await page.getByRole('link', { name: 'Edit' }).click();
+    await page.getByLabel('Title').fill('Updated Phase Two Bookmark');
+    await page.getByRole('button', { name: 'Save changes' }).click();
+    await expect(page.getByText('Updated Phase Two Bookmark')).toBeVisible();
+    await page.getByRole('link', { name: 'Edit' }).click();
+    await page
+        .getByLabel('Type DELETE to permanently remove this bookmark')
+        .fill('DELETE');
+    await page.getByRole('button', { name: 'Delete bookmark' }).click();
+    await expect(page.getByText('Updated Phase Two Bookmark')).toHaveCount(0);
 
     const { stdout } = await execute(
         'bunx',
-        d1Arguments(
-            'SELECT counter, last_used_at AS lastUsedAt FROM phase0_passkey',
-        ),
+        d1Arguments('SELECT counter, last_used_at AS lastUsedAt FROM passkeys'),
     );
     const query = await Schema.decodeUnknownPromise(D1QueryResult)(
         JSON.parse(stdout),
@@ -266,6 +314,46 @@ test('enforces one discoverable passkey and updates its counter', async ({
     expect(query[0]?.success).toBe(true);
     expect(query[0]?.results[0]?.counter).toBeGreaterThan(0);
     expect(query[0]?.results[0]?.lastUsedAt).toBeGreaterThan(0);
+
+    const credentialsBeforeReplacement = (
+        await client.send('WebAuthn.getCredentials', { authenticatorId })
+    ).credentials;
+    const oldCredentialId = credentialsBeforeReplacement[0]?.credentialId;
+    expect(oldCredentialId).toBeTruthy();
+    const sessionBeforeReplacement = (await context.cookies()).find(
+        (cookie) => cookie.name === '__Host-gongyu-session',
+    )?.value;
+    await page.goto('/admin/security');
+    await page.waitForFunction(
+        () => document.querySelector('button')?.onclick !== null,
+    );
+    await page.getByRole('button', { name: 'Replace passkey' }).click();
+    await expect
+        .poll(
+            async () =>
+                (await context.cookies()).find(
+                    (cookie) => cookie.name === '__Host-gongyu-session',
+                )?.value,
+        )
+        .not.toBe(sessionBeforeReplacement);
+    const credentialsAfterReplacement = (
+        await client.send('WebAuthn.getCredentials', { authenticatorId })
+    ).credentials;
+    const replacement = credentialsAfterReplacement.find(
+        (credential) => credential.credentialId !== oldCredentialId,
+    );
+    expect(replacement).toBeTruthy();
+
+    await page.goto('/admin/bookmarks');
+    await page.getByRole('button', { name: 'Sign out' }).click();
+    if (replacement !== undefined) {
+        await client.send('WebAuthn.removeCredential', {
+            authenticatorId,
+            credentialId: replacement.credentialId,
+        });
+    }
+    await page.getByRole('button', { name: 'Sign in with passkey' }).click();
+    await expect(page.getByText(/timed out or was not allowed/u)).toBeVisible();
 });
 
 test('streams an R2 upload into a version 1 Workflow', async ({ request }) => {

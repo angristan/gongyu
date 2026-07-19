@@ -3,10 +3,12 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./bookmark-repository": "./src/bookmark-repository.ts",
     "./d1-store": "./src/d1-store.ts",
     "./phase0-repository": "./src/phase0-repository.ts"
   },
   "dependencies": {
+    "@gongyu/domain": "workspace:*",
     "effect": "4.0.0-beta.97"
   }
 }

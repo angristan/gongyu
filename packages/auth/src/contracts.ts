@@ -82,6 +82,21 @@ export class RegistrationResponse extends Schema.Class<RegistrationResponse>(
     response: Schema.Struct({
         attestationObject: Schema.String,
         clientDataJSON: Schema.String,
+        transports: Schema.optionalKey(
+            Schema.mutable(
+                Schema.Array(
+                    Schema.Union([
+                        Schema.Literal('ble'),
+                        Schema.Literal('cable'),
+                        Schema.Literal('hybrid'),
+                        Schema.Literal('internal'),
+                        Schema.Literal('nfc'),
+                        Schema.Literal('smart-card'),
+                        Schema.Literal('usb'),
+                    ]),
+                ),
+            ),
+        ),
     }),
     type: PublicKeyCredentialType,
 }) {}
@@ -97,7 +112,7 @@ export class AuthenticationResponse extends Schema.Class<AuthenticationResponse>
         authenticatorData: Schema.String,
         clientDataJSON: Schema.String,
         signature: Schema.String,
-        userHandle: Schema.optionalKey(Schema.String),
+        userHandle: Schema.optionalKey(Schema.NullOr(Schema.String)),
     }),
     type: PublicKeyCredentialType,
 }) {}

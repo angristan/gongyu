@@ -1,6 +1,12 @@
 import { PasskeyError } from '@gongyu/auth/service';
+import { SessionService } from '@gongyu/auth/session-service';
 import { D1DecodeError, D1StoreError } from '@gongyu/data/d1-store';
 import { Effect } from 'effect';
+import {
+    type AuthenticationState,
+    appendSessionCookies,
+} from '../auth/session.server';
+import { failure, success } from '../effect/result';
 import type { RequestEffectRunner, RequestServices } from '../effect/runtime';
 
 interface ErrorResponse {
@@ -67,6 +73,48 @@ export async function runPasskeyJson<A, E>(
     }
 
     return Response.json(result.value);
+}
+
+export async function runPasskeySessionJson<A, E>(
+    runner: RequestEffectRunner,
+    authentication: AuthenticationState,
+    program: Effect.Effect<A, E, RequestServices>,
+): Promise<Response> {
+    const result = await runner.runPromise(
+        Effect.gen(function* () {
+            const value = yield* program;
+            const sessions = yield* SessionService;
+            if (authentication.authenticated) {
+                yield* sessions.invalidate(authentication.sessionToken);
+            }
+            const session = yield* sessions.create(Date.now());
+            return { session, value };
+        }).pipe(
+            Effect.match({
+                onFailure: (error) => failure(describeError(error)),
+                onSuccess: success,
+            }),
+        ),
+    );
+
+    if (!result.ok) {
+        return Response.json(
+            {
+                error: {
+                    code: result.error.code,
+                    message: result.error.message,
+                },
+            },
+            { status: result.error.status },
+        );
+    }
+
+    const headers = new Headers({
+        'Cache-Control': 'private, no-store',
+        'Content-Type': 'application/json',
+    });
+    appendSessionCookies(headers, result.value.session);
+    return new Response(JSON.stringify(result.value.value), { headers });
 }
 
 export async function readRequestJson(request: Request): Promise<unknown> {

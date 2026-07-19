@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./bookmarks": "./src/bookmarks.ts",
     "./health": "./src/health.ts",
     "./workflows": "./src/workflows.ts"
   },

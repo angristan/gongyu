@@ -1,3 +1,11 @@
+import {
+    makeSessionService,
+    SessionService,
+} from '@gongyu/auth/session-service';
+import {
+    BookmarkRepository,
+    makeBookmarkRepository,
+} from '@gongyu/data/bookmark-repository';
 import { D1Store, makeD1Store } from '@gongyu/data/d1-store';
 import { makeR2Store, R2Store } from '@gongyu/integrations/r2-store';
 import { Context, Effect, Logger, ManagedRuntime } from 'effect';
@@ -12,7 +20,12 @@ export class RequestInfo extends Context.Service<
     RequestInfoShape
 >()('@gongyu/runtime/RequestInfo') {}
 
-export type RequestServices = D1Store | R2Store | RequestInfo;
+export type RequestServices =
+    | BookmarkRepository
+    | D1Store
+    | R2Store
+    | RequestInfo
+    | SessionService;
 
 export interface RequestEffectRunner {
     readonly runPromise: <A, E>(
@@ -30,7 +43,11 @@ export function makeRequestEffectRunner(options: {
 }): RequestEffectRunner {
     const session = options.database.withSession(options.sessionConstraint);
     const d1Store = makeD1Store(session);
+    const bookmarkRepository = BookmarkRepository.of(
+        makeBookmarkRepository(d1Store),
+    );
     const r2Store = makeR2Store(options.bucket);
+    const sessionService = SessionService.of(makeSessionService(d1Store));
     const requestInfo = RequestInfo.of({
         requestId: options.requestId,
         sessionConstraint: options.sessionConstraint,
@@ -45,8 +62,10 @@ export function makeRequestEffectRunner(options: {
                     requestId: options.requestId,
                     sessionConstraint: options.sessionConstraint,
                 }),
+                Effect.provideService(BookmarkRepository, bookmarkRepository),
                 Effect.provideService(D1Store, d1Store),
                 Effect.provideService(R2Store, r2Store),
+                Effect.provideService(SessionService, sessionService),
                 Effect.provideService(RequestInfo, requestInfo),
             ),
         );

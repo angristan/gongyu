@@ -4,7 +4,7 @@ import { PageShell } from '@gongyu/ui/page-shell';
 import { Form, Link } from 'react-router';
 import { loadPublicBookmarks } from '../bookmarks/public.server';
 import { cloudflareRequestContext } from '../platform-context';
-import type { Route } from './+types/home';
+import type { Route } from './+types/search';
 
 export function meta(): Route.MetaDescriptors {
     return [
