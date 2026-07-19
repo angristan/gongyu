@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./encryption": "./src/encryption.ts",
     "./r2-store": "./src/r2-store.ts"
   },
   "dependencies": {

@@ -27,6 +27,7 @@ export default {
                 const effect = makeRequestEffectRunner({
                     bucket: env.UPLOADS,
                     database: env.DB,
+                    encryptionKeyring: env.ENCRYPTION_KEYS,
                     requestId,
                     sessionConstraint,
                 });

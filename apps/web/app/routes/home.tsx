@@ -1,9 +1,10 @@
 import { Button } from '@cloudflare/kumo/components/button';
 import { LayerCard } from '@cloudflare/kumo/components/layer-card';
 import { PageShell } from '@gongyu/ui/page-shell';
-import { Form, Link } from 'react-router';
+import { Form, Link, useRouteLoaderData } from 'react-router';
 import { loadPublicBookmarks } from '../bookmarks/public.server';
 import { cloudflareRequestContext } from '../platform-context';
+import type { loader as rootLoader } from '../root';
 import type { Route } from './+types/home';
 
 export function meta(): Route.MetaDescriptors {
@@ -18,8 +19,18 @@ export async function loader({ context, request }: Route.LoaderArgs) {
     return loadPublicBookmarks(effect, request);
 }
 
+function formatDate(microseconds: number): string {
+    return new Intl.DateTimeFormat('en-US', {
+        dateStyle: 'medium',
+        timeZone: 'UTC',
+    }).format(new Date(microseconds / 1_000));
+}
+
 export default function Home({ loaderData }: Route.ComponentProps) {
     const { query, result } = loaderData;
+    const rootData = useRouteLoaderData<typeof rootLoader>('root');
+    const currentMode = rootData?.themeMode ?? 'light';
+    const nextMode = currentMode === 'light' ? 'dark' : 'light';
     return (
         <PageShell
             description={
@@ -28,6 +39,32 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                     : `${result.total} results for “${query}”.`
             }
             eyebrow="Personal bookmarks"
+            footer={
+                <div className="flex flex-wrap items-center gap-4">
+                    <Link className="text-kumo-link" to="/feed">
+                        Atom feed
+                    </Link>
+                    <Link
+                        className="text-kumo-link"
+                        to={
+                            rootData?.authenticated === true
+                                ? '/admin/dashboard'
+                                : '/login'
+                        }
+                    >
+                        {rootData?.authenticated === true
+                            ? 'Dashboard'
+                            : 'Administrator login'}
+                    </Link>
+                    <Form action="/theme" method="post">
+                        <input name="mode" type="hidden" value={nextMode} />
+                        <input name="returnTo" type="hidden" value="/" />
+                        <button className="text-kumo-link" type="submit">
+                            Use {nextMode} mode
+                        </button>
+                    </Form>
+                </div>
+            }
             title={query === '' ? 'Gongyu' : 'Search'}
             width="wide"
         >
@@ -48,7 +85,11 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 
             {result.bookmarks.length === 0 ? (
                 <LayerCard className="mt-6">
-                    <p className="p-6 text-kumo-subtle">No bookmarks found.</p>
+                    <p className="p-6 text-kumo-subtle">
+                        {query === ''
+                            ? 'No bookmarks have been saved yet.'
+                            : 'No bookmarks match this search.'}
+                    </p>
                 </LayerCard>
             ) : (
                 <ol className="mt-6 space-y-3">
@@ -57,25 +98,31 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                             <LayerCard>
                                 <article className="space-y-2 p-5">
                                     <h2 className="text-lg font-semibold text-kumo-default">
-                                        <Link
+                                        <a
                                             className="text-kumo-link"
-                                            to={`/b/${bookmark.shortUrl}`}
+                                            href={bookmark.url}
+                                            rel="noreferrer"
+                                            target="_blank"
                                         >
                                             {bookmark.title}
-                                        </Link>
+                                        </a>
                                     </h2>
                                     {bookmark.description === null ? null : (
                                         <p className="whitespace-pre-wrap text-sm text-kumo-subtle">
                                             {bookmark.description}
                                         </p>
                                     )}
-                                    <a
-                                        className="block truncate text-sm text-kumo-link"
-                                        href={bookmark.url}
-                                        rel="noreferrer"
-                                    >
-                                        {bookmark.url}
-                                    </a>
+                                    <div className="flex flex-wrap gap-x-3 text-sm text-kumo-subtle">
+                                        <span>
+                                            {new URL(bookmark.url).hostname}
+                                        </span>
+                                        <Link
+                                            className="text-kumo-link"
+                                            to={`/b/${bookmark.shortUrl}`}
+                                        >
+                                            {formatDate(bookmark.createdAt)}
+                                        </Link>
+                                    </div>
                                 </article>
                             </LayerCard>
                         </li>

@@ -44,6 +44,12 @@ export default function AdminBookmarks({ loaderData }: Route.ComponentProps) {
             eyebrow="Administrator"
             footer={
                 <div className="flex flex-wrap gap-4">
+                    <Link className="text-kumo-link" to="/admin/dashboard">
+                        Dashboard
+                    </Link>
+                    <Link className="text-kumo-link" to="/admin/settings">
+                        Settings
+                    </Link>
                     <Link className="text-kumo-link" to="/admin/security">
                         Security
                     </Link>
@@ -76,30 +82,64 @@ export default function AdminBookmarks({ loaderData }: Route.ComponentProps) {
                 </LinkButton>
             </div>
 
-            <ol className="mt-6 space-y-3">
-                {loaderData.result.bookmarks.map((bookmark) => (
-                    <li key={bookmark.id}>
-                        <LayerCard>
-                            <div className="flex items-start justify-between gap-4 p-5">
-                                <div className="min-w-0 space-y-1">
-                                    <h2 className="font-semibold text-kumo-default">
-                                        {bookmark.title}
-                                    </h2>
-                                    <p className="truncate text-sm text-kumo-subtle">
-                                        {bookmark.url}
-                                    </p>
+            {loaderData.result.bookmarks.length === 0 ? (
+                <LayerCard className="mt-6">
+                    <p className="p-6 text-kumo-subtle">No bookmarks found.</p>
+                </LayerCard>
+            ) : (
+                <ol className="mt-6 space-y-3">
+                    {loaderData.result.bookmarks.map((bookmark) => (
+                        <li key={bookmark.id}>
+                            <LayerCard>
+                                <div className="flex items-start justify-between gap-4 p-5">
+                                    <div className="min-w-0 space-y-1">
+                                        <h2 className="font-semibold text-kumo-default">
+                                            {bookmark.title}
+                                        </h2>
+                                        <p className="truncate text-sm text-kumo-subtle">
+                                            {bookmark.url}
+                                        </p>
+                                    </div>
+                                    <Link
+                                        className="shrink-0 text-kumo-link"
+                                        to={`/admin/bookmarks/${bookmark.shortUrl}/edit`}
+                                    >
+                                        Edit
+                                    </Link>
                                 </div>
-                                <Link
-                                    className="shrink-0 text-kumo-link"
-                                    to={`/admin/bookmarks/${bookmark.shortUrl}/edit`}
-                                >
-                                    Edit
-                                </Link>
-                            </div>
-                        </LayerCard>
-                    </li>
-                ))}
-            </ol>
+                            </LayerCard>
+                        </li>
+                    ))}
+                </ol>
+            )}
+
+            {loaderData.result.pageCount > 1 ? (
+                <nav
+                    aria-label="Bookmark pages"
+                    className="mt-6 flex items-center gap-4"
+                >
+                    {loaderData.result.page > 1 ? (
+                        <Link
+                            className="text-kumo-link"
+                            to={`?q=${encodeURIComponent(loaderData.query)}&page=${loaderData.result.page - 1}`}
+                        >
+                            Previous
+                        </Link>
+                    ) : null}
+                    <span className="text-sm text-kumo-subtle">
+                        Page {loaderData.result.page} of{' '}
+                        {loaderData.result.pageCount}
+                    </span>
+                    {loaderData.result.page < loaderData.result.pageCount ? (
+                        <Link
+                            className="text-kumo-link"
+                            to={`?q=${encodeURIComponent(loaderData.query)}&page=${loaderData.result.page + 1}`}
+                        >
+                            Next
+                        </Link>
+                    ) : null}
+                </nav>
+            ) : null}
         </PageShell>
     );
 }

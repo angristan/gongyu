@@ -13,6 +13,8 @@ function sessionProbe(constraint: D1SessionConstraint) {
     const runner = makeRequestEffectRunner({
         bucket: env.UPLOADS,
         database: env.DB,
+        encryptionKeyring:
+            '{"currentVersion":1,"keys":{"1":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="}}',
         requestId: `probe-${constraint}`,
         sessionConstraint: constraint,
     });

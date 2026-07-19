@@ -22,6 +22,7 @@ export function PageShell({
 }: PageShellProps) {
     return (
         <main
+            id="main-content"
             className={cn(
                 'gongyu-page-shell mx-auto flex min-h-screen flex-col justify-center gap-8 py-16',
                 width === 'wide'

@@ -239,6 +239,38 @@ it.layer(TestLayer)('production bookmark repository', (it) => {
             }),
     );
 
+    it.effect('supports configured feed sizes above one hundred', () =>
+        Effect.gen(function* () {
+            const bookmarks = yield* BookmarkRepository;
+            const d1Store = yield* D1Store;
+            yield* d1Store.run(`
+                WITH RECURSIVE sequence(value) AS (
+                    SELECT 1
+                    UNION ALL
+                    SELECT value + 1 FROM sequence WHERE value < 105
+                )
+                INSERT INTO bookmarks (
+                    short_url,
+                    url,
+                    title,
+                    description,
+                    created_at,
+                    updated_at
+                )
+                SELECT
+                    printf('F%07d', value),
+                    printf('https://feed.example/%d', value),
+                    printf('Feed bookmark %d', value),
+                    NULL,
+                    10000 + value,
+                    10000 + value
+                FROM sequence
+            `);
+            const feed = yield* bookmarks.listForFeed(101);
+            assert.strictEqual(feed.length, 101);
+        }),
+    );
+
     it.effect('removes unmirrored bookmarks from public reads and FTS', () =>
         Effect.gen(function* () {
             const bookmarks = yield* BookmarkRepository;
