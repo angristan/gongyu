@@ -258,7 +258,7 @@ export function makeDashboardRepository(
                     rightCount - leftCount ||
                     leftDomain.localeCompare(rightDomain),
             )
-            .slice(0, 10)
+            .slice(0, 5)
             .map(([domain, count]) =>
                 DashboardDomainCount.make({ count, domain }),
             );

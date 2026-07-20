@@ -134,6 +134,29 @@ it.layer(TestLayer)('dashboard repository', (it) => {
                     ),
                     4,
                 );
+
+                for (const domain of [
+                    'alpha.example',
+                    'beta.example',
+                    'delta.example',
+                    'gamma.example',
+                ]) {
+                    yield* bookmarks.create({
+                        createdAt: micros('2025-01-14T12:00:00.000Z'),
+                        description: null,
+                        title: domain,
+                        url: `https://${domain}/bookmark`,
+                    });
+                }
+                const rankedSources = yield* dashboard.load({
+                    now,
+                    period: 'all',
+                });
+                assert.strictEqual(rankedSources.bookmarksByDomain.length, 5);
+                assert.strictEqual(
+                    rankedSources.bookmarksByDomain[0]?.domain,
+                    'example.com',
+                );
             }),
     );
 });
