@@ -50,7 +50,7 @@ export function Layout({ children }: { readonly children: ReactNode }) {
         <html {...mantineHtmlProps} data-mode={themeMode} lang="en">
             <head>
                 <meta charSet="utf-8" />
-                <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+                <link rel="icon" href="/images/logo.png" type="image/png" />
                 <meta
                     name="viewport"
                     content="width=device-width, initial-scale=1"

@@ -9,7 +9,6 @@ import {
     MoonIcon,
     PlusIcon,
     QueueIcon,
-    RssSimpleIcon,
     ShieldCheckIcon,
     SignInIcon,
     SignOutIcon,
@@ -102,9 +101,11 @@ function isActive(pathname: string, item: NavigationItem): boolean {
 function Brand({
     compact = false,
     href = '/',
+    prominent = false,
 }: {
     readonly compact?: boolean;
     readonly href?: string;
+    readonly prominent?: boolean;
 }) {
     return (
         <Link
@@ -112,16 +113,33 @@ function Brand({
             className="group flex min-w-0 items-center gap-2.5 text-gongyu-default no-underline"
             to={href}
         >
-            <span className="gongyu-brand-mark flex size-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-white">
-                G
-            </span>
+            <img
+                alt=""
+                className={cn(
+                    'shrink-0 object-contain',
+                    prominent ? 'size-11' : 'size-9',
+                )}
+                height={prominent ? 44 : 36}
+                src="/images/logo.png"
+                width={prominent ? 44 : 36}
+            />
             {compact ? null : (
                 <span className="min-w-0 leading-tight">
-                    <span className="block truncate text-sm font-semibold tracking-[-0.01em]">
+                    <span
+                        className={cn(
+                            'block truncate font-semibold tracking-[-0.01em]',
+                            prominent ? 'text-lg' : 'text-sm',
+                        )}
+                    >
                         Gongyu
                     </span>
-                    <span className="mt-0.5 block truncate text-[11px] text-gongyu-subtle">
-                        Personal bookmarks
+                    <span
+                        className={cn(
+                            'mt-0.5 block truncate text-gongyu-subtle',
+                            prominent ? 'text-xs' : 'text-[11px]',
+                        )}
+                    >
+                        A simple bookmark manager
                     </span>
                 </span>
             )}
@@ -162,28 +180,13 @@ function PublicShell({
     const returnTo = `${location.pathname}${location.search}`;
     return (
         <div className="gongyu-public-app min-h-screen bg-gongyu-base">
-            <header className="sticky top-0 z-40 border-b border-gongyu-line bg-gongyu-base/95 backdrop-blur">
-                <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
-                    <Brand />
+            <header className="pt-5 sm:pt-6">
+                <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-4 sm:px-6">
+                    <Brand prominent />
                     <nav
                         aria-label="Public navigation"
                         className="flex items-center gap-1 sm:gap-2"
                     >
-                        <LinkButton
-                            className="hidden sm:inline-flex"
-                            href="/search"
-                            icon={ListMagnifyingGlassIcon}
-                            variant="ghost"
-                        >
-                            Search
-                        </LinkButton>
-                        <LinkButton
-                            aria-label="Atom feed"
-                            href="/feed"
-                            icon={RssSimpleIcon}
-                            shape="square"
-                            variant="ghost"
-                        />
                         <ThemeForm returnTo={returnTo} themeMode={themeMode} />
                         <LinkButton
                             href={authenticated ? '/admin/bookmarks' : '/login'}
@@ -200,8 +203,8 @@ function PublicShell({
                 </div>
             </header>
             {children}
-            <footer className="border-t border-gongyu-line px-4 py-5 text-xs text-gongyu-subtle sm:px-6 lg:px-8">
-                <div className="mx-auto flex max-w-7xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <footer className="px-4 pb-6 pt-3 text-xs text-gongyu-subtle sm:px-6">
+                <div className="mx-auto flex max-w-4xl flex-col gap-2 border-t border-gongyu-line pt-5 sm:flex-row sm:items-center sm:justify-between">
                     <p>Gongyu · a calm place for links worth keeping.</p>
                     <div className="flex items-center gap-4">
                         <Link className="text-gongyu-link" to="/search">
