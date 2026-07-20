@@ -87,13 +87,14 @@ Gongyu is deployed as two Cloudflare Workers backed by D1, R2, Queues, and Workf
 
 See [docs/self-hosting.md](docs/self-hosting.md) for resource provisioning, secrets, deployment, and updates.
 
-The repository's current remote environment is named `staging`:
+The repository has isolated `staging` and `production` environments:
 
 ```bash
 bun run deploy:staging
+bun run deploy:production
 ```
 
-This applies staging D1 migrations, deploys the jobs Worker, then builds and deploys the web Worker. Review the Wrangler resource names, IDs, hostnames, and secrets before using it for your own installation.
+Each command applies that environment's D1 migrations, deploys the jobs Worker, then builds and deploys the web Worker. Review the Wrangler resource names, IDs, hostnames, routes, and secrets before using either environment for your own installation.
 
 ## Public routes
 

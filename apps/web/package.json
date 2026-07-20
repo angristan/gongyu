@@ -4,9 +4,11 @@
   "type": "module",
   "scripts": {
     "build": "react-router build",
+    "build:production": "CLOUDFLARE_ENV=production react-router build",
     "build:staging": "CLOUDFLARE_ENV=staging react-router build",
     "cf-typegen": "wrangler types worker-configuration.d.ts",
     "check": "bun run typecheck && bun run build && wrangler deploy --dry-run",
+    "deploy:production": "bun run build:production && wrangler deploy --config build/server/wrangler.json",
     "deploy:staging": "bun run build:staging && wrangler deploy --config build/server/wrangler.json",
     "dev": "react-router dev",
     "preview": "bun run build && vite preview",
