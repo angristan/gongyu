@@ -4,6 +4,7 @@ import { Dialog } from '@cloudflare/kumo/components/dialog';
 import { Empty } from '@cloudflare/kumo/components/empty';
 import { LayerCard } from '@cloudflare/kumo/components/layer-card';
 import { Table } from '@cloudflare/kumo/components/table';
+import { cn } from '@cloudflare/kumo/utils';
 import { WorkRepository } from '@gongyu/data/work-repository';
 import {
     ArrowClockwiseIcon,
@@ -132,6 +133,49 @@ export async function action({ context, request }: Route.ActionArgs) {
     );
 }
 
+function TwitterReviewChoices({
+    csrfToken,
+    jobId,
+    processing,
+}: {
+    readonly csrfToken: string;
+    readonly jobId: string;
+    readonly processing: boolean;
+}) {
+    return (
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Form method="post">
+                <input name="_csrf" type="hidden" value={csrfToken} />
+                <input name="job_id" type="hidden" value={jobId} />
+                <input name="intent" type="hidden" value="mark_delivered" />
+                <Button
+                    className="w-full"
+                    icon={CheckCircleIcon}
+                    loading={processing}
+                    type="submit"
+                    variant="secondary"
+                >
+                    Mark delivered
+                </Button>
+            </Form>
+            <Form method="post">
+                <input name="_csrf" type="hidden" value={csrfToken} />
+                <input name="job_id" type="hidden" value={jobId} />
+                <input name="intent" type="hidden" value="retry" />
+                <Button
+                    className="w-full"
+                    icon={ArrowClockwiseIcon}
+                    loading={processing}
+                    type="submit"
+                    variant="primary"
+                >
+                    Retry despite risk
+                </Button>
+            </Form>
+        </div>
+    );
+}
+
 function RecoveryActions({
     csrfToken,
     job,
@@ -146,70 +190,51 @@ function RecoveryActions({
 }) {
     if (job.state === 'needs_review') {
         return (
-            <Dialog.Root role="alertdialog">
-                <Dialog.Trigger
-                    render={
-                        <Button
-                            icon={WarningIcon}
-                            size="sm"
-                            variant="secondary"
-                        />
-                    }
-                >
-                    Review
-                </Dialog.Trigger>
-                <Dialog className="space-y-5 p-6" size="lg">
-                    <div className="space-y-2">
-                        <Dialog.Title>Ambiguous Twitter delivery</Dialog.Title>
-                        <Dialog.Description>
-                            Twitter may have accepted this post before the
-                            request failed. Retrying can create a duplicate.
-                        </Dialog.Description>
-                    </div>
-                    <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                        <Form method="post">
-                            <input
-                                name="_csrf"
-                                type="hidden"
-                                value={csrfToken}
-                            />
-                            <input name="job_id" type="hidden" value={job.id} />
-                            <input
-                                name="intent"
-                                type="hidden"
-                                value="mark_delivered"
-                            />
+            <>
+                <Dialog.Root role="alertdialog">
+                    <Dialog.Trigger
+                        render={
                             <Button
-                                className="w-full"
-                                icon={CheckCircleIcon}
-                                loading={processing}
-                                type="submit"
+                                icon={WarningIcon}
+                                size="sm"
                                 variant="secondary"
-                            >
-                                Mark delivered
-                            </Button>
-                        </Form>
-                        <Form method="post">
-                            <input
-                                name="_csrf"
-                                type="hidden"
-                                value={csrfToken}
                             />
-                            <input name="job_id" type="hidden" value={job.id} />
-                            <input name="intent" type="hidden" value="retry" />
-                            <Button
-                                className="w-full"
-                                icon={ArrowClockwiseIcon}
-                                loading={processing}
-                                type="submit"
-                                variant="primary"
-                            >
-                                Retry despite risk
-                            </Button>
-                        </Form>
+                        }
+                    >
+                        Review
+                    </Dialog.Trigger>
+                    <Dialog className="space-y-5 p-6" size="lg">
+                        <div className="space-y-2">
+                            <Dialog.Title>
+                                Ambiguous Twitter delivery
+                            </Dialog.Title>
+                            <Dialog.Description>
+                                Twitter may have accepted this post before the
+                                request failed. Retrying can create a duplicate.
+                            </Dialog.Description>
+                        </div>
+                        <TwitterReviewChoices
+                            csrfToken={csrfToken}
+                            jobId={job.id}
+                            processing={processing}
+                        />
+                    </Dialog>
+                </Dialog.Root>
+                <noscript>
+                    <div className="space-y-3 rounded-xl border border-kumo-line bg-kumo-tint/40 p-4">
+                        <p className="text-sm leading-6 text-kumo-default">
+                            Twitter may have accepted this post. Choose whether
+                            to mark it delivered or retry despite duplicate
+                            risk.
+                        </p>
+                        <TwitterReviewChoices
+                            csrfToken={csrfToken}
+                            jobId={job.id}
+                            processing={false}
+                        />
                     </div>
-                </Dialog>
-            </Dialog.Root>
+                </noscript>
+            </>
         );
     }
     return (
@@ -273,11 +298,12 @@ export default function AdminJobs({
                         aria-current={
                             loaderData.filter === value ? 'page' : undefined
                         }
-                        className={
+                        className={cn(
+                            'rounded-xl border p-4',
                             loaderData.filter === value
-                                ? 'rounded-xl border border-kumo-brand bg-kumo-tint p-4 shadow-sm'
-                                : 'rounded-xl border border-kumo-line bg-kumo-base p-4 hover:border-kumo-brand/40'
-                        }
+                                ? 'border-kumo-brand bg-kumo-tint shadow-sm'
+                                : 'border-kumo-line bg-kumo-base hover:border-kumo-brand/40',
+                        )}
                         key={value}
                         to={
                             value === 'all'

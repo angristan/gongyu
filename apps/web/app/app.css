@@ -21,6 +21,12 @@
     }
 }
 
+@media (max-width: 47.999rem) {
+    aside.gongyu-admin-sidebar[data-sidebar="sidebar"] {
+        display: none;
+    }
+}
+
 .gongyu-page-shell {
     width: 100%;
     padding-inline: var(--gongyu-page-gutter);
@@ -66,4 +72,15 @@ body {
 button,
 a {
     -webkit-tap-highlight-color: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
 }

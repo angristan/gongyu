@@ -109,7 +109,7 @@ function Brand({ compact = false }: { readonly compact?: boolean }) {
             className="group flex min-w-0 items-center gap-3 text-kumo-default no-underline"
             to="/"
         >
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-kumo-brand text-sm font-bold text-white shadow-sm transition-transform group-hover:-rotate-3">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-kumo-brand text-sm font-bold text-kumo-inverse shadow-sm transition-transform group-hover:-rotate-3">
                 G
             </span>
             {compact ? null : (
@@ -241,6 +241,72 @@ function NavigationGroup({
     );
 }
 
+function NoJavaScriptAdminNavigation({
+    csrfToken,
+    returnTo,
+    themeMode,
+}: {
+    readonly csrfToken: string | null;
+    readonly returnTo: string;
+    readonly themeMode: ThemeMode;
+}) {
+    const items = [
+        ...primaryNavigation,
+        ...operationsNavigation,
+        ...configurationNavigation,
+    ];
+    return (
+        <noscript>
+            <style>{'.gongyu-sidebar-trigger{display:none}'}</style>
+            <details className="relative">
+                <summary className="cursor-pointer rounded-lg px-2 py-1.5 text-sm font-medium text-kumo-default focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-kumo-focus">
+                    Menu
+                </summary>
+                <div className="absolute left-0 top-10 z-50 w-[min(18rem,calc(100vw-2rem))] space-y-3 rounded-xl border border-kumo-line bg-kumo-base p-3 shadow-lg">
+                    <nav aria-label="Administrator navigation">
+                        <ul className="space-y-1">
+                            {items.map((item) => (
+                                <li key={item.href}>
+                                    <Link
+                                        className="block rounded-lg px-3 py-2 text-sm font-medium text-kumo-default hover:bg-kumo-tint"
+                                        to={item.href}
+                                    >
+                                        {item.label}
+                                    </Link>
+                                </li>
+                            ))}
+                            <li>
+                                <Link
+                                    className="block rounded-lg px-3 py-2 text-sm font-medium text-kumo-default hover:bg-kumo-tint"
+                                    to="/"
+                                >
+                                    View public site
+                                </Link>
+                            </li>
+                        </ul>
+                    </nav>
+                    <div className="flex items-center gap-2 border-t border-kumo-line pt-3">
+                        <ThemeForm returnTo={returnTo} themeMode={themeMode} />
+                        <Form action="/logout" method="post">
+                            <input
+                                name="_csrf"
+                                type="hidden"
+                                value={csrfToken ?? ''}
+                            />
+                            <button
+                                className="rounded-lg px-3 py-2 text-sm font-medium text-kumo-default hover:bg-kumo-tint"
+                                type="submit"
+                            >
+                                Sign out
+                            </button>
+                        </Form>
+                    </div>
+                </div>
+            </details>
+        </noscript>
+    );
+}
+
 function AdminShell({
     children,
     csrfToken,
@@ -250,7 +316,7 @@ function AdminShell({
     const returnTo = `${location.pathname}${location.search}`;
     return (
         <Sidebar.Provider collapsible="icon" defaultOpen>
-            <Sidebar className="bg-kumo-base">
+            <Sidebar className="gongyu-admin-sidebar bg-kumo-base">
                 <Sidebar.Header>
                     <Brand />
                 </Sidebar.Header>
@@ -304,7 +370,15 @@ function AdminShell({
             </Sidebar>
             <div className="min-w-0 flex-1 bg-kumo-base">
                 <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-kumo-line bg-kumo-base/95 px-4 backdrop-blur md:hidden">
-                    <Sidebar.Trigger aria-label="Open navigation" />
+                    <Sidebar.Trigger
+                        aria-label="Open navigation"
+                        className="gongyu-sidebar-trigger"
+                    />
+                    <NoJavaScriptAdminNavigation
+                        csrfToken={csrfToken}
+                        returnTo={returnTo}
+                        themeMode={themeMode}
+                    />
                     <Brand compact />
                     <span className="truncate text-sm font-medium text-kumo-subtle">
                         Administrator

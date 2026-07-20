@@ -226,7 +226,7 @@ export default function Bookmarklet({
                             </div>
                             <div className="rounded-2xl border border-dashed border-kumo-brand/50 bg-kumo-tint/50 p-8 text-center">
                                 <a
-                                    className="inline-flex h-11 items-center justify-center rounded-xl bg-kumo-brand px-5 font-semibold text-white shadow-sm transition-transform hover:-translate-y-0.5"
+                                    className="inline-flex h-11 items-center justify-center rounded-xl bg-kumo-brand px-5 font-semibold text-kumo-inverse shadow-sm transition-transform hover:-translate-y-0.5"
                                     href="#bookmarklet-code"
                                     ref={installLink}
                                 >
@@ -256,7 +256,7 @@ export default function Bookmarklet({
                                     'Open any article and click the bookmarklet.',
                                 ].map((step, index) => (
                                     <li className="flex gap-3" key={step}>
-                                        <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-kumo-brand text-xs font-semibold text-white">
+                                        <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-kumo-brand text-xs font-semibold text-kumo-inverse">
                                             {index + 1}
                                         </span>
                                         <span className="leading-6 text-kumo-subtle">

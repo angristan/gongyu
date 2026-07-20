@@ -82,6 +82,18 @@ test('renders the SSR shell and persists hydrated theme changes', async ({
     page,
     request,
 }) => {
+    const pageErrors: string[] = [];
+    const hydrationErrors: string[] = [];
+    page.on('pageerror', (error) => pageErrors.push(error.message));
+    page.on('console', (message) => {
+        if (
+            message.type() === 'error' &&
+            /hydration|server rendered|did not match/iu.test(message.text())
+        ) {
+            hydrationErrors.push(message.text());
+        }
+    });
+
     const response = await request.get('/');
     expect(response.status()).toBe(200);
     expect(response.headers()['x-request-id']).toBeTruthy();
@@ -96,6 +108,12 @@ test('renders the SSR shell and persists hydrated theme changes', async ({
     expect(html).toContain('Personal knowledge library');
     expect(html).toContain('Search bookmarks');
     expect(html).toContain('<main id="main-content"');
+
+    const adminResponse = await request.get('/admin/bookmarks', {
+        maxRedirects: 0,
+    });
+    expect(adminResponse.status()).toBe(302);
+    expect(adminResponse.headers().location).toMatch(/^\/login/u);
 
     const healthResponse = await request.get('/health');
     expect(healthResponse.status()).toBe(200);
@@ -117,6 +135,13 @@ test('renders the SSR shell and persists hydrated theme changes', async ({
             exact: true,
         }),
     ).toBeVisible();
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    const logoTransitionDuration = await page
+        .getByRole('link', { name: 'Gongyu home' })
+        .locator('span')
+        .first()
+        .evaluate((element) => getComputedStyle(element).transitionDuration);
+    expect(Number.parseFloat(logoTransitionDuration)).toBeLessThan(0.001);
     await page.keyboard.press('Tab');
     await expect(
         page.getByRole('link', { name: 'Skip to main content' }),
@@ -138,6 +163,8 @@ test('renders the SSR shell and persists hydrated theme changes', async ({
             () => document.documentElement.scrollWidth <= window.innerWidth,
         ),
     ).toBe(true);
+    expect(pageErrors).toEqual([]);
+    expect(hydrationErrors).toEqual([]);
 });
 
 test('sets up one passkey, rotates sessions, and logs in', async ({
@@ -318,6 +345,7 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
     ).toBeVisible();
     await page.getByRole('link', { name: 'Edit' }).click();
     await page.getByRole('button', { name: 'Delete bookmark' }).click();
+    await expect(page.getByLabel('Confirmation phrase')).toBeFocused();
     await page.getByLabel('Confirmation phrase').fill('DELETE');
     await page.getByRole('button', { name: 'Delete permanently' }).click();
     await expect(page.getByText('Updated Phase Two Bookmark')).toHaveCount(0);
@@ -340,6 +368,49 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
     await expect(
         duplicatePopup.getByRole('heading', { name: 'Already bookmarked' }),
     ).toBeVisible();
+    const { stdout: shaarliUpdateOutput } = await execute(
+        'bunx',
+        d1Arguments(`
+            UPDATE bookmarks
+            SET shaarli_short_url = 'captured'
+            WHERE url = 'https://example.com/captured';
+            INSERT INTO outbox (
+                id, bookmark_short_url, kind, state, payload_version,
+                created_at, updated_at
+            )
+            SELECT
+                'e2e-review-outbox', short_url, 'social', 'completed', 1,
+                1, 1
+            FROM bookmarks
+            WHERE url = 'https://example.com/captured';
+            INSERT INTO jobs (
+                id, outbox_id, bookmark_short_url, kind, state,
+                payload_version, created_at, updated_at
+            )
+            SELECT
+                'e2e-review-job', 'e2e-review-outbox', short_url, 'social',
+                'needs_review', 1, 1, 1
+            FROM bookmarks
+            WHERE url = 'https://example.com/captured';
+            INSERT INTO social_deliveries (
+                id, bookmark_short_url, provider, state, formatting_version,
+                source_json, attempts, available_at, created_at, updated_at
+            )
+            SELECT
+                'e2e-review-job', short_url, 'twitter', 'needs_review', 1,
+                '{}', 1, 0, 1, 1
+            FROM bookmarks
+            WHERE url = 'https://example.com/captured';
+        `),
+    );
+    expect(shaarliUpdateOutput).toContain('success');
+    const shaarliRedirect = await context.request.get('/shaare/captured', {
+        maxRedirects: 0,
+    });
+    expect(shaarliRedirect.status()).toBe(301);
+    expect(shaarliRedirect.headers().location).toMatch(
+        /^\/b\/[A-Za-z0-9]{8}$/u,
+    );
     await duplicatePopup.waitForURL(/\/bookmarklet\?/u);
     await duplicatePopup.getByRole('button', { name: 'Close' }).click();
 
@@ -394,6 +465,88 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
     ).toBeVisible();
     await expect(
         noJavaScriptAdmin.getByRole('link', { name: 'New bookmark' }),
+    ).toBeVisible();
+    const editHref = await noJavaScriptAdmin
+        .getByRole('link', { name: 'Edit' })
+        .first()
+        .getAttribute('href');
+    expect(editHref).toBeTruthy();
+    await noJavaScriptAdmin.goto(editHref ?? '/admin/bookmarks');
+    await expect(
+        noJavaScriptAdmin.getByRole('button', {
+            name: 'Delete permanently',
+        }),
+    ).toBeVisible();
+
+    const administratorRoutes: ReadonlyArray<readonly [string, string]> = [
+        ['/admin/dashboard', 'Overview'],
+        ['/admin/bookmarks', 'Bookmarks'],
+        ['/admin/bookmarks/new', 'New bookmark'],
+        [editHref ?? '/admin/bookmarks', 'Edit bookmark'],
+        ['/admin/jobs', 'Background work'],
+        ['/admin/data', 'Data & recovery'],
+        ['/admin/settings', 'Settings'],
+        ['/admin/security', 'Security'],
+        ['/bookmarklet', 'Install bookmarklet'],
+    ];
+    for (const width of [1280, 320]) {
+        await noJavaScriptAdmin.setViewportSize({ height: 800, width });
+        for (const [path, heading] of administratorRoutes) {
+            await noJavaScriptAdmin.goto(path);
+            await expect(
+                noJavaScriptAdmin.getByRole('heading', {
+                    exact: true,
+                    name: heading,
+                }),
+            ).toBeVisible();
+            const sidebar = noJavaScriptAdmin.locator(
+                'aside[data-sidebar="sidebar"]',
+            );
+            if (path === '/admin/jobs') {
+                await expect(
+                    noJavaScriptAdmin.getByRole('button', {
+                        name: 'Mark delivered',
+                    }),
+                ).toBeVisible();
+                await expect(
+                    noJavaScriptAdmin.getByRole('button', {
+                        name: 'Retry despite risk',
+                    }),
+                ).toBeVisible();
+            }
+            if (width === 320) {
+                await expect(sidebar).toBeHidden();
+                await expect(
+                    noJavaScriptAdmin.getByRole('button', {
+                        name: 'Open navigation',
+                    }),
+                ).toBeHidden();
+                await expect(
+                    noJavaScriptAdmin
+                        .locator('summary')
+                        .filter({ hasText: /^Menu$/u }),
+                ).toBeVisible();
+            } else {
+                await expect(sidebar).toBeVisible();
+            }
+            expect(
+                await noJavaScriptAdmin.evaluate(
+                    () =>
+                        document.documentElement.scrollWidth <=
+                        window.innerWidth,
+                ),
+            ).toBe(true);
+        }
+    }
+    await noJavaScriptAdmin
+        .locator('summary')
+        .filter({ hasText: /^Menu$/u })
+        .click();
+    await expect(
+        noJavaScriptAdmin.getByRole('link', {
+            exact: true,
+            name: 'Bookmarks',
+        }),
     ).toBeVisible();
     await noJavaScriptContext.close();
 
@@ -457,17 +610,19 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
 test('serves public list, search, detail, and feed without JavaScript', async ({
     browser,
 }) => {
-    test.skip(
-        process.env.STAGING_BASE_URL !== undefined,
-        'Shared staging does not contain the local browser fixture.',
-    );
+    const staging = process.env.STAGING_BASE_URL !== undefined;
+    const expectedTitle = staging
+        ? 'Cloudflare Workers documentation'
+        : 'Captured page';
     const context = await browser.newContext({
-        baseURL: `http://localhost:${process.env.PLAYWRIGHT_PORT ?? '5173'}`,
+        baseURL:
+            process.env.STAGING_BASE_URL ??
+            `http://localhost:${process.env.PLAYWRIGHT_PORT ?? '5173'}`,
         javaScriptEnabled: false,
     });
     const page = await context.newPage();
-    await page.goto('/search?q=Captured');
-    await expect(page.getByText('Captured page')).toBeVisible();
+    await page.goto(`/search?q=${staging ? 'Cloudflare' : 'Captured'}`);
+    await expect(page.getByText(expectedTitle)).toBeVisible();
     const publicHtml = await page.content();
     expect(publicHtml).not.toContain('thumbnailCleanupKey');
     expect(publicHtml).not.toContain('thumbnailKey');
@@ -475,7 +630,7 @@ test('serves public list, search, detail, and feed without JavaScript', async ({
     await expect(detailLink).toBeVisible();
     await detailLink.click();
     await expect(
-        page.getByRole('heading', { name: 'Captured page' }),
+        page.getByRole('heading', { name: expectedTitle }),
     ).toBeVisible();
     const canonical = await page
         .locator('link[rel="canonical"]')
@@ -484,11 +639,36 @@ test('serves public list, search, detail, and feed without JavaScript', async ({
     expect(
         await page.locator('meta[property="og:url"]').getAttribute('content'),
     ).toBe(canonical);
-    expect(await page.locator('meta[property="og:image"]').count()).toBe(0);
+    if (staging) {
+        expect(
+            await page
+                .locator('meta[property="og:image"]')
+                .getAttribute('content'),
+        ).toMatch(/\/thumbnails\/Demo0001\/[a-f0-9]{64}$/u);
+        expect(
+            await page
+                .locator('meta[name="twitter:card"]')
+                .getAttribute('content'),
+        ).toBe('summary_large_image');
+    } else {
+        expect(await page.locator('meta[property="og:image"]').count()).toBe(0);
+    }
+    await page.setViewportSize({ height: 800, width: 320 });
+    expect(
+        await page.evaluate(
+            () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+    ).toBe(true);
+
+    const missingShaarliRedirect = await context.request.get(
+        '/shaare/not-a-known-hash',
+        { maxRedirects: 0 },
+    );
+    expect(missingShaarliRedirect.status()).toBe(404);
 
     const feed = await context.request.get('/feed');
     expect(feed.status()).toBe(200);
-    expect(await feed.text()).toContain('Captured page');
+    expect(await feed.text()).toContain(expectedTitle);
     await context.close();
 });
 

@@ -3,6 +3,7 @@ import { Button, LinkButton } from '@cloudflare/kumo/components/button';
 import { Empty } from '@cloudflare/kumo/components/empty';
 import { Input } from '@cloudflare/kumo/components/input';
 import { LayerCard } from '@cloudflare/kumo/components/layer-card';
+import { cn } from '@cloudflare/kumo/utils';
 import { PageShell } from '@gongyu/ui/page-shell';
 import {
     ArrowRightIcon,
@@ -150,24 +151,24 @@ function BookmarkPagination({
             <div className="flex items-center gap-2">
                 <LinkButton
                     aria-disabled={page <= 1}
-                    className={
-                        page <= 1 ? 'pointer-events-none opacity-50' : ''
-                    }
+                    className={cn(
+                        page <= 1 && 'pointer-events-none opacity-50',
+                    )}
                     href={pageHref(query, page - 1)}
                     size="sm"
+                    tabIndex={page <= 1 ? -1 : undefined}
                     variant="secondary"
                 >
                     Previous
                 </LinkButton>
                 <LinkButton
                     aria-disabled={page >= pageCount}
-                    className={
-                        page >= pageCount
-                            ? 'pointer-events-none opacity-50'
-                            : ''
-                    }
+                    className={cn(
+                        page >= pageCount && 'pointer-events-none opacity-50',
+                    )}
                     href={pageHref(query, page + 1)}
                     size="sm"
+                    tabIndex={page >= pageCount ? -1 : undefined}
                     variant="secondary"
                 >
                     Next
