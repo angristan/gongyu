@@ -321,7 +321,7 @@ export function Banner({
               ? 'yellow'
               : variant === 'secondary'
                 ? 'gray'
-                : 'indigo';
+                : 'blue';
     return (
         <Alert
             color={color}
@@ -354,7 +354,7 @@ export function Badge({
     const color = {
         danger: 'red',
         error: 'red',
-        info: 'indigo',
+        info: 'blue',
         secondary: 'gray',
         success: 'teal',
         warning: 'yellow',
