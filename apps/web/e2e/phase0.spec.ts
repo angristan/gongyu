@@ -323,6 +323,34 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
             .getByRole('link', { exact: true, name: 'Phase Two Bookmark' })
             .first(),
     ).toBeVisible();
+    const sidebarWidth = await page
+        .locator('aside[data-admin-sidebar]')
+        .evaluate((element) => element.getBoundingClientRect().width);
+    expect(sidebarWidth).toBeLessThanOrEqual(210);
+    const bookmarkColumns = await page
+        .locator('[data-bookmark-row]')
+        .first()
+        .evaluate((row) => {
+            const bounds = (column: string) =>
+                row
+                    .querySelector(`[data-bookmark-column="${column}"]`)
+                    ?.getBoundingClientRect();
+            return {
+                actionsLeft: bounds('actions')?.left ?? 0,
+                bookmarkRight: bounds('bookmark')?.right ?? 0,
+                savedLeft: bounds('saved')?.left ?? 0,
+                savedRight: bounds('saved')?.right ?? 0,
+                sourceLeft: bounds('source')?.left ?? 0,
+                sourceRight: bounds('source')?.right ?? 0,
+            };
+        });
+    expect(bookmarkColumns.bookmarkRight).toBeLessThan(
+        bookmarkColumns.sourceLeft,
+    );
+    expect(bookmarkColumns.sourceRight).toBeLessThan(bookmarkColumns.savedLeft);
+    expect(bookmarkColumns.savedRight).toBeLessThan(
+        bookmarkColumns.actionsLeft,
+    );
 
     await page.goto('/?q=cloudflare');
     await expect(page.getByText('Phase Two Bookmark')).toBeVisible();
@@ -424,7 +452,8 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
     ).toBeVisible();
     await expect(page.getByText('Total bookmarks')).toBeVisible();
     await page.setViewportSize({ height: 844, width: 390 });
-    await page.getByRole('button', { name: 'Open navigation' }).click();
+    const mobileMenu = page.locator('summary').filter({ hasText: /^Menu$/u });
+    await mobileMenu.click();
     await expect(
         page.getByRole('link', { name: 'Bookmarks', exact: true }),
     ).toBeVisible();
@@ -433,7 +462,7 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
             () => document.documentElement.scrollWidth <= window.innerWidth,
         ),
     ).toBe(true);
-    await page.keyboard.press('Escape');
+    await mobileMenu.click();
     await page.setViewportSize({ height: 900, width: 1280 });
 
     await page.goto('/admin/data');
@@ -508,7 +537,7 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
                 }),
             ).toBeVisible();
             const sidebar = noJavaScriptAdmin.locator(
-                'aside[data-sidebar="sidebar"]',
+                'aside[data-admin-sidebar]',
             );
             if (path === '/admin/jobs') {
                 await expect(
@@ -524,11 +553,6 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
             }
             if (width === 320) {
                 await expect(sidebar).toBeHidden();
-                await expect(
-                    noJavaScriptAdmin.getByRole('button', {
-                        name: 'Open navigation',
-                    }),
-                ).toBeHidden();
                 await expect(
                     noJavaScriptAdmin
                         .locator('summary')

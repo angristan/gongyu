@@ -1,11 +1,12 @@
 import { LinkButton } from '@cloudflare/kumo/components/button';
-import { Sidebar } from '@cloudflare/kumo/components/sidebar';
+import { cn } from '@cloudflare/kumo/utils';
 import {
     ArrowSquareOutIcon,
     BookmarkSimpleIcon,
     ChartLineUpIcon,
     DatabaseIcon,
     GearIcon,
+    ListIcon,
     ListMagnifyingGlassIcon,
     MoonIcon,
     PlusIcon,
@@ -16,7 +17,7 @@ import {
     SignOutIcon,
     SunIcon,
 } from '@phosphor-icons/react';
-import type { CSSProperties, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { Form, Link, useLocation } from 'react-router';
 import type { ThemeMode } from '../theme.server';
 
@@ -34,7 +35,7 @@ interface NavigationItem {
     readonly match?: 'exact' | 'prefix';
 }
 
-const primaryNavigation: ReadonlyArray<NavigationItem> = [
+const libraryNavigation: ReadonlyArray<NavigationItem> = [
     {
         href: '/admin/bookmarks/new',
         icon: PlusIcon,
@@ -55,7 +56,7 @@ const primaryNavigation: ReadonlyArray<NavigationItem> = [
     },
 ];
 
-const operationsNavigation: ReadonlyArray<NavigationItem> = [
+const toolsNavigation: ReadonlyArray<NavigationItem> = [
     {
         href: '/admin/jobs',
         icon: QueueIcon,
@@ -68,9 +69,6 @@ const operationsNavigation: ReadonlyArray<NavigationItem> = [
         label: 'Data & recovery',
         match: 'exact',
     },
-];
-
-const configurationNavigation: ReadonlyArray<NavigationItem> = [
     {
         href: '/admin/settings',
         icon: GearIcon,
@@ -112,18 +110,18 @@ function Brand({
     return (
         <Link
             aria-label="Gongyu home"
-            className="group flex min-w-0 items-center gap-3 text-kumo-default no-underline"
+            className="group flex min-w-0 items-center gap-2.5 text-kumo-default no-underline"
             to={href}
         >
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-kumo-brand text-sm font-semibold text-kumo-inverse">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-kumo-brand text-sm font-bold text-kumo-inverse shadow-sm shadow-kumo-brand/15">
                 G
             </span>
             {compact ? null : (
-                <span className="min-w-0">
-                    <span className="block truncate text-base font-semibold tracking-tight">
+                <span className="min-w-0 leading-tight">
+                    <span className="block truncate text-sm font-semibold tracking-[-0.01em]">
                         Gongyu
                     </span>
-                    <span className="block truncate text-xs text-kumo-subtle">
+                    <span className="mt-0.5 block truncate text-[11px] text-kumo-subtle">
                         Personal bookmarks
                     </span>
                 </span>
@@ -147,10 +145,10 @@ function ThemeForm({
             <input name="returnTo" type="hidden" value={returnTo} />
             <button
                 aria-label={`Use ${nextMode} mode`}
-                className="inline-flex size-9 items-center justify-center rounded-lg text-kumo-subtle transition-colors hover:bg-kumo-tint hover:text-kumo-default focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-kumo-focus"
+                className="inline-flex size-8 items-center justify-center rounded-lg text-kumo-subtle transition-colors hover:bg-kumo-tint hover:text-kumo-default focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-kumo-focus"
                 type="submit"
             >
-                <Icon aria-hidden="true" size={18} />
+                <Icon aria-hidden="true" size={17} />
             </button>
         </Form>
     );
@@ -190,7 +188,9 @@ function PublicShell({
                         <ThemeForm returnTo={returnTo} themeMode={themeMode} />
                         <LinkButton
                             href={authenticated ? '/admin/bookmarks' : '/login'}
-                            icon={authenticated ? ChartLineUpIcon : SignInIcon}
+                            icon={
+                                authenticated ? BookmarkSimpleIcon : SignInIcon
+                            }
                             variant="secondary"
                         >
                             <span className="hidden sm:inline">
@@ -218,7 +218,7 @@ function PublicShell({
     );
 }
 
-function NavigationGroup({
+function NavigationSection({
     items,
     label,
     pathname,
@@ -228,26 +228,55 @@ function NavigationGroup({
     readonly pathname: string;
 }) {
     return (
-        <Sidebar.Group>
-            <Sidebar.GroupLabel>{label}</Sidebar.GroupLabel>
-            <Sidebar.Menu>
-                {items.map((item) => (
-                    <Sidebar.MenuButton
-                        active={isActive(pathname, item)}
-                        href={item.href}
-                        icon={item.icon}
-                        key={item.href}
-                        tooltip={item.label}
-                    >
-                        {item.label}
-                    </Sidebar.MenuButton>
-                ))}
-            </Sidebar.Menu>
-        </Sidebar.Group>
+        <section>
+            <h2 className="mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-kumo-subtle/75">
+                {label}
+            </h2>
+            <ul className="space-y-0.5">
+                {items.map((item) => {
+                    const active = isActive(pathname, item);
+                    const Icon = item.icon;
+                    return (
+                        <li key={item.href}>
+                            <Link
+                                aria-current={active ? 'page' : undefined}
+                                className={cn(
+                                    'flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-colors',
+                                    active
+                                        ? 'bg-kumo-brand/10 text-kumo-link'
+                                        : 'text-kumo-subtle hover:bg-kumo-tint hover:text-kumo-default',
+                                )}
+                                to={item.href}
+                            >
+                                <Icon aria-hidden="true" size={17} />
+                                <span className="truncate">{item.label}</span>
+                            </Link>
+                        </li>
+                    );
+                })}
+            </ul>
+        </section>
     );
 }
 
-function NoJavaScriptAdminNavigation({
+function AdminNavigation({ pathname }: { readonly pathname: string }) {
+    return (
+        <nav aria-label="Administrator navigation" className="space-y-5">
+            <NavigationSection
+                items={libraryNavigation}
+                label="Library"
+                pathname={pathname}
+            />
+            <NavigationSection
+                items={toolsNavigation}
+                label="Tools"
+                pathname={pathname}
+            />
+        </nav>
+    );
+}
+
+function SessionActions({
     csrfToken,
     returnTo,
     themeMode,
@@ -256,60 +285,20 @@ function NoJavaScriptAdminNavigation({
     readonly returnTo: string;
     readonly themeMode: ThemeMode;
 }) {
-    const items = [
-        ...primaryNavigation,
-        ...operationsNavigation,
-        ...configurationNavigation,
-    ];
     return (
-        <noscript>
-            <style>{'.gongyu-sidebar-trigger{display:none}'}</style>
-            <details className="relative">
-                <summary className="cursor-pointer rounded-lg px-2 py-1.5 text-sm font-medium text-kumo-default focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-kumo-focus">
-                    Menu
-                </summary>
-                <div className="absolute left-0 top-10 z-50 w-[min(18rem,calc(100vw-2rem))] space-y-3 rounded-xl border border-kumo-line bg-kumo-base p-3 shadow-lg">
-                    <nav aria-label="Administrator navigation">
-                        <ul className="space-y-1">
-                            {items.map((item) => (
-                                <li key={item.href}>
-                                    <Link
-                                        className="block rounded-lg px-3 py-2 text-sm font-medium text-kumo-default hover:bg-kumo-tint"
-                                        to={item.href}
-                                    >
-                                        {item.label}
-                                    </Link>
-                                </li>
-                            ))}
-                            <li>
-                                <Link
-                                    className="block rounded-lg px-3 py-2 text-sm font-medium text-kumo-default hover:bg-kumo-tint"
-                                    to="/"
-                                >
-                                    View public site
-                                </Link>
-                            </li>
-                        </ul>
-                    </nav>
-                    <div className="flex items-center gap-2 border-t border-kumo-line pt-3">
-                        <ThemeForm returnTo={returnTo} themeMode={themeMode} />
-                        <Form action="/logout" method="post">
-                            <input
-                                name="_csrf"
-                                type="hidden"
-                                value={csrfToken ?? ''}
-                            />
-                            <button
-                                className="rounded-lg px-3 py-2 text-sm font-medium text-kumo-default hover:bg-kumo-tint"
-                                type="submit"
-                            >
-                                Sign out
-                            </button>
-                        </Form>
-                    </div>
-                </div>
-            </details>
-        </noscript>
+        <div className="flex items-center gap-1">
+            <ThemeForm returnTo={returnTo} themeMode={themeMode} />
+            <Form action="/logout" method="post">
+                <input name="_csrf" type="hidden" value={csrfToken ?? ''} />
+                <button
+                    aria-label="Sign out"
+                    className="inline-flex size-8 items-center justify-center rounded-lg text-kumo-subtle transition-colors hover:bg-kumo-tint hover:text-kumo-default focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-kumo-focus"
+                    type="submit"
+                >
+                    <SignOutIcon aria-hidden="true" size={17} />
+                </button>
+            </Form>
+        </div>
     );
 }
 
@@ -320,90 +309,78 @@ function AdminShell({
 }: Omit<AppShellProps, 'authenticated'>) {
     const location = useLocation();
     const returnTo = `${location.pathname}${location.search}`;
-    const currentPage = [
-        ...primaryNavigation,
-        ...operationsNavigation,
-        ...configurationNavigation,
-    ].find((item) => isActive(location.pathname, item))?.label;
+    const currentPage = [...libraryNavigation, ...toolsNavigation].find(
+        (item) => isActive(location.pathname, item),
+    )?.label;
+
     return (
-        <Sidebar.Provider
-            collapsible="icon"
-            defaultOpen
-            style={
-                {
-                    '--sidebar-bg': 'var(--color-kumo-recessed)',
-                } as CSSProperties
-            }
-        >
-            <Sidebar className="gongyu-admin-sidebar bg-kumo-recessed">
-                <Sidebar.Header>
+        <div className="min-h-svh bg-kumo-base lg:flex">
+            <aside
+                className="sticky top-0 hidden h-svh w-52 shrink-0 flex-col border-r border-kumo-line bg-kumo-recessed/55 lg:flex"
+                data-admin-sidebar=""
+            >
+                <div className="flex h-16 items-center border-b border-kumo-line px-4">
                     <Brand href="/admin/bookmarks" />
-                </Sidebar.Header>
-                <Sidebar.Content>
-                    <NavigationGroup
-                        items={primaryNavigation}
-                        label="Library"
-                        pathname={location.pathname}
-                    />
-                    <NavigationGroup
-                        items={[
-                            ...operationsNavigation,
-                            ...configurationNavigation,
-                        ]}
-                        label="Tools"
-                        pathname={location.pathname}
-                    />
-                </Sidebar.Content>
-                <Sidebar.Footer className="h-auto flex-col items-stretch gap-2 py-3">
-                    <Sidebar.Menu>
-                        <Sidebar.MenuButton
-                            href="/"
-                            icon={ArrowSquareOutIcon}
-                            tooltip="View public site"
+                </div>
+                <div className="min-h-0 flex-1 overflow-y-auto px-3 py-5">
+                    <AdminNavigation pathname={location.pathname} />
+                </div>
+                <div className="border-t border-kumo-line p-3">
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                        <Link
+                            className="flex items-center gap-2 rounded-lg px-2 py-2 text-xs text-kumo-subtle hover:bg-kumo-tint hover:text-kumo-default"
+                            to="/"
                         >
-                            View public site
-                        </Sidebar.MenuButton>
-                    </Sidebar.Menu>
-                    <div className="flex items-center justify-between gap-2 px-1">
-                        <ThemeForm returnTo={returnTo} themeMode={themeMode} />
-                        <Form action="/logout" method="post">
-                            <input
-                                name="_csrf"
-                                type="hidden"
-                                value={csrfToken ?? ''}
-                            />
-                            <button
-                                aria-label="Sign out"
-                                className="inline-flex size-9 items-center justify-center rounded-lg text-kumo-subtle transition-colors hover:bg-kumo-tint hover:text-kumo-default focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-kumo-focus"
-                                type="submit"
-                            >
-                                <SignOutIcon aria-hidden="true" size={18} />
-                            </button>
-                        </Form>
-                        <Sidebar.Trigger aria-label="Collapse navigation" />
+                            <ArrowSquareOutIcon aria-hidden="true" size={16} />
+                            Public site
+                        </Link>
+                        <SessionActions
+                            csrfToken={csrfToken}
+                            returnTo={returnTo}
+                            themeMode={themeMode}
+                        />
                     </div>
-                </Sidebar.Footer>
-                <Sidebar.Rail />
-            </Sidebar>
-            <div className="min-w-0 flex-1 bg-kumo-base">
-                <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-kumo-line bg-kumo-base/95 px-4 backdrop-blur md:hidden">
-                    <Sidebar.Trigger
-                        aria-label="Open navigation"
-                        className="gongyu-sidebar-trigger"
-                    />
-                    <NoJavaScriptAdminNavigation
-                        csrfToken={csrfToken}
-                        returnTo={returnTo}
-                        themeMode={themeMode}
-                    />
-                    <Brand compact href="/admin/bookmarks" />
-                    <span className="truncate text-sm text-kumo-subtle">
-                        {currentPage ?? 'Library'}
-                    </span>
+                </div>
+            </aside>
+
+            <div className="min-w-0 flex-1">
+                <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-kumo-line bg-kumo-base/95 px-4 backdrop-blur lg:hidden">
+                    <div className="flex min-w-0 items-center gap-3">
+                        <details className="group relative">
+                            <summary className="flex size-8 cursor-pointer list-none items-center justify-center rounded-lg text-kumo-subtle hover:bg-kumo-tint hover:text-kumo-default focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-kumo-focus">
+                                <ListIcon aria-hidden="true" size={19} />
+                                <span className="sr-only">Menu</span>
+                            </summary>
+                            <div className="absolute left-0 top-10 z-50 w-64 rounded-xl border border-kumo-line bg-kumo-base p-3 shadow-xl">
+                                <AdminNavigation pathname={location.pathname} />
+                                <div className="mt-4 flex items-center justify-between border-t border-kumo-line pt-3">
+                                    <Link
+                                        className="flex items-center gap-2 text-xs text-kumo-subtle"
+                                        to="/"
+                                    >
+                                        <ArrowSquareOutIcon
+                                            aria-hidden="true"
+                                            size={16}
+                                        />
+                                        Public site
+                                    </Link>
+                                    <SessionActions
+                                        csrfToken={csrfToken}
+                                        returnTo={returnTo}
+                                        themeMode={themeMode}
+                                    />
+                                </div>
+                            </div>
+                        </details>
+                        <Brand compact href="/admin/bookmarks" />
+                        <span className="truncate text-sm font-medium text-kumo-default">
+                            {currentPage ?? 'Library'}
+                        </span>
+                    </div>
                 </header>
                 {children}
             </div>
-        </Sidebar.Provider>
+        </div>
     );
 }
 
