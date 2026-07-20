@@ -19,8 +19,8 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "gongyu-phase0-local",
-      "database_id": "00000000-0000-0000-0000-000000000001",
+      "database_name": "gongyu-local",
+      "database_id": "00000000-0000-0000-0000-000000000002",
       "migrations_dir": "../../migrations"
     }
   ],
@@ -78,8 +78,8 @@
       "d1_databases": [
         {
           "binding": "DB",
-          "database_name": "gongyu-phase0-staging",
-          "database_id": "420e6523-3213-4a46-be83-8863988048d1",
+          "database_name": "gongyu-staging",
+          "database_id": "7f6527cb-4be7-48cd-bdad-63f41dac6a5c",
           "migrations_dir": "../../migrations"
         }
       ],
