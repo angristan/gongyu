@@ -12,7 +12,14 @@ import { R2Store } from '@gongyu/integrations/r2-store';
 import { PageShell } from '@gongyu/ui/page-shell';
 import { Effect } from 'effect';
 import { useState } from 'react';
-import { data, Form, Link, redirect, useRouteLoaderData } from 'react-router';
+import {
+    data,
+    Form,
+    Link,
+    redirect,
+    useNavigation,
+    useRouteLoaderData,
+} from 'react-router';
 import {
     requireAuthenticatedMutation,
     requireAuthentication,
@@ -66,6 +73,7 @@ export async function action({ context, params, request }: Route.ActionArgs) {
         authentication,
         expectedOrigin: env.RP_ORIGIN,
         request,
+        requireWritable: true,
         runner: effect,
     });
     const shortUrl = params.shortUrl ?? '';
@@ -158,12 +166,14 @@ export default function AdminBookmarkEdit({
 }: Route.ComponentProps) {
     const rootData = useRouteLoaderData<typeof rootLoader>('root');
     const csrfToken = rootData?.csrfToken ?? '';
+    const isSubmitting = useNavigation().state !== 'idle';
     const values =
         actionData !== undefined && 'input' in actionData
             ? actionData.input
             : loaderData.bookmark;
     const errors = actionData?.errors ?? {};
     const urlError = 'url' in errors ? errors.url : undefined;
+    const titleError = 'title' in errors ? errors.title : undefined;
     const confirmationError =
         'confirmation' in errors ? errors.confirmation : undefined;
     const [url, setUrl] = useState(values.url);
@@ -191,6 +201,14 @@ export default function AdminBookmarkEdit({
                         <label className="block space-y-2 text-sm font-medium text-kumo-default">
                             <span>URL</span>
                             <input
+                                aria-describedby={
+                                    urlError === undefined
+                                        ? undefined
+                                        : 'edit-url-error'
+                                }
+                                aria-invalid={
+                                    urlError === undefined ? undefined : true
+                                }
                                 className="w-full rounded-md border border-kumo-line bg-kumo-base px-3 py-2"
                                 maxLength={2048}
                                 name="url"
@@ -202,7 +220,11 @@ export default function AdminBookmarkEdit({
                                 value={url}
                             />
                             {urlError === undefined ? null : (
-                                <span className="text-kumo-danger">
+                                <span
+                                    className="text-kumo-danger"
+                                    id="edit-url-error"
+                                    role="alert"
+                                >
                                     {urlError}
                                 </span>
                             )}
@@ -244,6 +266,14 @@ export default function AdminBookmarkEdit({
                         <label className="block space-y-2 text-sm font-medium text-kumo-default">
                             <span>Title</span>
                             <input
+                                aria-describedby={
+                                    titleError === undefined
+                                        ? undefined
+                                        : 'edit-title-error'
+                                }
+                                aria-invalid={
+                                    titleError === undefined ? undefined : true
+                                }
                                 className="w-full rounded-md border border-kumo-line bg-kumo-base px-3 py-2"
                                 maxLength={500}
                                 name="title"
@@ -253,6 +283,15 @@ export default function AdminBookmarkEdit({
                                 required
                                 value={title}
                             />
+                            {titleError === undefined ? null : (
+                                <span
+                                    className="text-kumo-danger"
+                                    id="edit-title-error"
+                                    role="alert"
+                                >
+                                    {titleError}
+                                </span>
+                            )}
                         </label>
                         <label className="block space-y-2 text-sm font-medium text-kumo-default">
                             <span>Description</span>
@@ -265,7 +304,9 @@ export default function AdminBookmarkEdit({
                                 value={description}
                             />
                         </label>
-                        <Button type="submit">Save changes</Button>
+                        <Button loading={isSubmitting} type="submit">
+                            Save changes
+                        </Button>
                     </Form>
                 </LayerCard>
 
@@ -278,16 +319,34 @@ export default function AdminBookmarkEdit({
                                 Type DELETE to permanently remove this bookmark
                             </span>
                             <input
+                                aria-describedby={
+                                    confirmationError === undefined
+                                        ? undefined
+                                        : 'delete-error'
+                                }
+                                aria-invalid={
+                                    confirmationError === undefined
+                                        ? undefined
+                                        : true
+                                }
                                 className="w-full rounded-md border border-kumo-line bg-kumo-base px-3 py-2"
                                 name="confirmation"
                             />
                         </label>
                         {confirmationError === undefined ? null : (
-                            <p className="text-kumo-danger">
+                            <p
+                                className="text-kumo-danger"
+                                id="delete-error"
+                                role="alert"
+                            >
                                 {confirmationError}
                             </p>
                         )}
-                        <Button type="submit" variant="destructive">
+                        <Button
+                            loading={isSubmitting}
+                            type="submit"
+                            variant="destructive"
+                        >
                             Delete bookmark
                         </Button>
                     </Form>

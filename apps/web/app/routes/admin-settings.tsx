@@ -4,7 +4,14 @@ import { SettingsRepository } from '@gongyu/data/settings-repository';
 import { Settings } from '@gongyu/domain/settings';
 import { PageShell } from '@gongyu/ui/page-shell';
 import { Effect } from 'effect';
-import { data, Form, Link, redirect, useRouteLoaderData } from 'react-router';
+import {
+    data,
+    Form,
+    Link,
+    redirect,
+    useNavigation,
+    useRouteLoaderData,
+} from 'react-router';
 import {
     requireAuthenticatedMutation,
     requireAuthentication,
@@ -93,11 +100,14 @@ export async function action({ context, request }: Route.ActionArgs) {
         authentication,
         expectedOrigin: env.RP_ORIGIN,
         request,
+        requireWritable: true,
         runner: effect,
     });
     const formData = await request.formData();
+    const feedCount = Number.parseInt(stringValue(formData, 'feed_count'), 10);
     const values = {
         blueskyAppPassword: stringValue(formData, 'bluesky_app_password'),
+        feedCount,
         blueskyHandle: stringValue(formData, 'bluesky_handle'),
         mastodonAccessToken: stringValue(formData, 'mastodon_access_token'),
         mastodonInstance: stringValue(formData, 'mastodon_instance'),
@@ -119,7 +129,6 @@ export async function action({ context, request }: Route.ActionArgs) {
             errors.mastodon_instance = 'Enter a valid Mastodon instance URL.';
         }
     }
-    const feedCount = Number.parseInt(stringValue(formData, 'feed_count'), 10);
     if (!Number.isSafeInteger(feedCount) || feedCount < 1) {
         errors.feed_count = 'Enter a positive whole number.';
     }
@@ -147,6 +156,7 @@ export default function AdminSettings({
     const csrfToken = rootData?.csrfToken ?? '';
     const values = actionData?.values ?? loaderData.settings;
     const errors = actionData?.errors ?? {};
+    const isSubmitting = useNavigation().state !== 'idle';
     return (
         <PageShell
             description="Credentials are encrypted in D1 and returned only to this authenticated, non-cacheable page."
@@ -177,6 +187,16 @@ export default function AdminSettings({
                                 >
                                     <span>{field.label}</span>
                                     <input
+                                        aria-describedby={
+                                            error === undefined
+                                                ? undefined
+                                                : `${field.name}-error`
+                                        }
+                                        aria-invalid={
+                                            error === undefined
+                                                ? undefined
+                                                : true
+                                        }
                                         autoComplete="off"
                                         className="w-full rounded-md border border-kumo-line bg-kumo-base px-3 py-2"
                                         defaultValue={String(values[field.key])}
@@ -189,7 +209,11 @@ export default function AdminSettings({
                                         }
                                     />
                                     {error === undefined ? null : (
-                                        <span className="text-kumo-danger">
+                                        <span
+                                            className="text-kumo-danger"
+                                            id={`${field.name}-error`}
+                                            role="alert"
+                                        >
                                             {error}
                                         </span>
                                     )}
@@ -200,19 +224,35 @@ export default function AdminSettings({
                     <label className="block max-w-xs space-y-2 text-sm font-medium text-kumo-default">
                         <span>Atom feed item count</span>
                         <input
+                            aria-describedby={
+                                errors.feed_count === undefined
+                                    ? undefined
+                                    : 'feed-count-error'
+                            }
+                            aria-invalid={
+                                errors.feed_count === undefined
+                                    ? undefined
+                                    : true
+                            }
                             className="w-full rounded-md border border-kumo-line bg-kumo-base px-3 py-2"
-                            defaultValue={loaderData.settings.feedCount}
+                            defaultValue={values.feedCount}
                             min={1}
                             name="feed_count"
                             type="number"
                         />
                         {errors.feed_count === undefined ? null : (
-                            <span className="text-kumo-danger">
+                            <span
+                                className="text-kumo-danger"
+                                id="feed-count-error"
+                                role="alert"
+                            >
                                 {errors.feed_count}
                             </span>
                         )}
                     </label>
-                    <Button type="submit">Save settings</Button>
+                    <Button loading={isSubmitting} type="submit">
+                        Save settings
+                    </Button>
                 </Form>
             </LayerCard>
         </PageShell>

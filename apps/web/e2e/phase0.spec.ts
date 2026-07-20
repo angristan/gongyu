@@ -70,24 +70,6 @@ const D1QueryResult = Schema.Array(
     }),
 );
 
-const WorkflowPayload = Schema.Struct({
-    operation: Schema.Literal('phase0.import'),
-    source: Schema.Struct({
-        bucket: Schema.Literal('uploads'),
-        contentType: Schema.String,
-        etag: Schema.String,
-        key: Schema.String,
-        size: Schema.Number,
-    }),
-    version: Schema.Literal(1),
-});
-const UploadResponse = Schema.Struct({
-    workflowPayload: WorkflowPayload,
-});
-const WorkflowStartResponse = Schema.Struct({
-    instanceId: Schema.String,
-    status: Schema.Literal('queued'),
-});
 const HealthResponse = Schema.Struct({
     databaseReady: Schema.Boolean,
     environment: Schema.String,
@@ -96,19 +78,6 @@ const HealthResponse = Schema.Struct({
     status: Schema.Literal('ok'),
 });
 
-const WorkflowQueryResult = Schema.Array(
-    Schema.Struct({
-        results: Schema.Array(
-            Schema.Struct({
-                instanceId: Schema.String,
-                objectKey: Schema.String,
-                status: Schema.String,
-            }),
-        ),
-        success: Schema.Boolean,
-    }),
-);
-
 test('renders the SSR shell and persists hydrated theme changes', async ({
     page,
     request,
@@ -116,6 +85,12 @@ test('renders the SSR shell and persists hydrated theme changes', async ({
     const response = await request.get('/');
     expect(response.status()).toBe(200);
     expect(response.headers()['x-request-id']).toBeTruthy();
+    expect(response.headers()['cache-control']).toBe('private, no-store');
+    expect(response.headers()['x-content-type-options']).toBe('nosniff');
+    expect(response.headers()['x-frame-options']).toBe('DENY');
+    expect(response.headers()['referrer-policy']).toBe(
+        'strict-origin-when-cross-origin',
+    );
     const html = await response.text();
     expect(html).toContain('<html lang="en" data-mode="light">');
     expect(html).toContain('Personal bookmarks');
@@ -142,6 +117,8 @@ test('renders the SSR shell and persists hydrated theme changes', async ({
     await expect(
         page.getByRole('link', { name: 'Skip to main content' }),
     ).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#main-content')).toBeFocused();
     await page.evaluate(async () => {
         await fetch('/theme', {
             body: 'mode=dark&returnTo=%2F',
@@ -245,7 +222,7 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
         .click();
     await expect(page).toHaveURL(/\/admin\/bookmarks$/u);
     await expect(
-        page.getByRole('heading', { name: 'Bookmarks' }),
+        page.getByRole('heading', { exact: true, name: 'Bookmarks' }),
     ).toBeVisible();
     expect(
         (await context.cookies()).find(
@@ -357,6 +334,15 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
     ).toBeVisible();
     await expect(page.getByText('Total bookmarks')).toBeVisible();
 
+    await page.goto('/admin/data');
+    await expect(
+        page.getByRole('heading', { name: 'Data portability' }),
+    ).toBeVisible();
+    await expect(page.getByLabel('Source format')).toBeVisible();
+    await expect(
+        page.getByLabel('Full backup file (up to 16 MiB)'),
+    ).toBeVisible();
+
     await page.goto('/admin/settings');
     await page.getByLabel('Twitter API key').fill('browser-test-key');
     await page.getByLabel('Atom feed item count').fill('250');
@@ -434,7 +420,7 @@ test('serves public list, search, detail, and feed without JavaScript', async ({
         'Shared staging does not contain the local browser fixture.',
     );
     const context = await browser.newContext({
-        baseURL: 'http://localhost:5173',
+        baseURL: `http://localhost:${process.env.PLAYWRIGHT_PORT ?? '5173'}`,
         javaScriptEnabled: false,
     });
     const page = await context.newPage();
@@ -461,48 +447,21 @@ test('serves public list, search, detail, and feed without JavaScript', async ({
     await context.close();
 });
 
-test('streams an R2 upload into a version 1 Workflow', async ({ request }) => {
-    const source = '{"bookmarks":[{"title":"Gongyu"}]}';
-    const uploadResponse = await request.post('/api/phase0/uploads', {
-        data: source,
-        headers: { 'Content-Type': 'application/json' },
-    });
-    expect(uploadResponse.status()).toBe(201);
-    const upload = await Schema.decodeUnknownPromise(UploadResponse)(
-        await uploadResponse.json(),
-    );
-    expect(upload.workflowPayload.source.size).toBe(Buffer.byteLength(source));
-    expect(upload.workflowPayload.source.key).toMatch(/^phase0\/uploads\//);
-
-    const workflowResponse = await request.post('/api/phase0/workflows', {
-        data: upload.workflowPayload,
-    });
-    expect(workflowResponse.status()).toBe(202);
-    const workflow = await Schema.decodeUnknownPromise(WorkflowStartResponse)(
-        await workflowResponse.json(),
-    );
-
-    await expect
-        .poll(
-            async () => {
-                const { stdout } = await execute(
-                    'bunx',
-                    d1Arguments(
-                        'SELECT instance_id AS instanceId, object_key AS objectKey, status FROM phase0_workflow_runs',
-                    ),
-                );
-                const query = await Schema.decodeUnknownPromise(
-                    WorkflowQueryResult,
-                )(JSON.parse(stdout));
-                return query[0]?.results.find(
-                    (row) => row.instanceId === workflow.instanceId,
-                );
-            },
-            { timeout: 20_000 },
-        )
-        .toEqual({
-            instanceId: workflow.instanceId,
-            objectKey: upload.workflowPayload.source.key,
-            status: 'complete',
-        });
+test('does not expose the storage spike endpoints', async ({ request }) => {
+    expect(
+        (
+            await request.post('/api/phase0/uploads', {
+                data: '{}',
+                headers: { 'Content-Type': 'application/json' },
+            })
+        ).status(),
+    ).toBe(404);
+    expect(
+        (
+            await request.post('/api/phase0/workflows', {
+                data: {},
+            })
+        ).status(),
+    ).toBe(404);
+    expect((await request.get('/storage')).status()).toBe(404);
 });

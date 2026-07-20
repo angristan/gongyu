@@ -1,5 +1,7 @@
 import { type LinkComponentProps, LinkProvider } from '@cloudflare/kumo/utils';
+import { DataRunRepository } from '@gongyu/data/data-run-repository';
 import { PageShell } from '@gongyu/ui/page-shell';
+import { Effect } from 'effect';
 import { forwardRef, type ReactNode } from 'react';
 import {
     isRouteErrorResponse,
@@ -33,8 +35,15 @@ const AppLink = forwardRef<HTMLAnchorElement, LinkComponentProps>(
 AppLink.displayName = 'AppLink';
 
 export async function loader({ context, request }: Route.LoaderArgs) {
-    const { authentication } = context.get(cloudflareRequestContext);
+    const { authentication, effect } = context.get(cloudflareRequestContext);
+    const appState = await effect.runPromise(
+        Effect.gen(function* () {
+            const repository = yield* DataRunRepository;
+            return yield* repository.getAppState;
+        }),
+    );
     return {
+        appState,
         authenticated: authentication.authenticated,
         csrfToken: authentication.authenticated
             ? authentication.csrfToken
@@ -66,6 +75,12 @@ export function Layout({ children }: { readonly children: ReactNode }) {
                 >
                     Skip to main content
                 </a>
+                {rootData?.appState.readOnly === 1 ? (
+                    <output className="block w-full border-b border-kumo-line bg-kumo-base px-4 py-3 text-center text-sm font-medium text-kumo-default">
+                        Gongyu is temporarily read-only while a backup or
+                        restore is in progress.
+                    </output>
+                ) : null}
                 <LinkProvider component={AppLink}>{children}</LinkProvider>
                 <ScrollRestoration />
                 <Scripts />
@@ -84,7 +99,10 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
 
     if (isRouteErrorResponse(error)) {
         title = error.status === 404 ? 'Not found' : 'Request failed';
-        detail = error.statusText || detail;
+        detail =
+            typeof error.data === 'string' && error.data !== ''
+                ? error.data
+                : error.statusText || detail;
     } else if (import.meta.env.DEV && error instanceof Error) {
         detail = error.message;
     }

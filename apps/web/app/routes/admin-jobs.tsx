@@ -40,6 +40,7 @@ export async function action({ context, request }: Route.ActionArgs) {
         authentication,
         expectedOrigin: env.RP_ORIGIN,
         request,
+        requireWritable: true,
         runner: effect,
     });
     const formData = await request.formData();

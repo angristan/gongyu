@@ -89,6 +89,16 @@ const importKey = Effect.fn('Encryption.importKey')(function* (
     });
 });
 
+export const encryptionKeyVersions = Effect.fn('Encryption.keyVersions')(
+    function* (serializedKeyring: string) {
+        const keyring = yield* decodeKeyring(serializedKeyring);
+        return Object.keys(keyring.keys)
+            .map((version) => Number.parseInt(version, 10))
+            .filter(Number.isFinite)
+            .sort((left, right) => left - right);
+    },
+);
+
 export function makeEncryption(serializedKeyring: string): EncryptionShape {
     const encrypt = Effect.fn('Encryption.encrypt')(function* (value: string) {
         const keyring = yield* decodeKeyring(serializedKeyring);

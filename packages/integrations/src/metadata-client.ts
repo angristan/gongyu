@@ -1,5 +1,6 @@
 import { MetadataCandidate, MetadataError } from '@gongyu/domain/metadata';
 import { Context, Effect } from 'effect';
+import { assertPublicHostname } from './network-safety';
 
 const HTML_LIMIT_BYTES = 1_048_576;
 const FETCH_TIMEOUT_MS = 10_000;
@@ -211,8 +212,10 @@ const extractMetadata = Effect.fn('MetadataClient.extract')(function* (
 });
 
 export function makeMetadataClient(
-    fetchImplementation: MetadataFetch = fetch,
+    configuredFetch?: MetadataFetch,
 ): MetadataClientShape {
+    const fetchImplementation = configuredFetch ?? fetch;
+    const validateDns = configuredFetch === undefined;
     const fetchMetadata = Effect.fn('MetadataClient.fetch')(function* (
         value: string,
     ) {
@@ -224,6 +227,17 @@ export function makeMetadataClient(
         const deadline = Date.now() + 15_000;
 
         for (let redirects = 0; redirects <= REDIRECT_LIMIT; redirects += 1) {
+            if (validateDns) {
+                yield* Effect.tryPromise({
+                    try: () => assertPublicHostname(currentUrl),
+                    catch: () =>
+                        failure(
+                            'unsafe_hostname',
+                            'Metadata hostname does not resolve publicly.',
+                            false,
+                        ),
+                });
+            }
             const response = yield* Effect.tryPromise({
                 try: async (signal) => {
                     const remaining = deadline - Date.now();

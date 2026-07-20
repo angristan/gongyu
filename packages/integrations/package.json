@@ -5,8 +5,10 @@
   "exports": {
     "./encryption": "./src/encryption.ts",
     "./metadata-client": "./src/metadata-client.ts",
+    "./network-safety": "./src/network-safety.ts",
     "./thumbnail-client": "./src/thumbnail-client.ts",
     "./r2-store": "./src/r2-store.ts",
+    "./shaarli-datastore": "./src/shaarli-datastore.ts",
     "./social-clients": "./src/social-clients.ts"
   },
   "dependencies": {

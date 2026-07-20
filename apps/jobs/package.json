@@ -3,6 +3,8 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./data-workflow": "./src/data-workflow.ts",
+    "./legacy-migration": "./src/legacy-migration.ts",
     "./processor": "./src/processor.ts",
     "./runtime": "./src/runtime.ts",
     "./workflow": "./src/phase0-workflow.ts"
@@ -11,6 +13,7 @@
     "cf-typegen": "wrangler types worker-configuration.d.ts",
     "check": "bun run typecheck && wrangler deploy --dry-run --env=\"\"",
     "deploy:staging": "wrangler deploy --env staging",
+    "migrate:legacy": "bun scripts/migrate-legacy.ts",
     "typecheck": "bun run cf-typegen && tsc -p tsconfig.json"
   },
   "dependencies": {

@@ -69,6 +69,9 @@ export default function AdminDashboard({ loaderData }: Route.ComponentProps) {
                     <Link className="text-kumo-link" to="/admin/jobs">
                         Jobs
                     </Link>
+                    <Link className="text-kumo-link" to="/admin/data">
+                        Data
+                    </Link>
                     <Link className="text-kumo-link" to="/bookmarklet">
                         Bookmarklet
                     </Link>

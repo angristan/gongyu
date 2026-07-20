@@ -102,9 +102,18 @@ it.layer(TestLayer)('administrator sessions', (it) => {
             const second = yield* sessions.create(200);
             yield* sessions.invalidate(first.token);
             assert.isNull(yield* sessions.authenticate(first.token, 300));
-            assert.isNotNull(yield* sessions.authenticate(second.token, 300));
+            const authenticated = yield* sessions.authenticate(
+                second.token,
+                300,
+            );
+            assert.isNotNull(authenticated);
             yield* sessions.invalidateAll;
             assert.isNull(yield* sessions.authenticate(second.token, 400));
+            if (authenticated !== null) {
+                assert.isFalse(
+                    yield* sessions.verifyCsrf(authenticated, second.csrfToken),
+                );
+            }
         }),
     );
 });

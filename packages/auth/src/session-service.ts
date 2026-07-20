@@ -38,7 +38,7 @@ export interface SessionServiceShape {
     readonly verifyCsrf: (
         session: AuthenticatedSession,
         token: string,
-    ) => Effect.Effect<boolean>;
+    ) => Effect.Effect<boolean, D1StoreFailure>;
 }
 
 export class SessionService extends Context.Service<
@@ -175,7 +175,24 @@ export function makeSessionService(
         token: string,
     ) {
         const hash = yield* hashToken(token);
-        return hash === session.csrfTokenHash;
+        const persisted = yield* d1Store.first(
+            SessionRow,
+            `
+                SELECT
+                    token_hash AS "tokenHash",
+                    csrf_token_hash AS "csrfTokenHash",
+                    idle_expires_at AS "idleExpiresAt",
+                    absolute_expires_at AS "absoluteExpiresAt"
+                FROM sessions
+                WHERE token_hash = ?
+            `,
+            [session.tokenHash],
+        );
+        return (
+            persisted !== null &&
+            hash === session.csrfTokenHash &&
+            hash === persisted.csrfTokenHash
+        );
     });
 
     return { authenticate, create, invalidate, invalidateAll, verifyCsrf };

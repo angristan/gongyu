@@ -126,8 +126,8 @@ const storeChallenge = Effect.fn('Passkey.storeChallenge')(function* (input: {
     readonly userId: string;
 }) {
     const d1Store = yield* D1Store;
-    yield* d1Store.run(
-        `
+    const insert = {
+        sql: `
             INSERT INTO webauthn_challenges (
                 id,
                 ceremony,
@@ -138,7 +138,7 @@ const storeChallenge = Effect.fn('Passkey.storeChallenge')(function* (input: {
             )
             VALUES (?, ?, ?, ?, ?, ?)
         `,
-        [
+        parameters: [
             input.id,
             input.ceremony,
             input.registrationMode ?? null,
@@ -146,7 +146,17 @@ const storeChallenge = Effect.fn('Passkey.storeChallenge')(function* (input: {
             input.userId,
             input.expiresAt,
         ],
-    );
+    };
+    if (input.ceremony === 'authentication') {
+        yield* d1Store.batch([
+            {
+                sql: `DELETE FROM webauthn_challenges WHERE ceremony = 'authentication'`,
+            },
+            insert,
+        ]);
+    } else {
+        yield* d1Store.run(insert.sql, insert.parameters);
+    }
 });
 
 const consumeChallenge = Effect.fn('Passkey.consumeChallenge')(
@@ -252,7 +262,11 @@ export const beginRegistration = Effect.fn('Passkey.beginRegistration')(
 );
 
 export const finishRegistration = Effect.fn('Passkey.finishRegistration')(
-    function* (configuration: PasskeyConfiguration, input: unknown) {
+    function* (
+        configuration: PasskeyConfiguration,
+        input: unknown,
+        authorization: 'authenticated' | 'setup' = 'setup',
+    ) {
         const request = yield* Schema.decodeUnknownEffect(
             RegistrationVerificationRequest,
         )(input).pipe(
@@ -270,6 +284,17 @@ export const finishRegistration = Effect.fn('Passkey.finishRegistration')(
             id: request.ceremonyId,
             now,
         });
+        if (
+            challenge.registrationMode === 'replacement' &&
+            authorization !== 'authenticated'
+        ) {
+            return yield* Effect.fail(
+                makePasskeyError(
+                    'authentication_required',
+                    'Authentication is required to replace the passkey.',
+                ),
+            );
+        }
         const verification = yield* Effect.tryPromise({
             try: () =>
                 verifyRegistrationResponse({

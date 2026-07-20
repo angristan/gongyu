@@ -3,6 +3,7 @@
   "name": "gongyu-cloudflare-web",
   "main": "./workers/app.ts",
   "compatibility_date": "2026-07-15",
+  "compatibility_flags": ["global_fetch_strictly_public"],
   "observability": {
     "enabled": true,
     "head_sampling_rate": 0.1,
@@ -27,6 +28,11 @@
     }
   ],
   "workflows": [
+    {
+      "binding": "DATA_WORKFLOW",
+      "class_name": "DataWorkflow",
+      "name": "gongyu-data-workflow"
+    },
     {
       "binding": "PHASE0_WORKFLOW",
       "class_name": "Phase0Workflow",
@@ -58,6 +64,12 @@
         }
       ],
       "workflows": [
+        {
+          "binding": "DATA_WORKFLOW",
+          "class_name": "DataWorkflow",
+          "name": "gongyu-staging-data-workflow",
+          "script_name": "gongyu-cloudflare-staging-jobs"
+        },
         {
           "binding": "PHASE0_WORKFLOW",
           "class_name": "Phase0Workflow",

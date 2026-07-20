@@ -3,6 +3,10 @@ import {
     type NewSession,
     SessionService,
 } from '@gongyu/auth/session-service';
+import {
+    DataRunRepository,
+    ReadOnlyError,
+} from '@gongyu/data/data-run-repository';
 import { Effect } from 'effect';
 import type { RequestEffectRunner } from '../effect/runtime';
 
@@ -147,7 +151,9 @@ export async function requireAuthenticatedMutation(input: {
     readonly authentication: AuthenticationState;
     readonly expectedOrigin: string;
     readonly request: Request;
+    readonly requireWritable?: boolean;
     readonly runner: RequestEffectRunner;
+    readonly submittedCsrfToken?: string | null;
 }): Promise<void> {
     const authentication = input.authentication;
     requireAuthentication(authentication);
@@ -155,7 +161,10 @@ export async function requireAuthenticatedMutation(input: {
         throw new Response('Request origin is not allowed', { status: 403 });
     }
 
-    const submittedToken = await requestCsrfToken(input.request);
+    const submittedToken =
+        input.submittedCsrfToken === undefined
+            ? await requestCsrfToken(input.request)
+            : input.submittedCsrfToken;
     const cookieToken = authentication.csrfToken;
     if (
         submittedToken === null ||
@@ -176,5 +185,23 @@ export async function requireAuthenticatedMutation(input: {
     );
     if (!valid) {
         throw new Response('CSRF validation failed', { status: 403 });
+    }
+    if (input.requireWritable === true) {
+        await input.runner
+            .runPromise(
+                Effect.gen(function* () {
+                    const dataRuns = yield* DataRunRepository;
+                    return yield* dataRuns.assertWritable;
+                }),
+            )
+            .catch((error: unknown) => {
+                if (error instanceof ReadOnlyError) {
+                    throw new Response(
+                        'Gongyu is temporarily read-only for data recovery.',
+                        { status: 503 },
+                    );
+                }
+                throw error;
+            });
     }
 }

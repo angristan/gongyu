@@ -75,6 +75,7 @@ export interface BookmarkRepositoryShape {
     readonly remove: (
         shortUrl: string,
     ) => Effect.Effect<boolean, D1StoreFailure>;
+    readonly removeAll: (now: number) => Effect.Effect<number, D1StoreFailure>;
     readonly update: (
         input: UpdateBookmarkInput,
     ) => Effect.Effect<
@@ -314,12 +315,6 @@ export function makeBookmarkRepository(
                         metadata_state = 'pending',
                         metadata_error_code = NULL,
                         metadata_attempted_at = NULL,
-                        thumbnail_url = NULL,
-                        thumbnail_content_type = NULL,
-                        thumbnail_size = NULL,
-                        thumbnail_width = NULL,
-                        thumbnail_height = NULL,
-                        thumbnail_sha256 = NULL,
                         updated_at = ?
                     WHERE short_url = ? AND deletion_state = 'active'
                 `,
@@ -494,6 +489,41 @@ export function makeBookmarkRepository(
             Effect.withSpan('BookmarkRepository.latestUpdatedAt'),
         );
 
+    const removeAll = Effect.fn('BookmarkRepository.removeAll')(function* (
+        now: number,
+    ) {
+        const results = yield* d1Store.batch([
+            {
+                sql: `
+                    UPDATE bookmarks
+                    SET deletion_state = 'pending', updated_at = ?
+                    WHERE deletion_state = 'active'
+                `,
+                parameters: [now],
+            },
+            {
+                sql: `
+                    INSERT OR IGNORE INTO outbox (
+                        id, bookmark_short_url, kind, state,
+                        payload_version, created_at, updated_at
+                    )
+                    SELECT
+                        'thumbnail-delete:' || short_url || ':1',
+                        short_url,
+                        'thumbnail_delete',
+                        'pending',
+                        1,
+                        ?,
+                        ?
+                    FROM bookmarks
+                    WHERE deletion_state = 'pending'
+                `,
+                parameters: [now, now],
+            },
+        ]);
+        return results[0]?.changes ?? 0;
+    });
+
     const remove = Effect.fn('BookmarkRepository.remove')(function* (
         shortUrl: string,
     ) {
@@ -621,6 +651,7 @@ export function makeBookmarkRepository(
         listForFeed,
         latestUpdatedAt,
         remove,
+        removeAll,
         update,
     };
 }

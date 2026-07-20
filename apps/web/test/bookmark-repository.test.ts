@@ -239,6 +239,92 @@ it.layer(TestLayer)('production bookmark repository', (it) => {
             }),
     );
 
+    it.effect('retains mirrored thumbnail state across edits', () =>
+        Effect.gen(function* () {
+            const bookmarks = yield* BookmarkRepository;
+            const d1Store = yield* D1Store;
+            const bookmark = yield* bookmarks.create({
+                createdAt: 8_500,
+                description: null,
+                title: 'Thumbnail original',
+                url: 'https://example.com/thumbnail-original',
+            });
+            const digest = 'a'.repeat(64);
+            const key = `thumbnails/${bookmark.shortUrl}/${digest}.png`;
+            yield* d1Store.run(
+                `
+                    UPDATE bookmarks
+                    SET
+                        thumbnail_url = 'https://images.example/original.png',
+                        thumbnail_key = ?,
+                        thumbnail_content_type = 'image/png',
+                        thumbnail_size = 100,
+                        thumbnail_width = 10,
+                        thumbnail_height = 10,
+                        thumbnail_sha256 = ?
+                    WHERE short_url = ?
+                `,
+                [key, digest, bookmark.shortUrl],
+            );
+
+            const updated = yield* bookmarks.update({
+                description: 'Only text changed',
+                shortUrl: bookmark.shortUrl,
+                title: 'Thumbnail updated',
+                updatedAt: 8_600,
+                url: bookmark.url,
+            });
+
+            assert.strictEqual(updated.thumbnailKey, key);
+            assert.strictEqual(updated.thumbnailSha256, digest);
+            assert.strictEqual(
+                updated.thumbnailUrl,
+                'https://images.example/original.png',
+            );
+        }),
+    );
+
+    it.effect('atomically marks every active bookmark for deletion', () =>
+        Effect.gen(function* () {
+            const bookmarks = yield* BookmarkRepository;
+            const d1Store = yield* D1Store;
+            yield* bookmarks.create({
+                createdAt: 8_700,
+                description: null,
+                title: 'Bulk one',
+                url: 'https://example.com/bulk-one',
+            });
+            yield* bookmarks.create({
+                createdAt: 8_800,
+                description: null,
+                title: 'Bulk two',
+                url: 'https://example.com/bulk-two',
+            });
+
+            const activeBefore =
+                (yield* d1Store.first(
+                    CountRow,
+                    `SELECT COUNT(*) AS count FROM bookmarks WHERE deletion_state = 'active'`,
+                ))?.count ?? 0;
+            assert.isAtLeast(activeBefore, 2);
+            assert.strictEqual(yield* bookmarks.removeAll(8_900), activeBefore);
+            assert.strictEqual(
+                (yield* d1Store.first(
+                    CountRow,
+                    `SELECT COUNT(*) AS count FROM bookmarks WHERE deletion_state = 'active'`,
+                ))?.count,
+                0,
+            );
+            assert.strictEqual(
+                (yield* d1Store.first(
+                    CountRow,
+                    `SELECT COUNT(*) AS count FROM outbox WHERE kind = 'thumbnail_delete' AND state = 'pending'`,
+                ))?.count,
+                activeBefore,
+            );
+        }),
+    );
+
     it.effect('supports configured feed sizes above one hundred', () =>
         Effect.gen(function* () {
             const bookmarks = yield* BookmarkRepository;

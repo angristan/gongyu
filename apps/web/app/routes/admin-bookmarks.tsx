@@ -3,7 +3,17 @@ import { LayerCard } from '@cloudflare/kumo/components/layer-card';
 import { BookmarkRepository } from '@gongyu/data/bookmark-repository';
 import { PageShell } from '@gongyu/ui/page-shell';
 import { Effect } from 'effect';
-import { Form, Link, redirect, useRouteLoaderData } from 'react-router';
+import {
+    Form,
+    Link,
+    redirect,
+    useNavigation,
+    useRouteLoaderData,
+} from 'react-router';
+import {
+    requireAuthenticatedMutation,
+    requireAuthentication,
+} from '../auth/session.server';
 import { cloudflareRequestContext } from '../platform-context';
 import type { loader as rootLoader } from '../root';
 import type { Route } from './+types/admin-bookmarks';
@@ -35,9 +45,38 @@ export async function loader({ context, request }: Route.LoaderArgs) {
     return { query, result };
 }
 
-export default function AdminBookmarks({ loaderData }: Route.ComponentProps) {
+export async function action({ context, request }: Route.ActionArgs) {
+    const { authentication, effect, env } = context.get(
+        cloudflareRequestContext,
+    );
+    requireAuthentication(authentication);
+    await requireAuthenticatedMutation({
+        authentication,
+        expectedOrigin: env.RP_ORIGIN,
+        request,
+        requireWritable: true,
+        runner: effect,
+    });
+    const formData = await request.formData();
+    if (formData.get('confirmation') !== 'DELETE ALL BOOKMARKS') {
+        return { error: 'Type DELETE ALL BOOKMARKS to confirm.' };
+    }
+    await effect.runPromise(
+        Effect.gen(function* () {
+            const bookmarks = yield* BookmarkRepository;
+            yield* bookmarks.removeAll(Date.now() * 1_000);
+        }),
+    );
+    return redirect('/admin/bookmarks?deleted=all');
+}
+
+export default function AdminBookmarks({
+    actionData,
+    loaderData,
+}: Route.ComponentProps) {
     const rootData = useRouteLoaderData<typeof rootLoader>('root');
     const csrfToken = rootData?.csrfToken ?? '';
+    const isSubmitting = useNavigation().state !== 'idle';
     return (
         <PageShell
             description={`${loaderData.result.total} bookmarks`}
@@ -64,16 +103,27 @@ export default function AdminBookmarks({ loaderData }: Route.ComponentProps) {
             title="Bookmarks"
             width="wide"
         >
-            <div className="flex flex-wrap items-center justify-between gap-3">
-                <Form className="flex min-w-0 flex-1 gap-2" method="get">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <Form
+                    className="flex w-full min-w-0 gap-2 sm:flex-1"
+                    method="get"
+                >
+                    <label className="sr-only" htmlFor="bookmark-search">
+                        Search bookmarks
+                    </label>
                     <input
+                        id="bookmark-search"
                         className="min-w-0 flex-1 rounded-md border border-kumo-line bg-kumo-base px-3 py-2 text-kumo-default"
                         defaultValue={loaderData.query}
                         name="q"
                         placeholder="Search bookmarks"
                         type="search"
                     />
-                    <Button type="submit" variant="secondary">
+                    <Button
+                        loading={isSubmitting}
+                        type="submit"
+                        variant="secondary"
+                    >
                         Search
                     </Button>
                 </Form>
@@ -112,6 +162,48 @@ export default function AdminBookmarks({ loaderData }: Route.ComponentProps) {
                     ))}
                 </ol>
             )}
+
+            <LayerCard className="mt-8 max-w-3xl">
+                <Form className="space-y-4 p-6" method="post">
+                    <input name="_csrf" type="hidden" value={csrfToken} />
+                    <h2 className="font-semibold text-kumo-default">
+                        Delete all bookmarks
+                    </h2>
+                    <label className="block space-y-2 text-sm font-medium text-kumo-default">
+                        <span>Type DELETE ALL BOOKMARKS to confirm</span>
+                        <input
+                            aria-describedby={
+                                actionData?.error === undefined
+                                    ? undefined
+                                    : 'delete-all-error'
+                            }
+                            aria-invalid={
+                                actionData?.error === undefined
+                                    ? undefined
+                                    : true
+                            }
+                            className="w-full rounded-md border border-kumo-line bg-kumo-base px-3 py-2"
+                            name="confirmation"
+                        />
+                    </label>
+                    {actionData?.error === undefined ? null : (
+                        <p
+                            className="text-sm text-kumo-danger"
+                            id="delete-all-error"
+                            role="alert"
+                        >
+                            {actionData.error}
+                        </p>
+                    )}
+                    <Button
+                        loading={isSubmitting}
+                        type="submit"
+                        variant="destructive"
+                    >
+                        Delete all bookmarks
+                    </Button>
+                </Form>
+            </LayerCard>
 
             {loaderData.result.pageCount > 1 ? (
                 <nav

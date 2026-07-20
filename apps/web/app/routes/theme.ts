@@ -11,7 +11,11 @@ function parseThemeMode(value: FormDataEntryValue | null): ThemeMode {
 }
 
 function parseReturnTo(value: FormDataEntryValue | null): string {
-    return typeof value === 'string' && value.startsWith('/') ? value : '/';
+    return typeof value === 'string' &&
+        value.startsWith('/') &&
+        !value.startsWith('//')
+        ? value
+        : '/';
 }
 
 export async function action({ request }: Route.ActionArgs) {

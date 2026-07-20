@@ -1,4 +1,12 @@
+import {
+    BackupRepository,
+    makeBackupRepository,
+} from '@gongyu/data/backup-repository';
 import { D1Store, makeD1Store } from '@gongyu/data/d1-store';
+import {
+    DataRunRepository,
+    makeDataRunRepository,
+} from '@gongyu/data/data-run-repository';
 import {
     MetadataRepository,
     makeMetadataRepository,
@@ -42,6 +50,8 @@ export class JobsInvocationInfo extends Context.Service<
 >()('@gongyu/runtime/JobsInvocationInfo') {}
 
 export type JobsServices =
+    | BackupRepository
+    | DataRunRepository
     | D1Store
     | Encryption
     | JobsInvocationInfo
@@ -70,6 +80,10 @@ export function makeJobsEffectRunner(options: {
     readonly trigger: JobsInvocationInfoShape['trigger'];
 }): JobsEffectRunner {
     const d1Store = makeD1Store(options.database.withSession('first-primary'));
+    const backupRepository = BackupRepository.of(makeBackupRepository(d1Store));
+    const dataRunRepository = DataRunRepository.of(
+        makeDataRunRepository(d1Store),
+    );
     const encryption = Encryption.of(makeEncryption(options.encryptionKeyring));
     const invocationInfo = JobsInvocationInfo.of({
         invocationId: options.invocationId,
@@ -97,6 +111,8 @@ export function makeJobsEffectRunner(options: {
                     invocationId: options.invocationId,
                     trigger: options.trigger,
                 }),
+                Effect.provideService(BackupRepository, backupRepository),
+                Effect.provideService(DataRunRepository, dataRunRepository),
                 Effect.provideService(D1Store, d1Store),
                 Effect.provideService(Encryption, encryption),
                 Effect.provideService(JobsInvocationInfo, invocationInfo),
