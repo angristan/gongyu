@@ -12,6 +12,9 @@
     "preview": "bun run build && vite preview",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "test:unit": "vitest run --project unit",
+    "test:watch": "vitest",
+    "test:workerd": "vitest run --project workerd",
     "typecheck": "bun run cf-typegen && react-router typegen && tsc -b"
   },
   "dependencies": {
