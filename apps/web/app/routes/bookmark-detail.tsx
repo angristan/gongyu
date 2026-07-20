@@ -96,7 +96,6 @@ export default function BookmarkDetail({ loaderData }: Route.ComponentProps) {
             breadcrumbs={
                 <Breadcrumbs size="sm">
                     <Breadcrumbs.Link href="/">Library</Breadcrumbs.Link>
-                    <Breadcrumbs.Separator />
                     <Breadcrumbs.Current>Bookmark</Breadcrumbs.Current>
                 </Breadcrumbs>
             }

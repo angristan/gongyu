@@ -1,7 +1,7 @@
 import { SparkleIcon } from '@phosphor-icons/react';
 import { Schema } from 'effect';
 import { useState } from 'react';
-import { Button } from '../components/ui';
+import { Button, HydratedOnly } from '../components/ui';
 
 class MetadataPreviewResponse extends Schema.Class<MetadataPreviewResponse>(
     'MetadataPreviewResponse',
@@ -66,24 +66,26 @@ export function MetadataPreview(props: {
     }
 
     return (
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <Button
-                className="shrink-0"
-                disabled={!props.url.startsWith('https://')}
-                icon={SparkleIcon}
-                loading={processing}
-                onClick={preview}
-                size="sm"
-                type="button"
-                variant="secondary"
-            >
-                Fetch metadata
-            </Button>
-            <p aria-live="polite" className="text-xs text-gongyu-subtle">
-                {message === ''
-                    ? 'Optionally suggest a title and description.'
-                    : message}
-            </p>
-        </div>
+        <HydratedOnly>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <Button
+                    className="shrink-0"
+                    disabled={!props.url.startsWith('https://')}
+                    icon={SparkleIcon}
+                    loading={processing}
+                    onClick={preview}
+                    size="sm"
+                    type="button"
+                    variant="secondary"
+                >
+                    Fetch metadata
+                </Button>
+                <p aria-live="polite" className="text-xs text-gongyu-subtle">
+                    {message === ''
+                        ? 'Optionally suggest a title and description.'
+                        : message}
+                </p>
+            </div>
+        </HydratedOnly>
     );
 }

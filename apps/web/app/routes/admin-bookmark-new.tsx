@@ -145,7 +145,7 @@ export default function AdminBookmarkNew({
     const [shareSocial, setShareSocial] = useState(true);
     return (
         <AdminPage
-            description="Save the URL and the context that will make it useful later."
+            description="Save a URL with useful notes."
             section="Bookmarks"
             sectionHref="/admin/bookmarks"
             title="New bookmark"

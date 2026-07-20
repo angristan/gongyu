@@ -40,6 +40,7 @@ import {
     Badge,
     Button,
     Dialog,
+    HydratedOnly,
     Input,
     InputArea,
     LayerCard,
@@ -220,13 +221,12 @@ export default function AdminBookmarkEdit({
                     Open original
                 </LinkButton>
             }
-            description="Update the saved context without changing its stable public address."
+            description="Update this bookmark without changing its public link."
             section="Bookmarks"
             sectionHref="/admin/bookmarks"
             title="Edit bookmark"
-            width="wide"
         >
-            <div className="grid gap-4 lg:grid-cols-[minmax(0,2.2fr)_minmax(16rem,1fr)]">
+            <div className="grid gap-3 lg:grid-cols-[minmax(0,2.2fr)_minmax(16rem,1fr)]">
                 <LayerCard>
                     <Form method="post">
                         <div className={adminPanelBodyClass}>
@@ -386,68 +386,76 @@ export default function AdminBookmarkEdit({
                                 Permanently removes this bookmark and its
                                 mirrored preview.
                             </p>
-                            <Dialog.Root
-                                defaultOpen={confirmationError !== undefined}
-                                role="alertdialog"
-                            >
-                                <Dialog.Trigger
-                                    render={
-                                        <Button
-                                            className="mt-3"
-                                            icon={TrashIcon}
-                                            size="sm"
-                                            variant="secondary-destructive"
-                                        />
+                            <HydratedOnly>
+                                <Dialog.Root
+                                    defaultOpen={
+                                        confirmationError !== undefined
                                     }
+                                    role="alertdialog"
                                 >
-                                    Delete bookmark
-                                </Dialog.Trigger>
-                                <Dialog className="space-y-5 p-6" size="lg">
-                                    <div className="space-y-2">
-                                        <Dialog.Title>
-                                            Delete this bookmark?
-                                        </Dialog.Title>
-                                        <Dialog.Description>
-                                            Type DELETE to permanently remove “
-                                            {loaderData.bookmark.title}”.
-                                        </Dialog.Description>
-                                    </div>
-                                    <Form className="space-y-4" method="post">
-                                        <input
-                                            name="_csrf"
-                                            type="hidden"
-                                            value={csrfToken}
-                                        />
-                                        <input
-                                            name="intent"
-                                            type="hidden"
-                                            value="delete"
-                                        />
-                                        <Input
-                                            error={confirmationError}
-                                            label="Confirmation phrase"
-                                            name="confirmation"
-                                            placeholder="DELETE"
-                                        />
-                                        <div className="flex justify-end gap-2">
-                                            <Dialog.Close
-                                                render={
-                                                    <Button variant="secondary" />
-                                                }
-                                            >
-                                                Cancel
-                                            </Dialog.Close>
+                                    <Dialog.Trigger
+                                        render={
                                             <Button
-                                                loading={isSubmitting}
-                                                type="submit"
-                                                variant="destructive"
-                                            >
-                                                Delete permanently
-                                            </Button>
+                                                className="mt-3"
+                                                icon={TrashIcon}
+                                                size="sm"
+                                                variant="secondary-destructive"
+                                            />
+                                        }
+                                    >
+                                        Delete bookmark
+                                    </Dialog.Trigger>
+                                    <Dialog className="space-y-5 p-6" size="lg">
+                                        <div className="space-y-2">
+                                            <Dialog.Title>
+                                                Delete this bookmark?
+                                            </Dialog.Title>
+                                            <Dialog.Description>
+                                                Type DELETE to permanently
+                                                remove “
+                                                {loaderData.bookmark.title}”.
+                                            </Dialog.Description>
                                         </div>
-                                    </Form>
-                                </Dialog>
-                            </Dialog.Root>
+                                        <Form
+                                            className="space-y-4"
+                                            method="post"
+                                        >
+                                            <input
+                                                name="_csrf"
+                                                type="hidden"
+                                                value={csrfToken}
+                                            />
+                                            <input
+                                                name="intent"
+                                                type="hidden"
+                                                value="delete"
+                                            />
+                                            <Input
+                                                error={confirmationError}
+                                                label="Confirmation phrase"
+                                                name="confirmation"
+                                                placeholder="DELETE"
+                                            />
+                                            <div className="flex justify-end gap-2">
+                                                <Dialog.Close
+                                                    render={
+                                                        <Button variant="secondary" />
+                                                    }
+                                                >
+                                                    Cancel
+                                                </Dialog.Close>
+                                                <Button
+                                                    loading={isSubmitting}
+                                                    type="submit"
+                                                    variant="destructive"
+                                                >
+                                                    Delete permanently
+                                                </Button>
+                                            </div>
+                                        </Form>
+                                    </Dialog>
+                                </Dialog.Root>
+                            </HydratedOnly>
                             <noscript>
                                 <Form className="mt-4 space-y-3" method="post">
                                     <input

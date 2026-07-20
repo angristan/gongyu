@@ -25,7 +25,7 @@ export function AdminPanelHeader({
     return (
         <header
             className={cn(
-                'flex items-start justify-between gap-3 border-b border-gongyu-line px-4 py-3',
+                'flex flex-col items-start justify-between gap-3 border-b border-gongyu-line px-4 py-3 sm:flex-row',
                 className,
             )}
         >
@@ -47,7 +47,7 @@ export function AdminPanelHeader({
                 </div>
             </div>
             {actions === undefined ? null : (
-                <div className="shrink-0">{actions}</div>
+                <div className="flex shrink-0 flex-wrap gap-2">{actions}</div>
             )}
         </header>
     );
