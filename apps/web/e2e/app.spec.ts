@@ -680,7 +680,9 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
     )?.value;
     await page.goto('/admin/security');
     await page.getByRole('button', { name: 'Replace passkey' }).click();
+    const replacementReload = page.waitForEvent('load');
     await page.getByRole('button', { name: 'Replace now' }).click();
+    await replacementReload;
     await expect
         .poll(
             async () =>
