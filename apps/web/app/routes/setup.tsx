@@ -3,12 +3,7 @@ import {
     RegistrationVerificationRequest,
 } from '@gongyu/auth/contracts';
 import { hasPasskey } from '@gongyu/auth/service';
-import { PageShell } from '@gongyu/ui/page-shell';
-import {
-    FingerprintSimpleIcon,
-    KeyIcon,
-    ShieldCheckIcon,
-} from '@phosphor-icons/react';
+import { FingerprintSimpleIcon, KeyIcon } from '@phosphor-icons/react';
 import { startRegistration } from '@simplewebauthn/browser';
 import { Schema } from 'effect';
 import { useState } from 'react';
@@ -57,9 +52,7 @@ async function postJson(path: string, body: unknown): Promise<unknown> {
 
 export default function Setup() {
     const [bootstrapToken, setBootstrapToken] = useState('');
-    const [message, setMessage] = useState(
-        'Enter the deployment bootstrap token to register the administrator passkey.',
-    );
+    const [message, setMessage] = useState<string | null>(null);
     const [processing, setProcessing] = useState(false);
 
     async function register() {
@@ -96,31 +89,27 @@ export default function Setup() {
     }
 
     return (
-        <PageShell
-            description="Use the deployment bootstrap token once, then protect the administrator interface with a passkey."
-            eyebrow="First-run security"
-            title="Make this Gongyu yours."
+        <main
+            className="mx-auto flex min-h-[calc(100vh-10rem)] w-full max-w-md flex-col justify-center gap-3 px-4 py-8 sm:px-6"
+            id="main-content"
+            tabIndex={-1}
         >
-            <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(17rem,0.8fr)]">
-                <LayerCard>
-                    <div className="space-y-6 p-6 sm:p-8">
-                        <span className="flex size-14 items-center justify-center rounded-2xl bg-gongyu-tint text-gongyu-link">
-                            <KeyIcon
-                                aria-hidden="true"
-                                size={30}
-                                weight="duotone"
-                            />
-                        </span>
-                        <div>
-                            <h2 className="text-xl font-semibold text-gongyu-default">
-                                Verify deployment access
-                            </h2>
-                            <p className="mt-2 text-sm leading-6 text-gongyu-subtle">
-                                Find SETUP_TOKEN in the Worker secret
-                                configuration. It is never stored in the browser
-                                or database.
-                            </p>
-                        </div>
+            <LayerCard className="gongyu-bookmark-card">
+                <div className="p-5 sm:p-6">
+                    <span className="flex size-10 items-center justify-center rounded-xl bg-gongyu-tint text-gongyu-link">
+                        <KeyIcon
+                            aria-hidden="true"
+                            size={22}
+                            weight="duotone"
+                        />
+                    </span>
+                    <h1 className="mt-4 text-xl font-semibold text-gongyu-default">
+                        Set up Gongyu
+                    </h1>
+                    <p className="mt-1 text-sm text-gongyu-subtle">
+                        Register the administrator passkey once.
+                    </p>
+                    <div className="mt-5">
                         <Input
                             autoComplete="off"
                             label="Bootstrap token"
@@ -130,48 +119,35 @@ export default function Setup() {
                             type="password"
                             value={bootstrapToken}
                         />
-                        <Button
-                            disabled={bootstrapToken.length === 0}
-                            icon={FingerprintSimpleIcon}
-                            loading={processing}
-                            onClick={register}
-                            size="lg"
-                            type="button"
-                            variant="primary"
-                        >
-                            Register administrator passkey
-                        </Button>
+                    </div>
+                    <Button
+                        className="mt-4 w-full"
+                        disabled={bootstrapToken.length === 0}
+                        icon={FingerprintSimpleIcon}
+                        loading={processing}
+                        onClick={register}
+                        type="button"
+                        variant="primary"
+                    >
+                        Register administrator passkey
+                    </Button>
+                    {message === null ? null : (
                         <p
                             aria-live="polite"
-                            className="rounded-xl bg-gongyu-tint/60 p-3 text-sm text-gongyu-default"
+                            className="mt-3 text-sm text-gongyu-subtle"
                         >
                             {message}
                         </p>
-                    </div>
-                </LayerCard>
-                <aside className="space-y-4">
-                    <Banner
-                        description="After successful registration, this setup route closes permanently. Gongyu stores exactly one administrator passkey."
-                        icon={<ShieldCheckIcon aria-hidden="true" size={20} />}
-                        title="One-time setup"
-                        variant="secondary"
-                    />
-                    <LayerCard>
-                        <ol className="space-y-4 p-5 text-sm text-gongyu-subtle">
-                            <li>1. Enter the deployment token.</li>
-                            <li>2. Choose a device or security key.</li>
-                            <li>3. Confirm the passkey ceremony.</li>
-                        </ol>
-                    </LayerCard>
-                </aside>
-            </div>
+                    )}
+                </div>
+            </LayerCard>
             <noscript>
                 <Banner
-                    description="Passkey registration uses the browser WebAuthn API and cannot continue without JavaScript."
-                    title="JavaScript is required for setup"
+                    description="Passkeys require JavaScript and the browser WebAuthn API."
+                    title="JavaScript is required"
                     variant="error"
                 />
             </noscript>
-        </PageShell>
+        </main>
     );
 }

@@ -2,18 +2,13 @@ import {
     AuthenticationOptionsEnvelope,
     AuthenticationVerificationRequest,
 } from '@gongyu/auth/contracts';
-import { PageShell } from '@gongyu/ui/page-shell';
-import {
-    ArrowLeftIcon,
-    FingerprintSimpleIcon,
-    ShieldCheckIcon,
-} from '@phosphor-icons/react';
+import { FingerprintSimpleIcon } from '@phosphor-icons/react';
 import { startAuthentication } from '@simplewebauthn/browser';
 import { Schema } from 'effect';
 import { useState } from 'react';
 import { redirect } from 'react-router';
 import { safeReturnTo } from '../auth/bootstrap.server';
-import { Banner, Button, LayerCard, LinkButton } from '../components/ui';
+import { Banner, Button, LayerCard } from '../components/ui';
 import { cloudflareRequestContext } from '../platform-context';
 import type { Route } from './+types/login';
 
@@ -54,9 +49,7 @@ async function postJson(path: string, body: unknown): Promise<unknown> {
 }
 
 export default function Login({ loaderData }: Route.ComponentProps) {
-    const [message, setMessage] = useState(
-        'Use the administrator passkey to continue.',
-    );
+    const [message, setMessage] = useState<string | null>(null);
     const [processing, setProcessing] = useState(false);
 
     async function authenticate() {
@@ -87,88 +80,53 @@ export default function Login({ loaderData }: Route.ComponentProps) {
     }
 
     return (
-        <PageShell
-            actions={
-                <LinkButton href="/" icon={ArrowLeftIcon} variant="ghost">
-                    Back to library
-                </LinkButton>
-            }
-            description="One passkey protects the entire administrator interface—there is no password to remember or database of user profiles."
-            eyebrow="Secure administrator access"
-            title="Welcome back."
+        <main
+            className="mx-auto flex min-h-[calc(100vh-10rem)] w-full max-w-md flex-col justify-center gap-3 px-4 py-8 sm:px-6"
+            id="main-content"
+            tabIndex={-1}
         >
-            <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(17rem,0.8fr)]">
-                <LayerCard>
-                    <div className="space-y-6 p-6 sm:p-8">
-                        <span className="flex size-14 items-center justify-center rounded-2xl bg-gongyu-tint text-gongyu-link">
-                            <FingerprintSimpleIcon
-                                aria-hidden="true"
-                                size={32}
-                                weight="duotone"
-                            />
-                        </span>
-                        <div>
-                            <h2 className="text-xl font-semibold text-gongyu-default">
-                                Sign in with your passkey
-                            </h2>
-                            <p className="mt-2 text-sm leading-6 text-gongyu-subtle">
-                                Your browser will ask for the device lock,
-                                biometric, or security key associated with this
-                                Gongyu deployment.
-                            </p>
-                        </div>
-                        <Button
-                            className="w-full sm:w-auto"
-                            icon={FingerprintSimpleIcon}
-                            loading={processing}
-                            onClick={authenticate}
-                            size="lg"
-                            type="button"
-                            variant="primary"
-                        >
-                            Sign in with passkey
-                        </Button>
+            <LayerCard className="gongyu-bookmark-card">
+                <div className="p-5 sm:p-6">
+                    <span className="flex size-10 items-center justify-center rounded-xl bg-gongyu-tint text-gongyu-link">
+                        <FingerprintSimpleIcon
+                            aria-hidden="true"
+                            size={23}
+                            weight="duotone"
+                        />
+                    </span>
+                    <h1 className="mt-4 text-xl font-semibold text-gongyu-default">
+                        Sign in
+                    </h1>
+                    <p className="mt-1 text-sm text-gongyu-subtle">
+                        Continue with your administrator passkey.
+                    </p>
+                    <Button
+                        className="mt-5 w-full"
+                        icon={FingerprintSimpleIcon}
+                        loading={processing}
+                        onClick={authenticate}
+                        type="button"
+                        variant="primary"
+                    >
+                        Sign in with passkey
+                    </Button>
+                    {message === null ? null : (
                         <p
                             aria-live="polite"
-                            className="rounded-xl bg-gongyu-tint/60 p-3 text-sm text-gongyu-default"
+                            className="mt-3 text-sm text-gongyu-subtle"
                         >
                             {message}
                         </p>
-                    </div>
-                </LayerCard>
-                <aside>
-                    <LayerCard>
-                        <div className="space-y-4 p-6">
-                            <ShieldCheckIcon
-                                aria-hidden="true"
-                                className="text-gongyu-success"
-                                size={28}
-                                weight="duotone"
-                            />
-                            <h2 className="font-semibold text-gongyu-default">
-                                Passwordless by design
-                            </h2>
-                            <ul className="space-y-3 text-sm leading-6 text-gongyu-subtle">
-                                <li>
-                                    Credential verification stays on your
-                                    device.
-                                </li>
-                                <li>Sessions use secure host-only cookies.</li>
-                                <li>
-                                    Every mutation is origin and CSRF protected.
-                                </li>
-                            </ul>
-                        </div>
-                    </LayerCard>
-                </aside>
-            </div>
+                    )}
+                </div>
+            </LayerCard>
             <noscript>
                 <Banner
-                    description="Passkey authentication uses the browser WebAuthn API and cannot continue without JavaScript."
-                    title="JavaScript is required to sign in"
+                    description="Passkeys require JavaScript and the browser WebAuthn API."
+                    title="JavaScript is required"
                     variant="error"
                 />
             </noscript>
-        </PageShell>
+        </main>
     );
 }
