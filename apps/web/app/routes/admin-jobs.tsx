@@ -267,6 +267,7 @@ export default function AdminJobs({
             description="Inspect durable metadata, thumbnail, and social delivery work."
             section="Background work"
             title="Background work"
+            width="wide"
         >
             {actionData?.error === undefined ? null : (
                 <Banner
@@ -287,7 +288,10 @@ export default function AdminJobs({
                 />
             )}
 
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <nav
+                aria-label="Background work filters"
+                className="flex gap-1 overflow-x-auto border-b border-kumo-line"
+            >
                 {[
                     ['All', loaderData.summary.total, 'all'],
                     ['Active', loaderData.summary.active, 'active'],
@@ -299,10 +303,10 @@ export default function AdminJobs({
                             loaderData.filter === value ? 'page' : undefined
                         }
                         className={cn(
-                            'rounded-xl border p-4',
+                            'flex shrink-0 items-center gap-2 border-b-2 px-3 py-2.5 text-sm',
                             loaderData.filter === value
-                                ? 'border-kumo-brand bg-kumo-tint shadow-sm'
-                                : 'border-kumo-line bg-kumo-base hover:border-kumo-brand/40',
+                                ? 'border-kumo-brand font-medium text-kumo-default'
+                                : 'border-transparent text-kumo-subtle hover:text-kumo-default',
                         )}
                         key={value}
                         to={
@@ -311,15 +315,13 @@ export default function AdminJobs({
                                 : `/admin/jobs?state=${value}`
                         }
                     >
-                        <span className="block text-xs font-medium text-kumo-subtle">
-                            {label}
-                        </span>
-                        <strong className="mt-1 block text-2xl text-kumo-default">
+                        {label}
+                        <span className="rounded-full bg-kumo-tint px-1.5 py-0.5 text-xs tabular-nums">
                             {count}
-                        </strong>
+                        </span>
                     </Link>
                 ))}
-            </div>
+            </nav>
 
             <LayerCard className="overflow-hidden">
                 {loaderData.jobs.length === 0 ? (

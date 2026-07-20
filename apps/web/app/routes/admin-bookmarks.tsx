@@ -1,4 +1,3 @@
-import { Badge } from '@cloudflare/kumo/components/badge';
 import { Banner } from '@cloudflare/kumo/components/banner';
 import { Button, LinkButton } from '@cloudflare/kumo/components/button';
 import { Dialog } from '@cloudflare/kumo/components/dialog';
@@ -128,6 +127,7 @@ export default function AdminBookmarks({
             description={`${result.total.toLocaleString('en-US')} ${result.total === 1 ? 'bookmark' : 'bookmarks'} in your personal library.`}
             section="Bookmarks"
             title="Bookmarks"
+            width="wide"
         >
             {loaderData.deletedAll ? (
                 <Banner
@@ -249,9 +249,9 @@ export default function AdminBookmarks({
                                                     </div>
                                                 </Table.Cell>
                                                 <Table.Cell>
-                                                    <Badge variant="secondary">
+                                                    <span className="text-sm text-kumo-subtle">
                                                         {hostname}
-                                                    </Badge>
+                                                    </span>
                                                 </Table.Cell>
                                                 <Table.Cell className="whitespace-nowrap text-sm text-kumo-subtle">
                                                     {formatDate(
@@ -375,15 +375,21 @@ export default function AdminBookmarks({
                 </nav>
             ) : null}
 
-            <section className="rounded-2xl border border-kumo-danger/20 bg-kumo-danger-tint/25 p-5 sm:p-6">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <details
+                className="border-t border-kumo-line pt-4"
+                open={actionData?.error !== undefined}
+            >
+                <summary className="cursor-pointer text-sm text-kumo-subtle hover:text-kumo-default">
+                    Danger zone
+                </summary>
+                <div className="mt-4 flex flex-col gap-4 rounded-xl border border-kumo-danger/20 p-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <h2 className="font-semibold text-kumo-default">
+                        <h2 className="font-medium text-kumo-default">
                             Delete the entire library
                         </h2>
                         <p className="mt-1 text-sm text-kumo-subtle">
-                            This queues every bookmark and mirrored thumbnail
-                            for permanent deletion.
+                            Permanently removes every bookmark and mirrored
+                            thumbnail.
                         </p>
                     </div>
                     <Dialog.Root
@@ -456,7 +462,7 @@ export default function AdminBookmarks({
                         </Button>
                     </Form>
                 </noscript>
-            </section>
+            </details>
         </AdminPage>
     );
 }

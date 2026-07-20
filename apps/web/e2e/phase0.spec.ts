@@ -344,6 +344,10 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
             .first(),
     ).toBeVisible();
     await page.getByRole('link', { name: 'Edit' }).click();
+    await page
+        .locator('summary')
+        .filter({ hasText: /^Delete bookmark$/u })
+        .click();
     await page.getByRole('button', { name: 'Delete bookmark' }).click();
     await expect(page.getByLabel('Confirmation phrase')).toBeFocused();
     await page.getByLabel('Confirmation phrase').fill('DELETE');
@@ -472,6 +476,10 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
         .getAttribute('href');
     expect(editHref).toBeTruthy();
     await noJavaScriptAdmin.goto(editHref ?? '/admin/bookmarks');
+    await noJavaScriptAdmin
+        .locator('summary')
+        .filter({ hasText: /^Delete bookmark$/u })
+        .click();
     await expect(
         noJavaScriptAdmin.getByRole('button', {
             name: 'Delete permanently',
