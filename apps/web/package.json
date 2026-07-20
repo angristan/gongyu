@@ -7,7 +7,7 @@
     "build:staging": "CLOUDFLARE_ENV=staging react-router build",
     "cf-typegen": "wrangler types worker-configuration.d.ts",
     "check": "bun run typecheck && bun run build && wrangler deploy --dry-run",
-    "deploy:staging": "bun run build:staging && wrangler deploy",
+    "deploy:staging": "bun run build:staging && wrangler deploy --config build/server/wrangler.json",
     "dev": "react-router dev",
     "preview": "bun run build && vite preview",
     "test": "vitest run",

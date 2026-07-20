@@ -142,6 +142,9 @@ export function makeWorkRepository(
                         SELECT id
                         FROM outbox
                         WHERE available_at <= ?
+                          AND NOT EXISTS (
+                            SELECT 1 FROM app_state WHERE read_only = 1
+                          )
                           AND (
                             state = 'pending'
                             OR (
@@ -292,6 +295,9 @@ export function makeWorkRepository(
                         updated_at = ?
                     WHERE id = ?
                       AND available_at <= ?
+                      AND NOT EXISTS (
+                        SELECT 1 FROM app_state WHERE read_only = 1
+                      )
                       AND (
                         state IN ('queued', 'retrying')
                         OR (

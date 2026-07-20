@@ -6,6 +6,10 @@ import {
 } from '@gongyu/data/bookmark-repository';
 import { D1Store, makeD1Store } from '@gongyu/data/d1-store';
 import {
+    DataRunRepository,
+    makeDataRunRepository,
+} from '@gongyu/data/data-run-repository';
+import {
     MetadataRepository,
     makeMetadataRepository,
 } from '@gongyu/data/metadata-repository';
@@ -42,6 +46,15 @@ const TestLayer = Layer.mergeAll(
             BookmarkRepository,
             Effect.gen(function* () {
                 return makeBookmarkRepository(yield* D1Store);
+            }),
+        ),
+        D1StoreTest,
+    ),
+    Layer.provide(
+        Layer.effect(
+            DataRunRepository,
+            Effect.gen(function* () {
+                return makeDataRunRepository(yield* D1Store);
             }),
         ),
         D1StoreTest,
@@ -162,5 +175,28 @@ it.effect('processes metadata then one immutable social delivery', () =>
             [deliveryId],
         );
         assert.strictEqual(delivered?.state, 'delivered');
+    }).pipe(Effect.provide(TestLayer)),
+);
+
+it.effect('retries queued work while portability maintenance is active', () =>
+    Effect.gen(function* () {
+        const runs = yield* DataRunRepository;
+        const d1 = yield* D1Store;
+        yield* runs.setReadOnly(true, 'restore:test', Date.now() * 1_000);
+        const message = QueueJobMessage.make({
+            bookmarkShortUrl: 'Missing1',
+            jobId: 'metadata:maintenance:1',
+            kind: 'metadata',
+            version: 1,
+        });
+        const outcome = yield* processQueueJob(message);
+        assert.strictEqual(outcome.retryDelaySeconds, 30);
+        const job = yield* d1.first(
+            StateRow,
+            'SELECT state FROM jobs WHERE id = ?',
+            [message.jobId],
+        );
+        assert.isNull(job);
+        yield* runs.setReadOnly(false, null, Date.now() * 1_000);
     }).pipe(Effect.provide(TestLayer)),
 );

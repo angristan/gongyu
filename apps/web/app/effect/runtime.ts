@@ -12,6 +12,10 @@ import {
     makeDashboardRepository,
 } from '@gongyu/data/dashboard-repository';
 import {
+    DataRunRepository,
+    makeDataRunRepository,
+} from '@gongyu/data/data-run-repository';
+import {
     MetadataRepository,
     makeMetadataRepository,
 } from '@gongyu/data/metadata-repository';
@@ -44,6 +48,7 @@ export class RequestInfo extends Context.Service<
 export type RequestServices =
     | BookmarkRepository
     | DashboardRepository
+    | DataRunRepository
     | D1Store
     | Encryption
     | MetadataClient
@@ -74,6 +79,9 @@ export function makeRequestEffectRunner(options: {
     const bookmarkRepository = BookmarkRepository.of(
         makeBookmarkRepository(d1Store),
     );
+    const dataRunRepository = DataRunRepository.of(
+        makeDataRunRepository(d1Store),
+    );
     const dashboardRepository = DashboardRepository.of(
         makeDashboardRepository(d1Store, bookmarkRepository),
     );
@@ -103,6 +111,7 @@ export function makeRequestEffectRunner(options: {
                     sessionConstraint: options.sessionConstraint,
                 }),
                 Effect.provideService(BookmarkRepository, bookmarkRepository),
+                Effect.provideService(DataRunRepository, dataRunRepository),
                 Effect.provideService(DashboardRepository, dashboardRepository),
                 Effect.provideService(D1Store, d1Store),
                 Effect.provideService(Encryption, encryption),

@@ -1,3 +1,4 @@
+import { DataRunRepository } from '@gongyu/data/data-run-repository';
 import { MetadataRepository } from '@gongyu/data/metadata-repository';
 import { SettingsRepository } from '@gongyu/data/settings-repository';
 import { SocialRepository } from '@gongyu/data/social-repository';
@@ -138,7 +139,7 @@ const processMetadata = Effect.fn('Jobs.processMetadata')(function* (input: {
         readonly sourceUrl: string;
         readonly width: number;
     } | null = null;
-    const imageUrl = candidate.imageUrl ?? target.thumbnailUrl;
+    const imageUrl = target.thumbnailUrl ?? candidate.imageUrl;
     if (imageUrl !== null) {
         const thumbnailClient = yield* ThumbnailClient;
         const thumbnailResult = yield* thumbnailClient.fetch(imageUrl).pipe(
@@ -398,6 +399,10 @@ export const processQueueJob = Effect.fn('Jobs.processQueueJob')(function* (
 ) {
     const now = Date.now() * 1_000;
     const token = crypto.randomUUID();
+    const dataRuns = yield* DataRunRepository;
+    if ((yield* dataRuns.getAppState).readOnly === 1) {
+        return { retryDelaySeconds: 30 } satisfies ProcessOutcome;
+    }
     const workRepository = yield* WorkRepository;
     yield* workRepository.ensureJob(message, now);
     const lease = yield* workRepository.claimJob({
@@ -407,6 +412,9 @@ export const processQueueJob = Effect.fn('Jobs.processQueueJob')(function* (
         token,
     });
     if (lease === null) {
+        if ((yield* dataRuns.getAppState).readOnly === 1) {
+            return { retryDelaySeconds: 30 } satisfies ProcessOutcome;
+        }
         const status = yield* workRepository.getJobStatus(message.jobId);
         if (status?.state === 'processing' && status.leaseExpiresAt !== null) {
             return {

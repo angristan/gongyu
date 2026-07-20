@@ -12,6 +12,7 @@ export class R2StoreError extends Schema.TaggedErrorClass<R2StoreError>()(
 
 export interface R2ObjectMetadata {
     readonly contentType: string;
+    readonly customMetadata: Readonly<Record<string, string>>;
     readonly etag: string;
     readonly key: string;
     readonly size: number;
@@ -33,6 +34,7 @@ export interface R2StoreShape {
         readonly body: ReadableStream<Uint8Array>;
         readonly contentLength: number;
         readonly contentType: string;
+        readonly customMetadata?: Readonly<Record<string, string>>;
         readonly key: string;
     }) => Effect.Effect<R2ObjectMetadata, R2StoreError>;
 }
@@ -82,6 +84,7 @@ export function makeR2Store(bucket: R2Bucket): R2StoreShape {
             body: object.body,
             contentType:
                 object.httpMetadata?.contentType ?? 'application/octet-stream',
+            customMetadata: object.customMetadata ?? {},
             etag: object.httpEtag,
             key: object.key,
             size: object.size,
@@ -108,6 +111,7 @@ export function makeR2Store(bucket: R2Bucket): R2StoreShape {
         return {
             contentType:
                 object.httpMetadata?.contentType ?? 'application/octet-stream',
+            customMetadata: object.customMetadata ?? {},
             etag: object.httpEtag,
             key: object.key,
             size: object.size,
@@ -118,6 +122,7 @@ export function makeR2Store(bucket: R2Bucket): R2StoreShape {
         readonly body: ReadableStream<Uint8Array>;
         readonly contentLength: number;
         readonly contentType: string;
+        readonly customMetadata?: Readonly<Record<string, string>>;
         readonly key: string;
     }) {
         yield* annotateR2Span(input.key, 'put');
@@ -125,6 +130,7 @@ export function makeR2Store(bucket: R2Bucket): R2StoreShape {
             try: async () => {
                 const fixedLength = new FixedLengthStream(input.contentLength);
                 const upload = bucket.put(input.key, fixedLength.readable, {
+                    customMetadata: input.customMetadata,
                     httpMetadata: { contentType: input.contentType },
                     onlyIf: { etagDoesNotMatch: '*' },
                 });
@@ -153,6 +159,7 @@ export function makeR2Store(bucket: R2Bucket): R2StoreShape {
 
         return {
             contentType: object.httpMetadata?.contentType ?? input.contentType,
+            customMetadata: object.customMetadata ?? {},
             etag: object.httpEtag,
             key: object.key,
             size: object.size,

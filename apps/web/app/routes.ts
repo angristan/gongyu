@@ -14,8 +14,9 @@ export default [
     route('login', 'routes/login.tsx'),
     route('logout', 'routes/logout.ts'),
     route('passkey', 'routes/passkey.tsx'),
-    route('storage', 'routes/storage.tsx'),
     route('admin/dashboard', 'routes/admin-dashboard.tsx'),
+    route('admin/data', 'routes/admin-data.tsx'),
+    route('admin/data/:runId/download', 'routes/admin-data-download.ts'),
     route('admin/jobs', 'routes/admin-jobs.tsx'),
     route('admin/settings', 'routes/admin-settings.tsx'),
     route('admin/bookmarks', 'routes/admin-bookmarks.tsx'),
@@ -40,6 +41,4 @@ export default [
     ),
     route('api/auth/recovery', 'routes/auth-recovery.ts'),
     route('api/metadata/preview', 'routes/metadata-preview.ts'),
-    route('api/phase0/uploads', 'routes/phase0-upload.ts'),
-    route('api/phase0/workflows', 'routes/phase0-workflow.ts'),
 ] satisfies RouteConfig;

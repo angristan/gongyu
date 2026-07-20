@@ -11,7 +11,14 @@ import { configuredProviders } from '@gongyu/domain/social';
 import { PageShell } from '@gongyu/ui/page-shell';
 import { Effect } from 'effect';
 import { useEffect, useRef, useState } from 'react';
-import { data, Form, Link, redirect, useRouteLoaderData } from 'react-router';
+import {
+    data,
+    Form,
+    Link,
+    redirect,
+    useNavigation,
+    useRouteLoaderData,
+} from 'react-router';
 import {
     requireAuthenticatedMutation,
     requireAuthentication,
@@ -86,6 +93,7 @@ export async function action({ context, request }: Route.ActionArgs) {
         authentication,
         expectedOrigin: env.RP_ORIGIN,
         request,
+        requireWritable: true,
         runner: effect,
     });
     const formData = await request.formData();
@@ -147,6 +155,7 @@ export default function Bookmarklet({
 }: Route.ComponentProps) {
     const rootData = useRouteLoaderData<typeof rootLoader>('root');
     const csrfToken = rootData?.csrfToken ?? '';
+    const isSubmitting = useNavigation().state !== 'idle';
     const installLink = useRef<HTMLAnchorElement>(null);
     const values =
         actionData !== undefined && 'input' in actionData
@@ -201,8 +210,20 @@ export default function Bookmarklet({
                         </a>
                         <p className="text-sm text-kumo-subtle">
                             If dragging is unavailable, copy the generated code
-                            from the link address after the page hydrates.
+                            below and save it as a browser bookmark.
                         </p>
+                        <label
+                            className="block space-y-2 text-sm font-medium text-kumo-default"
+                            htmlFor="bookmarklet-code"
+                        >
+                            <span>Bookmarklet code</span>
+                            <textarea
+                                className="min-h-32 w-full rounded-md border border-kumo-line bg-kumo-base px-3 py-2 font-mono text-xs"
+                                id="bookmarklet-code"
+                                readOnly
+                                value={loaderData.installCode}
+                            />
+                        </label>
                     </div>
                 </LayerCard>
             </PageShell>
@@ -266,40 +287,60 @@ export default function Bookmarklet({
                     <Form className="space-y-4 p-6" method="post">
                         <input name="_csrf" type="hidden" value={csrfToken} />
                         <input name="source" type="hidden" value={source} />
-                        {bookmarkletFields.map((field) => (
-                            <label
-                                className="block space-y-2 text-sm font-medium text-kumo-default"
-                                key={field.name}
-                            >
-                                <span>{field.label}</span>
-                                <input
-                                    className="w-full rounded-md border border-kumo-line bg-kumo-base px-3 py-2"
-                                    maxLength={
-                                        field.name === 'url' ? 2048 : 500
-                                    }
-                                    name={field.name}
-                                    onChange={(event) => {
-                                        if (field.name === 'url') {
-                                            setUrl(event.currentTarget.value);
-                                        } else {
-                                            setTitle(event.currentTarget.value);
+                        {bookmarkletFields.map((field) => {
+                            const fieldError =
+                                field.name === 'url' ? urlError : titleError;
+                            return (
+                                <label
+                                    className="block space-y-2 text-sm font-medium text-kumo-default"
+                                    key={field.name}
+                                >
+                                    <span>{field.label}</span>
+                                    <input
+                                        aria-describedby={
+                                            fieldError === undefined
+                                                ? undefined
+                                                : `${field.name}-error`
                                         }
-                                    }}
-                                    required
-                                    type={field.type}
-                                    value={field.name === 'url' ? url : title}
-                                />
-                                {(field.name === 'url'
-                                    ? urlError
-                                    : titleError) === undefined ? null : (
-                                    <span className="text-kumo-danger">
-                                        {field.name === 'url'
-                                            ? urlError
-                                            : titleError}
-                                    </span>
-                                )}
-                            </label>
-                        ))}
+                                        aria-invalid={
+                                            fieldError === undefined
+                                                ? undefined
+                                                : true
+                                        }
+                                        className="w-full rounded-md border border-kumo-line bg-kumo-base px-3 py-2"
+                                        maxLength={
+                                            field.name === 'url' ? 2048 : 500
+                                        }
+                                        name={field.name}
+                                        onChange={(event) => {
+                                            if (field.name === 'url') {
+                                                setUrl(
+                                                    event.currentTarget.value,
+                                                );
+                                            } else {
+                                                setTitle(
+                                                    event.currentTarget.value,
+                                                );
+                                            }
+                                        }}
+                                        required
+                                        type={field.type}
+                                        value={
+                                            field.name === 'url' ? url : title
+                                        }
+                                    />
+                                    {fieldError === undefined ? null : (
+                                        <span
+                                            className="text-kumo-danger"
+                                            id={`${field.name}-error`}
+                                            role="alert"
+                                        >
+                                            {fieldError}
+                                        </span>
+                                    )}
+                                </label>
+                            );
+                        })}
                         <MetadataPreview
                             csrfToken={csrfToken}
                             onCandidates={(candidates) => {
@@ -340,7 +381,9 @@ export default function Bookmarklet({
                             </label>
                         )}
                         <div className="flex flex-wrap gap-3">
-                            <Button type="submit">Save bookmark</Button>
+                            <Button loading={isSubmitting} type="submit">
+                                Save bookmark
+                            </Button>
                             <Button
                                 onClick={() => window.close()}
                                 type="button"

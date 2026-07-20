@@ -11,7 +11,14 @@ import { configuredProviders } from '@gongyu/domain/social';
 import { PageShell } from '@gongyu/ui/page-shell';
 import { Effect } from 'effect';
 import { useState } from 'react';
-import { data, Form, Link, redirect, useRouteLoaderData } from 'react-router';
+import {
+    data,
+    Form,
+    Link,
+    redirect,
+    useNavigation,
+    useRouteLoaderData,
+} from 'react-router';
 import {
     requireAuthenticatedMutation,
     requireAuthentication,
@@ -52,6 +59,7 @@ export async function action({ context, request }: Route.ActionArgs) {
         authentication,
         expectedOrigin: env.RP_ORIGIN,
         request,
+        requireWritable: true,
         runner: effect,
     });
     const formData = await request.formData();
@@ -114,12 +122,14 @@ export default function AdminBookmarkNew({
 }: Route.ComponentProps) {
     const rootData = useRouteLoaderData<typeof rootLoader>('root');
     const csrfToken = rootData?.csrfToken ?? '';
+    const isSubmitting = useNavigation().state !== 'idle';
     const values = actionData?.input ?? {
         description: '',
         title: '',
         url: '',
     };
     const errors = actionData?.errors ?? {};
+    const titleError = 'title' in errors ? errors.title : undefined;
     const [url, setUrl] = useState(values.url);
     const [title, setTitle] = useState(values.title);
     const [description, setDescription] = useState(values.description ?? '');
@@ -140,6 +150,14 @@ export default function AdminBookmarkNew({
                     <label className="block space-y-2 text-sm font-medium text-kumo-default">
                         <span>URL</span>
                         <input
+                            aria-describedby={
+                                errors.url === undefined
+                                    ? undefined
+                                    : 'url-error'
+                            }
+                            aria-invalid={
+                                errors.url === undefined ? undefined : true
+                            }
                             className="w-full rounded-md border border-kumo-line bg-kumo-base px-3 py-2"
                             maxLength={2048}
                             name="url"
@@ -151,7 +169,11 @@ export default function AdminBookmarkNew({
                             value={url}
                         />
                         {errors.url === undefined ? null : (
-                            <span className="text-kumo-danger">
+                            <span
+                                className="text-kumo-danger"
+                                id="url-error"
+                                role="alert"
+                            >
                                 {errors.url}
                             </span>
                         )}
@@ -174,6 +196,14 @@ export default function AdminBookmarkNew({
                     <label className="block space-y-2 text-sm font-medium text-kumo-default">
                         <span>Title</span>
                         <input
+                            aria-describedby={
+                                titleError === undefined
+                                    ? undefined
+                                    : 'title-error'
+                            }
+                            aria-invalid={
+                                titleError === undefined ? undefined : true
+                            }
                             className="w-full rounded-md border border-kumo-line bg-kumo-base px-3 py-2"
                             maxLength={500}
                             name="title"
@@ -183,6 +213,15 @@ export default function AdminBookmarkNew({
                             required
                             value={title}
                         />
+                        {titleError === undefined ? null : (
+                            <span
+                                className="text-kumo-danger"
+                                id="title-error"
+                                role="alert"
+                            >
+                                {titleError}
+                            </span>
+                        )}
                     </label>
                     <label className="block space-y-2 text-sm font-medium text-kumo-default">
                         <span>Description</span>
@@ -207,7 +246,9 @@ export default function AdminBookmarkNew({
                             </span>
                         </label>
                     )}
-                    <Button type="submit">Save bookmark</Button>
+                    <Button loading={isSubmitting} type="submit">
+                        Save bookmark
+                    </Button>
                 </Form>
             </LayerCard>
         </PageShell>

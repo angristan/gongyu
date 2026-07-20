@@ -1,5 +1,6 @@
 import { Context, Effect, Schema } from 'effect';
 import type { MetadataFetch } from './metadata-client';
+import { assertPublicHostname } from './network-safety';
 
 const IMAGE_LIMIT_BYTES = 1_000_000;
 const IMAGE_TIMEOUT_MS = 10_000;
@@ -274,8 +275,10 @@ const readBytes = Effect.fn('ThumbnailClient.readBytes')(function* (
 });
 
 export function makeThumbnailClient(
-    fetchImplementation: MetadataFetch = fetch,
+    configuredFetch?: MetadataFetch,
 ): ThumbnailClientShape {
+    const fetchImplementation = configuredFetch ?? fetch;
+    const validateDns = configuredFetch === undefined;
     const fetchThumbnail = Effect.fn('ThumbnailClient.fetch')(function* (
         value: string,
     ) {
@@ -286,6 +289,17 @@ export function makeThumbnailClient(
         let current = initial;
         const deadline = Date.now() + IMAGE_TIMEOUT_MS;
         for (let redirects = 0; redirects <= REDIRECT_LIMIT; redirects += 1) {
+            if (validateDns) {
+                yield* Effect.tryPromise({
+                    try: () => assertPublicHostname(current),
+                    catch: () =>
+                        failure(
+                            'unsafe_image_hostname',
+                            'Thumbnail hostname does not resolve publicly.',
+                            false,
+                        ),
+                });
+            }
             const response = yield* Effect.tryPromise({
                 try: async (signal) => {
                     const remaining = deadline - Date.now();

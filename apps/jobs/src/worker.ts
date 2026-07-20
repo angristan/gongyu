@@ -1,9 +1,11 @@
+import { DataRunRepository } from '@gongyu/data/data-run-repository';
 import { WorkRepository } from '@gongyu/data/work-repository';
 import { QueueJobMessage } from '@gongyu/domain/jobs';
 import { Effect, Schema } from 'effect';
 import { failDeadLetterJob, processQueueJob } from './processor';
 import { makeJobsEffectRunner } from './runtime';
 
+export { DataWorkflow } from './data-workflow';
 export { Phase0Workflow } from './phase0-workflow';
 
 const OUTBOX_LEASE_MICROS = 60 * 1_000_000;
@@ -70,6 +72,43 @@ export default {
     async scheduled(_controller, env) {
         const effect = runner(env, 'scheduled');
         const now = Date.now() * 1_000;
+        await env.DB.withSession('first-primary').batch([
+            env.DB.prepare(
+                'DELETE FROM write_leases WHERE expires_at <= ?',
+            ).bind(now),
+            env.DB.prepare(
+                `
+                    DELETE FROM sessions
+                    WHERE idle_expires_at <= ? OR absolute_expires_at <= ?
+                `,
+            ).bind(Math.floor(now / 1_000), Math.floor(now / 1_000)),
+            env.DB.prepare(
+                `
+                    DELETE FROM webauthn_challenges
+                    WHERE expires_at <= ?
+                       OR (consumed_at IS NOT NULL AND consumed_at <= ?)
+                `,
+            ).bind(
+                Math.floor(now / 1_000),
+                Math.floor(now / 1_000) - 86_400_000,
+            ),
+        ]);
+        const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1_000_000;
+        const ninetyDaysAgo = now - 90 * 24 * 60 * 60 * 1_000_000;
+        await env.DB.withSession('first-primary').batch([
+            env.DB.prepare(
+                `DELETE FROM jobs WHERE state IN ('completed', 'failed') AND updated_at < ?`,
+            ).bind(thirtyDaysAgo),
+            env.DB.prepare(
+                `DELETE FROM outbox WHERE state IN ('completed', 'failed') AND updated_at < ?`,
+            ).bind(thirtyDaysAgo),
+            env.DB.prepare('DELETE FROM audit_log WHERE occurred_at < ?').bind(
+                ninetyDaysAgo,
+            ),
+            env.DB.prepare(
+                `DELETE FROM data_runs WHERE state IN ('expired', 'failed') AND updated_at < ?`,
+            ).bind(ninetyDaysAgo),
+        ]);
         const token = crypto.randomUUID();
         const leases = await effect.runPromise(
             Effect.gen(function* () {
@@ -128,6 +167,41 @@ export default {
                                 : 'UnknownError',
                         event: 'outbox.dispatch.failed',
                         outboxId: lease.id,
+                    }),
+                );
+            }
+        }
+
+        const expired = await effect.runPromise(
+            Effect.gen(function* () {
+                const repository = yield* DataRunRepository;
+                return yield* repository.listExpiredArtifacts(
+                    Date.now() * 1_000,
+                    10,
+                );
+            }),
+        );
+        for (const artifact of expired) {
+            try {
+                await env.UPLOADS.delete(artifact.artifactKey);
+                await effect.runPromise(
+                    Effect.gen(function* () {
+                        const repository = yield* DataRunRepository;
+                        yield* repository.expireRun(
+                            artifact.id,
+                            Date.now() * 1_000,
+                        );
+                    }),
+                );
+            } catch (error) {
+                console.error(
+                    JSON.stringify({
+                        errorClass:
+                            error instanceof Error
+                                ? error.constructor.name
+                                : 'UnknownError',
+                        event: 'artifact.cleanup.failed',
+                        runId: artifact.id,
                     }),
                 );
             }

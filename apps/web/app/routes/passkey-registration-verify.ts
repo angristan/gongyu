@@ -18,6 +18,7 @@ export async function action({ context, request }: Route.ActionArgs) {
             authentication,
             expectedOrigin: env.RP_ORIGIN,
             request,
+            requireWritable: true,
             runner: effect,
         });
     } else if (request.headers.get('Origin') !== env.RP_ORIGIN) {
@@ -27,6 +28,7 @@ export async function action({ context, request }: Route.ActionArgs) {
     const registration = finishRegistration(
         { origin: env.RP_ORIGIN, rpId: env.RP_ID },
         payload,
+        authentication.authenticated ? 'authenticated' : 'setup',
     ).pipe(
         Effect.tap((result) =>
             result.registrationMode === 'replacement'
