@@ -1,227 +1,138 @@
-# Self-Hosting
+# Self-hosting on Cloudflare
 
-## Quick Start
+Gongyu runs as two Cloudflare Workers. It is not a container or VPS application.
 
-Minimal setup with SQLite, database sessions, and synchronous queue:
+## Requirements
 
-```yaml
-services:
-    web:
-        image: ghcr.io/angristan/gongyu:latest
-        ports:
-            - "8000:8080"
-        environment:
-            APP_URL: http://localhost:8000
-            SESSION_DRIVER: database
-            QUEUE_CONNECTION: sync
-        volumes:
-            - gongyu_data:/app/database
-        command: ["sh", "-c", "php artisan key:generate --force && php artisan optimize && php artisan migrate --force && php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8080 --log-level=info --caddyfile=./deploy/Caddyfile.octane --max-requests=100"]
+- A Cloudflare account with a Workers plan that supports Workflows
+- Bun 1.3.9
+- Wrangler authentication: `bunx wrangler login`
+- A final HTTPS hostname for the web Worker before passkey enrollment
 
-volumes:
-    gongyu_data:
-```
+The checked-in Wrangler files contain a `staging` environment for the maintainers' installation. Treat it as a template: replace all Worker, D1, R2, Queue, Workflow, hostname, and account-specific values before deploying a separate installation.
+
+## 1. Install and provision resources
 
 ```bash
-docker compose up -d
+bun install --frozen-lockfile
+
+bunx wrangler d1 create gongyu
+bunx wrangler r2 bucket create gongyu-uploads
+bunx wrangler queues create gongyu-jobs
+bunx wrangler queues create gongyu-jobs-dlq
 ```
 
-Access at <http://localhost:8000>.
+Update both `apps/web/wrangler.jsonc` and `apps/jobs/wrangler.jsonc` so they reference the same D1 database and R2 bucket. Configure the Queue producer, consumer, and dead-letter queue in the jobs Worker.
 
-## Full Setup
+Use unique names for:
 
-For production with Redis (queue, cache) and PostgreSQL, use the full setup in `deploy/`:
+- the web and jobs Workers;
+- the data Workflow;
+- D1 and R2 resources;
+- the main queue and dead-letter queue.
+
+The web Worker's Workflow bindings must use the deployed jobs Worker as `script_name`.
+
+## 2. Configure the hostname
+
+Set these web Worker variables for the deployment environment:
+
+| Variable | Value |
+| --- | --- |
+| `APP_ENV` | An environment label such as `production` |
+| `RP_ID` | The exact hostname, without scheme or port |
+| `RP_ORIGIN` | The exact HTTPS origin, without a trailing slash |
+
+Set the same `RP_ID` on the jobs Worker. Configure the web Worker's custom domain or `workers.dev` hostname to match.
+
+Passkeys are bound to `RP_ID`. Changing it later requires passkey recovery or re-enrollment, so choose the final hostname first.
+
+## 3. Configure secrets
+
+Generate a 32-byte AES-GCM keyring and a bootstrap token locally:
 
 ```bash
-cd deploy
-cp .env.compose .env.compose.local
-# Edit APP_URL to your domain
-docker compose up -d
+bun -e 'const key=crypto.getRandomValues(new Uint8Array(32)); console.log(JSON.stringify({currentVersion:1,keys:{"1":Buffer.from(key).toString("base64")}}))'
+bun -e 'console.log(Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString("base64url"))'
 ```
 
-This includes:
-
-- **Web server** (FrankenPHP/Octane)
-- **Queue worker** (background jobs)
-- **Scheduler** (scheduled tasks)
-- **Redis** (queue, cache)
-- **PostgreSQL** (optional, via `--profile postgres`)
-
-## Configuration
-
-| Variable             | Description                                |
-| -------------------- | ------------------------------------------ |
-| `APP_URL`            | Your domain (e.g., `https://example.com`)  |
-| `DB_CONNECTION`      | `sqlite` (default) or `pgsql`              |
-| `SESSION_DRIVER`     | `database` (default) or `redis`            |
-| `QUEUE_CONNECTION`   | `sync`, `database`, or `redis`             |
-
-## Performance Tuning
-
-By default, the web server runs with **Laravel Octane**, which keeps your application in memory between requests.
-
-For **low-memory environments** (small VPS, Raspberry Pi), use classic FrankenPHP mode:
-
-```yaml
-command: ["sh", "-c", "php artisan key:generate --force && php artisan optimize && php artisan migrate --force && frankenphp run --config ./deploy/Caddyfile.classic"]
-```
-
-| Mode             | Memory | Performance | Use Case               |
-| ---------------- | ------ | ----------- | ---------------------- |
-| Octane (default) | Higher | Fast        | Production, most users |
-| Classic          | Lower  | Standard    | Low-memory VPS, RPi    |
-
-## Using PostgreSQL
-
-```yaml
-services:
-    web:
-        image: ghcr.io/angristan/gongyu:latest
-        ports:
-            - "8000:8080"
-        environment:
-            APP_URL: http://localhost:8000
-            SESSION_DRIVER: database
-            QUEUE_CONNECTION: sync
-            DB_CONNECTION: pgsql
-            DB_HOST: postgres
-            DB_DATABASE: gongyu
-            DB_USERNAME: gongyu
-            DB_PASSWORD: secret
-        command: ["sh", "-c", "php artisan key:generate --force && php artisan optimize && php artisan migrate --force && php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8080 --log-level=info --caddyfile=./deploy/Caddyfile.octane --max-requests=100"]
-        depends_on:
-            postgres:
-                condition: service_healthy
-
-    postgres:
-        image: postgres:17-alpine
-        environment:
-            POSTGRES_DB: gongyu
-            POSTGRES_USER: gongyu
-            POSTGRES_PASSWORD: secret
-        volumes:
-            - postgres_data:/var/lib/postgresql/data
-        healthcheck:
-            test: ["CMD", "pg_isready", "-U", "gongyu"]
-
-volumes:
-    postgres_data:
-```
-
-## Reverse Proxy
-
-### Caddy
-
-```
-gongyu.example.com {
-    reverse_proxy localhost:8000
-}
-```
-
-### Nginx
-
-```nginx
-server {
-    listen 443 ssl http2;
-    server_name gongyu.example.com;
-
-    ssl_certificate /path/to/cert.pem;
-    ssl_certificate_key /path/to/key.pem;
-
-    location / {
-        proxy_pass http://127.0.0.1:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
-## Useful Commands
+Store the first output as `ENCRYPTION_KEYS` on **both** Workers and the second as `SETUP_TOKEN` on the web Worker. Wrangler prompts for each value without placing it in the command line:
 
 ```bash
-# View logs
-docker compose logs -f web
-
-# Stop everything
-docker compose down
-
-# Update to latest version
-docker compose pull && docker compose up -d
+bunx wrangler secret put ENCRYPTION_KEYS --env staging --config apps/jobs/wrangler.jsonc
+bunx wrangler secret put ENCRYPTION_KEYS --env staging --config apps/web/wrangler.jsonc
+bunx wrangler secret put SETUP_TOKEN --env staging --config apps/web/wrangler.jsonc
 ```
 
-## Backups
+Replace `staging` with your configured environment. Keep the keyring outside the repository and back it up securely. Losing it makes encrypted social credentials and restored settings unreadable.
 
-### SQLite
+## 4. Validate and deploy
+
+Validate, apply D1 migrations, and deploy:
 
 ```bash
-docker compose exec web cat /app/database/database.sqlite > backup-$(date +%F).sqlite
+bun run check
+bun run deploy:staging
 ```
 
-### PostgreSQL
+The root deployment script applies staging D1 migrations first, deploys the jobs Worker, then builds and deploys the web Worker.
+
+For an environment other than `staging`, add matching scripts or run the equivalent commands explicitly:
 
 ```bash
-docker compose exec postgres pg_dump -U gongyu gongyu > backup-$(date +%F).sql
+bunx wrangler d1 migrations apply DB --remote --env production --config apps/jobs/wrangler.jsonc
+bunx wrangler deploy --env production --config apps/jobs/wrangler.jsonc
+CLOUDFLARE_ENV=production bun run --cwd apps/web build
+bunx wrangler deploy --config apps/web/build/server/wrangler.json
 ```
 
-## Manual Installation
+## 5. Enroll the administrator
+
+Visit `https://your-host/setup`, enter `SETUP_TOKEN`, and register the administrator passkey. Setup closes after a passkey exists.
+
+Use a passkey that is backed up or available on more than one trusted device. Recovery requires Cloudflare deployment access and rotating the bootstrap token.
+
+Configure social providers and the public feed from **Admin → Settings**. Provider credentials are encrypted in D1 with `ENCRYPTION_KEYS`.
+
+## Updating
 
 ```bash
-git clone https://github.com/angristan/gongyu
-cd gongyu
-
-composer install --no-dev --optimize-autoloader
-npm install && npm run build
-
-cp .env.example .env
-php artisan key:generate
-php artisan migrate
-
-php artisan serve
+git pull --ff-only
+bun install --frozen-lockfile
+bun run check
+bun run deploy:staging
 ```
 
-## Environment Variables
+Never edit an applied migration. Add a new numbered SQL migration under `migrations/` and apply it before code that depends on it.
 
-### Database
+## Operations
 
-```env
-# SQLite (default)
-DB_CONNECTION=sqlite
+Health check:
 
-# PostgreSQL
-DB_CONNECTION=pgsql
-DB_HOST=127.0.0.1
-DB_DATABASE=gongyu
-DB_USERNAME=gongyu
-DB_PASSWORD=secret
+```text
+https://your-host/health
 ```
 
-### Analytics (Optional)
+Tail each Worker independently:
 
-Gongyu supports [Umami](https://umami.is/) for privacy-friendly analytics:
-
-```env
-UMAMI_URL=https://your-umami-instance.com
-UMAMI_WEBSITE_ID=your-website-id
+```bash
+bunx wrangler tail --env staging --config apps/web/wrangler.jsonc
+bunx wrangler tail --env staging --config apps/jobs/wrangler.jsonc
 ```
 
-### Social Media (Optional)
+The jobs Worker consumes queue messages, runs Workflow classes, dispatches the D1 outbox every minute, and cleans expired sessions, jobs, audit events, and generated artifacts. Inspect Cloudflare Queues for dead-letter messages when background work repeatedly fails.
 
-Configure in Settings or via environment:
+Imports, exports, backups, restores, and job status are available under **Admin → Data** and **Admin → Jobs**. Generated data artifacts are private and expire; download anything you need to retain.
 
-```env
-# Twitter API v2
-TWITTER_API_KEY=
-TWITTER_API_SECRET=
-TWITTER_ACCESS_TOKEN=
-TWITTER_ACCESS_SECRET=
+## Migrating a legacy installation
 
-# Mastodon
-MASTODON_INSTANCE=https://mastodon.social
-MASTODON_ACCESS_TOKEN=
+The migration utility converts a legacy PostgreSQL export or an existing source JSON file into a validated Gongyu full-backup JSON file:
 
-# Bluesky
-BLUESKY_HANDLE=yourname.bsky.social
-BLUESKY_APP_PASSWORD=
+```bash
+LEGACY_APP_KEY='...' \
+ENCRYPTION_KEYS='...' \
+DESTINATION_RP_ID='your-host' \
+bun apps/jobs/scripts/migrate-legacy.ts output.json [source.json]
 ```
+
+Without `source.json`, the script invokes `psql` and reads standard PostgreSQL connection variables, including `DATABASE_URL`. Restore the resulting file from **Admin → Data**. Test this flow against a non-production deployment before any cutover.

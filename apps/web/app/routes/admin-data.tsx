@@ -5,6 +5,12 @@ import {
 import type { DataWorkflowPayload } from '@gongyu/domain/portability';
 import { assertPublicHostname } from '@gongyu/integrations/network-safety';
 import { R2Store } from '@gongyu/integrations/r2-store';
+import {
+    isSafeShaarliUrl,
+    shaarliApiFailure,
+    shaarliAuthorization,
+    shaarliLinksUrl,
+} from '@gongyu/integrations/shaarli-api-client';
 import { NativeSelect } from '@mantine/core';
 import {
     ArrowClockwiseIcon,
@@ -61,55 +67,6 @@ async function digest(bytes: Uint8Array): Promise<string> {
     ).join('');
 }
 
-function base64Url(bytes: Uint8Array): string {
-    let binary = '';
-    for (const byte of bytes) {
-        binary += String.fromCharCode(byte);
-    }
-    return btoa(binary)
-        .replaceAll('+', '-')
-        .replaceAll('/', '_')
-        .replace(/=+$/u, '');
-}
-
-async function shaarliJwt(secret: string): Promise<string> {
-    const encoder = new TextEncoder();
-    const header = base64Url(
-        encoder.encode(JSON.stringify({ alg: 'HS512', typ: 'JWT' })),
-    );
-    const payload = base64Url(
-        encoder.encode(JSON.stringify({ iat: Math.floor(Date.now() / 1_000) })),
-    );
-    const key = await crypto.subtle.importKey(
-        'raw',
-        encoder.encode(secret),
-        { hash: 'SHA-512', name: 'HMAC' },
-        false,
-        ['sign'],
-    );
-    const signature = await crypto.subtle.sign(
-        'HMAC',
-        key,
-        encoder.encode(`${header}.${payload}`),
-    );
-    return `${header}.${payload}.${base64Url(new Uint8Array(signature))}`;
-}
-
-function isSafeShaarliUrl(url: URL, origin?: string): boolean {
-    const hostname = url.hostname.toLowerCase().replace(/\.$/u, '');
-    return (
-        url.protocol === 'https:' &&
-        url.username === '' &&
-        url.password === '' &&
-        (origin === undefined || url.origin === origin) &&
-        hostname !== 'localhost' &&
-        !hostname.endsWith('.localhost') &&
-        !hostname.endsWith('.local') &&
-        !/^\d+(?:\.\d+){3}$/u.test(hostname) &&
-        !hostname.includes(':')
-    );
-}
-
 async function fetchShaarli(formData: FormData): Promise<Uint8Array> {
     const value = formData.get('shaarli_url');
     const secret = formData.get('api_secret');
@@ -134,10 +91,9 @@ async function fetchShaarli(formData: FormData): Promise<Uint8Array> {
             { status: 400 },
         );
     }
-    url.pathname = `${url.pathname.replace(/\/$/u, '')}/api/v1/links`;
-    url.search = '?limit=all';
+    url = shaarliLinksUrl(url);
     const origin = url.origin;
-    const authorization = `Bearer ${await shaarliJwt(secret)}`;
+    const authorization = await shaarliAuthorization(secret);
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 60_000);
     let response: Response | null = null;
@@ -188,15 +144,9 @@ async function fetchShaarli(formData: FormData): Promise<Uint8Array> {
     if (response === null) {
         throw new Response('Shaarli API request failed.', { status: 502 });
     }
-    if (response.status === 401) {
-        throw new Response('Shaarli API authentication failed.', {
-            status: 400,
-        });
-    }
-    if (!response.ok) {
-        throw new Response(`Shaarli API returned ${response.status}.`, {
-            status: 502,
-        });
+    const failure = shaarliApiFailure(response);
+    if (failure !== null) {
+        throw new Response(failure.message, { status: failure.status });
     }
     const declared = Number.parseInt(
         response.headers.get('Content-Length') ?? '0',

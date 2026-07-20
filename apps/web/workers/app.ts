@@ -9,7 +9,6 @@ import { cloudflareRequestContext } from '../app/platform-context';
 import { traceHttpRequest } from './observability';
 
 export { DataWorkflow } from '@gongyu/jobs/data-workflow';
-export { Phase0Workflow } from '@gongyu/jobs/workflow';
 
 const requestHandler = createRequestHandler(
     () => import('virtual:react-router/server-build'),

@@ -507,6 +507,15 @@ export default function AdminBookmarks({
                 <summary className="cursor-pointer text-sm text-gongyu-danger hover:underline">
                     Danger zone
                 </summary>
+                {actionData?.error === undefined ? null : (
+                    <div className="mt-3">
+                        <Banner
+                            description={actionData.error}
+                            title="The library was not deleted"
+                            variant="error"
+                        />
+                    </div>
+                )}
                 <div className="mt-3 flex flex-col gap-3 rounded-lg bg-gongyu-danger-tint/30 p-3 ring ring-gongyu-danger/20 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h2 className="font-medium text-gongyu-default">

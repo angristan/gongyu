@@ -22,7 +22,6 @@
     "@gongyu/jobs": "workspace:*",
     "@gongyu/ui": "workspace:*",
     "@mantine/core": "9.4.1",
-    "@mantine/hooks": "9.4.1",
     "@phosphor-icons/react": "2.1.10",
     "@simplewebauthn/browser": "13.3.0",
     "@simplewebauthn/server": "13.3.2",

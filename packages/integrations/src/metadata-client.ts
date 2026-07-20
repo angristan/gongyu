@@ -5,6 +5,40 @@ import { assertPublicHostname } from './network-safety';
 const HTML_LIMIT_BYTES = 1_048_576;
 const FETCH_TIMEOUT_MS = 10_000;
 const REDIRECT_LIMIT = 5;
+const TITLE_SUFFIX_PATTERNS = [
+    /\s*[|–—]\s*[^|–—]+$/u,
+    /\s+-\s+[^-]+$/u,
+    /\s*·\s*[^·]+$/u,
+];
+const REGEXP_SPECIAL_CHARACTERS = /[.*+?^${}()|[\]\\]/gu;
+const KNOWN_TITLE_SUFFIX_PATTERNS = [
+    'YouTube',
+    'Wikipedia',
+    'Reddit',
+    'Twitter',
+    'X',
+    'GitHub',
+    'Stack Overflow',
+    'Medium',
+    'The Verge',
+    'Hacker News',
+    'Ars Technica',
+    'TechCrunch',
+    'Wired',
+    'BBC',
+    'CNN',
+    'The New York Times',
+    'The Guardian',
+    'The Washington Post',
+    'Forbes',
+    'Bloomberg',
+].map(
+    (suffix) =>
+        new RegExp(
+            `\\s*[|–—·:-]\\s*${suffix.replace(REGEXP_SPECIAL_CHARACTERS, '\\$&')}\\s*$`,
+            'iu',
+        ),
+);
 
 export type MetadataFetch = (
     input: RequestInfo | URL,
@@ -28,6 +62,24 @@ function failure(
     retryable: boolean,
 ): MetadataError {
     return MetadataError.make({ code, message, retryable });
+}
+
+export function cleanMetadataTitle(title: string): string {
+    const original = title.trim();
+    if (original === '') {
+        return original;
+    }
+
+    let cleaned = original;
+    for (const pattern of TITLE_SUFFIX_PATTERNS) {
+        cleaned = cleaned.replace(pattern, '');
+    }
+    for (const pattern of KNOWN_TITLE_SUFFIX_PATTERNS) {
+        cleaned = cleaned.replace(pattern, '');
+    }
+
+    cleaned = cleaned.trim();
+    return cleaned === '' ? original : cleaned;
 }
 
 function validateUrl(value: string): URL | MetadataError {
@@ -194,9 +246,9 @@ const extractMetadata = Effect.fn('MetadataClient.extract')(function* (
             ),
     });
 
-    const normalizedTitle = (openGraphTitle ?? documentTitle)
-        .replace(/\s+/gu, ' ')
-        .trim();
+    const normalizedTitle = cleanMetadataTitle(
+        (openGraphTitle ?? documentTitle).replace(/\s+/gu, ' '),
+    );
     const resolvedDescription = (openGraphDescription ?? description) as
         | string
         | null;

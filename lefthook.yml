@@ -1,18 +1,9 @@
 pre-commit:
   parallel: true
   commands:
-    pint:
-      glob: "*.php"
-      run: composer pint -- --test
-    phpstan:
-      glob: "*.php"
-      run: composer phpstan
-    tests:
-      glob: "*.php"
-      run: php artisan test --parallel
     biome:
-      glob: "*.{js,ts,tsx}"
-      run: bunx biome check
+      glob: "*.{js,ts,tsx,json,jsonc}"
+      run: bun run lint
     typecheck:
-      glob: "*.{ts,tsx}"
+      glob: "*.{ts,tsx,json,jsonc}"
       run: bun run typecheck

@@ -8,6 +8,7 @@
     "./network-safety": "./src/network-safety.ts",
     "./thumbnail-client": "./src/thumbnail-client.ts",
     "./r2-store": "./src/r2-store.ts",
+    "./shaarli-api-client": "./src/shaarli-api-client.ts",
     "./shaarli-datastore": "./src/shaarli-datastore.ts",
     "./social-clients": "./src/social-clients.ts"
   },
