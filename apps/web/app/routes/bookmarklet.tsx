@@ -1,4 +1,7 @@
-import { Button } from '@cloudflare/kumo/components/button';
+import { Banner } from '@cloudflare/kumo/components/banner';
+import { Button, LinkButton } from '@cloudflare/kumo/components/button';
+import { Checkbox } from '@cloudflare/kumo/components/checkbox';
+import { Input, InputArea } from '@cloudflare/kumo/components/input';
 import { LayerCard } from '@cloudflare/kumo/components/layer-card';
 import { BookmarkRepository } from '@gongyu/data/bookmark-repository';
 import { SettingsRepository } from '@gongyu/data/settings-repository';
@@ -8,13 +11,17 @@ import {
     decodeBookmarkInput,
 } from '@gongyu/domain/bookmarks';
 import { configuredProviders } from '@gongyu/domain/social';
-import { PageShell } from '@gongyu/ui/page-shell';
+import {
+    BookmarkSimpleIcon,
+    CheckCircleIcon,
+    CopyIcon,
+    FloppyDiskIcon,
+} from '@phosphor-icons/react';
 import { Effect } from 'effect';
 import { useEffect, useRef, useState } from 'react';
 import {
     data,
     Form,
-    Link,
     redirect,
     useNavigation,
     useRouteLoaderData,
@@ -24,6 +31,7 @@ import {
     requireAuthentication,
 } from '../auth/session.server';
 import { MetadataPreview } from '../bookmarks/metadata-preview';
+import { AdminPage } from '../components/admin-page';
 import { failure, success } from '../effect/result';
 import { cloudflareRequestContext } from '../platform-context';
 import type { loader as rootLoader } from '../root';
@@ -172,6 +180,7 @@ export default function Bookmarklet({
     const [url, setUrl] = useState(values.url ?? '');
     const [title, setTitle] = useState(values.title ?? '');
     const [description, setDescription] = useState(values.description ?? '');
+    const [shareSocial, setShareSocial] = useState(true);
 
     useEffect(() => {
         if (installLink.current !== null) {
@@ -189,99 +198,163 @@ export default function Bookmarklet({
 
     if (loaderData.prefill.url === '') {
         return (
-            <PageShell
-                description="Drag this link to your bookmarks bar, then use it on any page to open Gongyu in a 600×500 popup."
-                eyebrow="Administrator"
-                footer={
-                    <Link className="text-kumo-link" to="/admin/dashboard">
-                        Back to dashboard
-                    </Link>
-                }
+            <AdminPage
+                description="Capture the page you are reading without leaving it."
+                section="Bookmarklet"
                 title="Install bookmarklet"
             >
-                <LayerCard className="max-w-2xl">
-                    <div className="space-y-4 p-6">
-                        <a
-                            className="inline-flex rounded-md border border-kumo-line px-4 py-2 font-medium text-kumo-link"
-                            href="#bookmarklet-code"
-                            ref={installLink}
-                        >
-                            Save to Gongyu
-                        </a>
-                        <p className="text-sm text-kumo-subtle">
-                            If dragging is unavailable, copy the generated code
-                            below and save it as a browser bookmark.
-                        </p>
-                        <label
-                            className="block space-y-2 text-sm font-medium text-kumo-default"
-                            htmlFor="bookmarklet-code"
-                        >
-                            <span>Bookmarklet code</span>
-                            <textarea
-                                className="min-h-32 w-full rounded-md border border-kumo-line bg-kumo-base px-3 py-2 font-mono text-xs"
+                <div className="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(18rem,0.65fr)]">
+                    <LayerCard>
+                        <section className="space-y-6 p-5 sm:p-7">
+                            <div className="flex items-start gap-4">
+                                <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-kumo-tint text-kumo-link">
+                                    <BookmarkSimpleIcon
+                                        aria-hidden="true"
+                                        size={26}
+                                        weight="duotone"
+                                    />
+                                </span>
+                                <div>
+                                    <h2 className="text-lg font-semibold text-kumo-default">
+                                        Add it to your bookmarks bar
+                                    </h2>
+                                    <p className="mt-1 text-sm leading-6 text-kumo-subtle">
+                                        Drag the button below into the browser
+                                        toolbar, then click it from any page.
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="rounded-2xl border border-dashed border-kumo-brand/50 bg-kumo-tint/50 p-8 text-center">
+                                <a
+                                    className="inline-flex h-11 items-center justify-center rounded-xl bg-kumo-brand px-5 font-semibold text-white shadow-sm transition-transform hover:-translate-y-0.5"
+                                    href="#bookmarklet-code"
+                                    ref={installLink}
+                                >
+                                    Save to Gongyu
+                                </a>
+                                <p className="mt-3 text-xs text-kumo-subtle">
+                                    Drag this button — do not click it on this
+                                    page.
+                                </p>
+                            </div>
+                            <InputArea
+                                className="min-h-36 font-mono text-xs"
+                                description="Use this when your browser does not support dragging bookmarklets."
                                 id="bookmarklet-code"
+                                label="Bookmarklet code"
                                 readOnly
                                 value={loaderData.installCode}
                             />
-                        </label>
-                    </div>
-                </LayerCard>
-            </PageShell>
+                        </section>
+                    </LayerCard>
+                    <aside className="space-y-4">
+                        <LayerCard>
+                            <ol className="space-y-5 p-5 text-sm">
+                                {[
+                                    'Show the browser bookmarks bar.',
+                                    'Drag “Save to Gongyu” into the bar.',
+                                    'Open any article and click the bookmarklet.',
+                                ].map((step, index) => (
+                                    <li className="flex gap-3" key={step}>
+                                        <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-kumo-brand text-xs font-semibold text-white">
+                                            {index + 1}
+                                        </span>
+                                        <span className="leading-6 text-kumo-subtle">
+                                            {step}
+                                        </span>
+                                    </li>
+                                ))}
+                            </ol>
+                        </LayerCard>
+                        <Banner
+                            description="The popup sends the page URL and selected text only to your own Gongyu deployment."
+                            icon={<CopyIcon aria-hidden="true" size={20} />}
+                            title="Private by design"
+                            variant="secondary"
+                        />
+                    </aside>
+                </div>
+            </AdminPage>
         );
     }
 
     if (loaderData.existing !== null && !saved) {
         return (
-            <PageShell
-                description={loaderData.existing.url}
-                eyebrow="Bookmarklet"
+            <AdminPage
+                description="This exact URL is already in your library."
+                section="Bookmarklet"
                 title="Already bookmarked"
+                width="default"
             >
-                <LayerCard className="max-w-2xl">
-                    <div className="space-y-4 p-6">
-                        <p className="font-medium text-kumo-default">
-                            {loaderData.existing.title}
-                        </p>
-                        <div className="flex flex-wrap gap-4">
-                            <Link
-                                className="text-kumo-link"
-                                to={`/admin/bookmarks/${loaderData.existing.shortUrl}/edit`}
+                <LayerCard>
+                    <div className="space-y-5 p-6 sm:p-7">
+                        <div className="flex items-start gap-4">
+                            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-kumo-tint text-kumo-link">
+                                <BookmarkSimpleIcon
+                                    aria-hidden="true"
+                                    size={23}
+                                />
+                            </span>
+                            <div className="min-w-0">
+                                <p className="font-semibold text-kumo-default">
+                                    {loaderData.existing.title}
+                                </p>
+                                <p className="mt-1 break-all text-sm text-kumo-subtle">
+                                    {loaderData.existing.url}
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2 border-t border-kumo-line pt-5">
+                            <LinkButton
+                                href={`/admin/bookmarks/${loaderData.existing.shortUrl}/edit`}
+                                variant="primary"
                             >
                                 Edit existing bookmark
-                            </Link>
-                            <button
-                                className="text-kumo-link"
+                            </LinkButton>
+                            <Button
                                 onClick={() => window.close()}
                                 type="button"
+                                variant="secondary"
                             >
                                 Close
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 </LayerCard>
-            </PageShell>
+            </AdminPage>
         );
     }
 
     return (
-        <PageShell
-            description="Review the captured page details before saving."
-            eyebrow="Bookmarklet"
-            title={saved ? 'Bookmark saved' : 'Save bookmark'}
+        <AdminPage
+            description={
+                saved
+                    ? 'The captured page is now in your library.'
+                    : 'Review the page details and keep the context you need.'
+            }
+            section="Bookmarklet"
+            title={saved ? 'Bookmark saved' : 'Save captured page'}
+            width="default"
         >
             <LayerCard className="max-w-2xl">
                 {saved ? (
-                    <div className="space-y-4 p-6">
+                    <div className="space-y-5 p-7 text-center">
+                        <CheckCircleIcon
+                            aria-hidden="true"
+                            className="mx-auto text-kumo-success"
+                            size={48}
+                            weight="duotone"
+                        />
                         <p aria-live="polite" className="text-kumo-default">
                             Saved successfully. This popup will close shortly.
                         </p>
-                        <button
-                            className="text-kumo-link"
+                        <Button
                             onClick={() => window.close()}
                             type="button"
+                            variant="secondary"
                         >
                             Close now
-                        </button>
+                        </Button>
                     </div>
                 ) : (
                     <Form className="space-y-4 p-6" method="post">
@@ -291,54 +364,25 @@ export default function Bookmarklet({
                             const fieldError =
                                 field.name === 'url' ? urlError : titleError;
                             return (
-                                <label
-                                    className="block space-y-2 text-sm font-medium text-kumo-default"
+                                <Input
+                                    error={fieldError}
                                     key={field.name}
-                                >
-                                    <span>{field.label}</span>
-                                    <input
-                                        aria-describedby={
-                                            fieldError === undefined
-                                                ? undefined
-                                                : `${field.name}-error`
+                                    label={field.label}
+                                    maxLength={
+                                        field.name === 'url' ? 2048 : 500
+                                    }
+                                    name={field.name}
+                                    onChange={(event) => {
+                                        if (field.name === 'url') {
+                                            setUrl(event.currentTarget.value);
+                                        } else {
+                                            setTitle(event.currentTarget.value);
                                         }
-                                        aria-invalid={
-                                            fieldError === undefined
-                                                ? undefined
-                                                : true
-                                        }
-                                        className="w-full rounded-md border border-kumo-line bg-kumo-base px-3 py-2"
-                                        maxLength={
-                                            field.name === 'url' ? 2048 : 500
-                                        }
-                                        name={field.name}
-                                        onChange={(event) => {
-                                            if (field.name === 'url') {
-                                                setUrl(
-                                                    event.currentTarget.value,
-                                                );
-                                            } else {
-                                                setTitle(
-                                                    event.currentTarget.value,
-                                                );
-                                            }
-                                        }}
-                                        required
-                                        type={field.type}
-                                        value={
-                                            field.name === 'url' ? url : title
-                                        }
-                                    />
-                                    {fieldError === undefined ? null : (
-                                        <span
-                                            className="text-kumo-danger"
-                                            id={`${field.name}-error`}
-                                            role="alert"
-                                        >
-                                            {fieldError}
-                                        </span>
-                                    )}
-                                </label>
+                                    }}
+                                    required
+                                    type={field.type}
+                                    value={field.name === 'url' ? url : title}
+                                />
                             );
                         })}
                         <MetadataPreview
@@ -356,32 +400,30 @@ export default function Bookmarklet({
                             }}
                             url={url}
                         />
-                        <label className="block space-y-2 text-sm font-medium text-kumo-default">
-                            <span>Description</span>
-                            <textarea
-                                className="min-h-28 w-full rounded-md border border-kumo-line bg-kumo-base px-3 py-2"
-                                name="description"
-                                onChange={(event) =>
-                                    setDescription(event.currentTarget.value)
-                                }
-                                value={description}
-                            />
-                        </label>
+                        <InputArea
+                            className="min-h-32"
+                            label="Description"
+                            name="description"
+                            onChange={(event) =>
+                                setDescription(event.currentTarget.value)
+                            }
+                            value={description}
+                        />
                         {loaderData.providers.length === 0 ? null : (
-                            <label className="flex items-center gap-2 text-sm text-kumo-default">
-                                <input
-                                    defaultChecked
-                                    name="share_social"
-                                    type="checkbox"
-                                />
-                                <span>
-                                    Share through{' '}
-                                    {loaderData.providers.join(', ')}
-                                </span>
-                            </label>
+                            <Checkbox
+                                checked={shareSocial}
+                                label={`Share through ${loaderData.providers.join(', ')}`}
+                                name="share_social"
+                                onCheckedChange={setShareSocial}
+                            />
                         )}
                         <div className="flex flex-wrap gap-3">
-                            <Button loading={isSubmitting} type="submit">
+                            <Button
+                                icon={FloppyDiskIcon}
+                                loading={isSubmitting}
+                                type="submit"
+                                variant="primary"
+                            >
                                 Save bookmark
                             </Button>
                             <Button
@@ -395,6 +437,6 @@ export default function Bookmarklet({
                     </Form>
                 )}
             </LayerCard>
-        </PageShell>
+        </AdminPage>
     );
 }

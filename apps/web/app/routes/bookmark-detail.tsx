@@ -1,8 +1,18 @@
+import { Badge } from '@cloudflare/kumo/components/badge';
+import { Breadcrumbs } from '@cloudflare/kumo/components/breadcrumbs';
+import { LinkButton } from '@cloudflare/kumo/components/button';
 import { LayerCard } from '@cloudflare/kumo/components/layer-card';
 import { BookmarkRepository } from '@gongyu/data/bookmark-repository';
 import { PageShell } from '@gongyu/ui/page-shell';
+import {
+    ArrowLeftIcon,
+    ArrowSquareOutIcon,
+    BookmarkSimpleIcon,
+    CalendarBlankIcon,
+    PencilSimpleIcon,
+} from '@phosphor-icons/react';
 import { Effect } from 'effect';
-import { Link, useRouteLoaderData } from 'react-router';
+import { useRouteLoaderData } from 'react-router';
 import { cloudflareRequestContext } from '../platform-context';
 import type { loader as rootLoader } from '../root';
 import type { Route } from './+types/bookmark-detail';
@@ -62,49 +72,119 @@ export default function BookmarkDetail({ loaderData }: Route.ComponentProps) {
         dateStyle: 'medium',
         timeZone: 'UTC',
     }).format(new Date(bookmark.createdAt / 1_000));
+    const hostname = new URL(bookmark.url).hostname.replace(/^www\./u, '');
     return (
         <PageShell
-            description={`${new URL(bookmark.url).hostname} · ${date}`}
-            eyebrow="Bookmark"
-            footer={
-                <div className="flex flex-wrap gap-4">
-                    <Link className="text-kumo-link" to="/">
-                        Back to bookmarks
-                    </Link>
+            actions={
+                <>
+                    <LinkButton
+                        external
+                        href={bookmark.url}
+                        icon={ArrowSquareOutIcon}
+                        variant="primary"
+                    >
+                        Open original
+                    </LinkButton>
                     {rootData?.authenticated === true ? (
-                        <Link
-                            className="text-kumo-link"
-                            to={`/admin/bookmarks/${bookmark.shortUrl}/edit`}
+                        <LinkButton
+                            href={`/admin/bookmarks/${bookmark.shortUrl}/edit`}
+                            icon={PencilSimpleIcon}
+                            variant="secondary"
                         >
-                            Edit bookmark
-                        </Link>
+                            Edit
+                        </LinkButton>
                     ) : null}
-                </div>
+                </>
+            }
+            breadcrumbs={
+                <Breadcrumbs size="sm">
+                    <Breadcrumbs.Link href="/">Library</Breadcrumbs.Link>
+                    <Breadcrumbs.Separator />
+                    <Breadcrumbs.Current>Bookmark</Breadcrumbs.Current>
+                </Breadcrumbs>
+            }
+            description="A saved link with the context attached when it joined the library."
+            eyebrow="Bookmark details"
+            footer={
+                <LinkButton
+                    href="/"
+                    icon={ArrowLeftIcon}
+                    size="sm"
+                    variant="ghost"
+                >
+                    Back to the library
+                </LinkButton>
             }
             title={bookmark.title}
+            width="wide"
         >
-            <LayerCard className="max-w-3xl">
-                <article className="space-y-5 p-6">
-                    {bookmark.thumbnailSha256 === null ? null : (
-                        <img
-                            alt=""
-                            className="max-h-96 w-full rounded-md object-cover"
-                            loading="lazy"
-                            src={`/thumbnails/${bookmark.shortUrl}/${bookmark.thumbnailSha256}`}
-                        />
-                    )}
-                    {bookmark.description === null ? null : (
-                        <p className="whitespace-pre-wrap text-kumo-default">
-                            {bookmark.description}
-                        </p>
-                    )}
-                    <a
-                        className="break-all font-medium text-kumo-link"
-                        href={bookmark.url}
-                        rel="noreferrer"
-                    >
-                        Visit original URL
-                    </a>
+            <LayerCard className="overflow-hidden">
+                <article className="grid lg:grid-cols-[minmax(0,1.35fr)_minmax(18rem,0.65fr)]">
+                    <div className="min-h-64 bg-kumo-tint lg:min-h-[30rem]">
+                        {bookmark.thumbnailSha256 === null ? (
+                            <div className="flex size-full min-h-64 items-center justify-center lg:min-h-[30rem]">
+                                <BookmarkSimpleIcon
+                                    aria-hidden="true"
+                                    className="text-kumo-subtle/40"
+                                    size={72}
+                                    weight="duotone"
+                                />
+                            </div>
+                        ) : (
+                            <img
+                                alt=""
+                                className="size-full max-h-[42rem] object-cover"
+                                src={`/thumbnails/${bookmark.shortUrl}/${bookmark.thumbnailSha256}`}
+                            />
+                        )}
+                    </div>
+                    <div className="flex flex-col gap-7 border-t border-kumo-line p-6 sm:p-8 lg:border-l lg:border-t-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <Badge variant="secondary">{hostname}</Badge>
+                            <Badge appearance="dot" variant="info">
+                                Saved link
+                            </Badge>
+                        </div>
+                        {bookmark.description === null ? (
+                            <p className="text-sm leading-6 text-kumo-subtle">
+                                No note was attached to this bookmark.
+                            </p>
+                        ) : (
+                            <p className="whitespace-pre-wrap text-base leading-7 text-kumo-default">
+                                {bookmark.description}
+                            </p>
+                        )}
+                        <dl className="mt-auto space-y-4 border-t border-kumo-line pt-6 text-sm">
+                            <div className="flex items-start gap-3">
+                                <CalendarBlankIcon
+                                    aria-hidden="true"
+                                    className="mt-0.5 shrink-0 text-kumo-subtle"
+                                    size={18}
+                                />
+                                <div>
+                                    <dt className="font-medium text-kumo-default">
+                                        Saved
+                                    </dt>
+                                    <dd className="text-kumo-subtle">{date}</dd>
+                                </div>
+                            </div>
+                            <div>
+                                <dt className="mb-1 font-medium text-kumo-default">
+                                    Original URL
+                                </dt>
+                                <dd>
+                                    <a
+                                        className="break-all text-kumo-link"
+                                        href={bookmark.url}
+                                        rel="noreferrer"
+                                        target="_blank"
+                                    >
+                                        {bookmark.url}
+                                    </a>
+                                </dd>
+                            </div>
+                        </dl>
+                    </div>
                 </article>
             </LayerCard>
         </PageShell>

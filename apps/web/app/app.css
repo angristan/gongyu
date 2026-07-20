@@ -4,8 +4,8 @@
 @import "tailwindcss";
 
 :root {
-    --gongyu-content-default: 48rem;
-    --gongyu-content-wide: 64rem;
+    --gongyu-content-default: 56rem;
+    --gongyu-content-wide: 80rem;
     --gongyu-page-gutter: 1.5rem;
 
     font-family:
@@ -42,6 +42,25 @@ body {
     min-width: 320px;
     margin: 0;
     background: var(--color-kumo-base);
+    color: var(--color-kumo-default);
+}
+
+::selection {
+    background: color-mix(in oklch, var(--color-kumo-brand) 22%, transparent);
+}
+
+.gongyu-public-app {
+    background-image:
+        radial-gradient(
+            circle at 15% 0%,
+            color-mix(in oklch, var(--color-kumo-brand) 7%, transparent),
+            transparent 28rem
+        ),
+        radial-gradient(
+            circle at 85% 18rem,
+            color-mix(in oklch, var(--color-kumo-info) 6%, transparent),
+            transparent 24rem
+        );
 }
 
 button,

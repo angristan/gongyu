@@ -1,4 +1,7 @@
-import { Button } from '@cloudflare/kumo/components/button';
+import { Banner } from '@cloudflare/kumo/components/banner';
+import { Button, LinkButton } from '@cloudflare/kumo/components/button';
+import { Checkbox } from '@cloudflare/kumo/components/checkbox';
+import { Input, InputArea } from '@cloudflare/kumo/components/input';
 import { LayerCard } from '@cloudflare/kumo/components/layer-card';
 import { BookmarkRepository } from '@gongyu/data/bookmark-repository';
 import { SettingsRepository } from '@gongyu/data/settings-repository';
@@ -8,13 +11,12 @@ import {
     decodeBookmarkInput,
 } from '@gongyu/domain/bookmarks';
 import { configuredProviders } from '@gongyu/domain/social';
-import { PageShell } from '@gongyu/ui/page-shell';
+import { ArrowLeftIcon, FloppyDiskIcon } from '@phosphor-icons/react';
 import { Effect } from 'effect';
 import { useState } from 'react';
 import {
     data,
     Form,
-    Link,
     redirect,
     useNavigation,
     useRouteLoaderData,
@@ -24,6 +26,7 @@ import {
     requireAuthentication,
 } from '../auth/session.server';
 import { MetadataPreview } from '../bookmarks/metadata-preview';
+import { AdminPage } from '../components/admin-page';
 import { failure, success } from '../effect/result';
 import { cloudflareRequestContext } from '../platform-context';
 import type { loader as rootLoader } from '../root';
@@ -133,124 +136,133 @@ export default function AdminBookmarkNew({
     const [url, setUrl] = useState(values.url);
     const [title, setTitle] = useState(values.title);
     const [description, setDescription] = useState(values.description ?? '');
+    const [shareSocial, setShareSocial] = useState(true);
     return (
-        <PageShell
-            description="The submitted title and description remain authoritative. Metadata enrichment runs separately."
-            eyebrow="Administrator · Bookmarks"
-            footer={
-                <Link className="text-kumo-link" to="/admin/bookmarks">
-                    Back to bookmarks
-                </Link>
+        <AdminPage
+            actions={
+                <LinkButton
+                    href="/admin/bookmarks"
+                    icon={ArrowLeftIcon}
+                    variant="secondary"
+                >
+                    Cancel
+                </LinkButton>
             }
+            description="Save the URL and the context that will make it useful later."
+            section="Bookmarks"
+            sectionHref="/admin/bookmarks"
             title="New bookmark"
         >
-            <LayerCard className="max-w-3xl">
-                <Form className="space-y-5 p-6" method="post">
-                    <input name="_csrf" type="hidden" value={csrfToken} />
-                    <label className="block space-y-2 text-sm font-medium text-kumo-default">
-                        <span>URL</span>
-                        <input
-                            aria-describedby={
-                                errors.url === undefined
-                                    ? undefined
-                                    : 'url-error'
-                            }
-                            aria-invalid={
-                                errors.url === undefined ? undefined : true
-                            }
-                            className="w-full rounded-md border border-kumo-line bg-kumo-base px-3 py-2"
+            <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
+                <LayerCard>
+                    <Form className="space-y-6 p-5 sm:p-7" method="post">
+                        <input name="_csrf" type="hidden" value={csrfToken} />
+                        <Input
+                            autoFocus
+                            description="Use the exact URL you want Gongyu to preserve."
+                            error={errors.url}
+                            label="URL"
                             maxLength={2048}
                             name="url"
                             onChange={(event) =>
                                 setUrl(event.currentTarget.value)
                             }
+                            placeholder="https://example.com/article"
                             required
+                            size="lg"
                             type="url"
                             value={url}
                         />
-                        {errors.url === undefined ? null : (
-                            <span
-                                className="text-kumo-danger"
-                                id="url-error"
-                                role="alert"
-                            >
-                                {errors.url}
-                            </span>
-                        )}
-                    </label>
-                    <MetadataPreview
-                        csrfToken={csrfToken}
-                        onCandidates={(candidates) => {
-                            if (title === '' && candidates.title !== null) {
-                                setTitle(candidates.title);
-                            }
-                            if (
-                                description === '' &&
-                                candidates.description !== null
-                            ) {
-                                setDescription(candidates.description);
-                            }
-                        }}
-                        url={url}
-                    />
-                    <label className="block space-y-2 text-sm font-medium text-kumo-default">
-                        <span>Title</span>
-                        <input
-                            aria-describedby={
-                                titleError === undefined
-                                    ? undefined
-                                    : 'title-error'
-                            }
-                            aria-invalid={
-                                titleError === undefined ? undefined : true
-                            }
-                            className="w-full rounded-md border border-kumo-line bg-kumo-base px-3 py-2"
+                        <MetadataPreview
+                            csrfToken={csrfToken}
+                            onCandidates={(candidates) => {
+                                if (title === '' && candidates.title !== null) {
+                                    setTitle(candidates.title);
+                                }
+                                if (
+                                    description === '' &&
+                                    candidates.description !== null
+                                ) {
+                                    setDescription(candidates.description);
+                                }
+                            }}
+                            url={url}
+                        />
+                        <Input
+                            error={titleError}
+                            label="Title"
                             maxLength={500}
                             name="title"
                             onChange={(event) =>
                                 setTitle(event.currentTarget.value)
                             }
+                            placeholder="A clear title for this link"
                             required
                             value={title}
                         />
-                        {titleError === undefined ? null : (
-                            <span
-                                className="text-kumo-danger"
-                                id="title-error"
-                                role="alert"
-                            >
-                                {titleError}
-                            </span>
-                        )}
-                    </label>
-                    <label className="block space-y-2 text-sm font-medium text-kumo-default">
-                        <span>Description</span>
-                        <textarea
-                            className="min-h-32 w-full rounded-md border border-kumo-line bg-kumo-base px-3 py-2"
+                        <InputArea
+                            className="min-h-36"
+                            description="Optional notes, a quote, or why this link matters."
+                            label="Description"
                             name="description"
                             onChange={(event) =>
                                 setDescription(event.currentTarget.value)
                             }
+                            placeholder="Add context for your future self…"
                             value={description}
                         />
-                    </label>
-                    {loaderData.providers.length === 0 ? null : (
-                        <label className="flex items-center gap-2 text-sm text-kumo-default">
-                            <input
-                                defaultChecked
+                        {loaderData.providers.length === 0 ? null : (
+                            <Checkbox
+                                checked={shareSocial}
+                                label={`Share through ${loaderData.providers.join(', ')}`}
                                 name="share_social"
-                                type="checkbox"
+                                onCheckedChange={(checked) =>
+                                    setShareSocial(checked)
+                                }
                             />
-                            <span>
-                                Share through {loaderData.providers.join(', ')}
-                            </span>
-                        </label>
-                    )}
-                    <Button loading={isSubmitting} type="submit">
-                        Save bookmark
-                    </Button>
-                </Form>
-            </LayerCard>
-        </PageShell>
+                        )}
+                        <div className="flex flex-wrap items-center gap-3 border-t border-kumo-line pt-5">
+                            <Button
+                                icon={FloppyDiskIcon}
+                                loading={isSubmitting}
+                                type="submit"
+                                variant="primary"
+                            >
+                                Save bookmark
+                            </Button>
+                            <p className="text-xs text-kumo-subtle">
+                                Metadata and thumbnails continue in the
+                                background.
+                            </p>
+                        </div>
+                    </Form>
+                </LayerCard>
+                <aside className="space-y-4">
+                    <Banner
+                        description="The title and notes you submit stay authoritative. Suggested metadata only fills empty fields."
+                        title="You stay in control"
+                        variant="secondary"
+                    />
+                    <LayerCard>
+                        <div className="space-y-3 p-5 text-sm">
+                            <h2 className="font-semibold text-kumo-default">
+                                What happens next
+                            </h2>
+                            <ol className="space-y-3 text-kumo-subtle">
+                                <li>1. The bookmark is saved immediately.</li>
+                                <li>
+                                    2. Metadata is fetched with strict URL
+                                    safety checks.
+                                </li>
+                                <li>
+                                    3. Safe thumbnails are mirrored to private
+                                    storage.
+                                </li>
+                            </ol>
+                        </div>
+                    </LayerCard>
+                </aside>
+            </div>
+        </AdminPage>
     );
 }

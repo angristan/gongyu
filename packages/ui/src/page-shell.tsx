@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 
 export interface PageShellProps {
     readonly actions?: ReactNode;
+    readonly breadcrumbs?: ReactNode;
     readonly children?: ReactNode;
     readonly description: ReactNode;
     readonly eyebrow: ReactNode;
@@ -13,6 +14,7 @@ export interface PageShellProps {
 
 export function PageShell({
     actions,
+    breadcrumbs,
     children,
     description,
     eyebrow,
@@ -25,31 +27,40 @@ export function PageShell({
             id="main-content"
             tabIndex={-1}
             className={cn(
-                'gongyu-page-shell mx-auto flex min-h-screen flex-col justify-center gap-8 py-16',
+                'gongyu-page-shell mx-auto flex min-h-[calc(100vh-4rem)] flex-col gap-8 py-8 sm:py-10 lg:py-12',
                 width === 'wide'
                     ? 'gongyu-page-shell-wide'
                     : 'gongyu-page-shell-default',
             )}
         >
-            <header className="space-y-3">
-                <p className="text-sm font-medium text-kumo-subtle">
-                    {eyebrow}
-                </p>
-                <h1 className="text-4xl font-semibold tracking-tight text-kumo-default sm:text-5xl">
-                    {title}
-                </h1>
-                <p className="max-w-2xl text-lg text-kumo-subtle">
-                    {description}
-                </p>
-                {actions === undefined ? null : (
-                    <div className="flex flex-wrap gap-3 pt-2">{actions}</div>
-                )}
+            <header className="space-y-5">
+                {breadcrumbs === undefined ? null : breadcrumbs}
+                <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+                    <div className="min-w-0 space-y-2">
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-kumo-subtle">
+                            {eyebrow}
+                        </p>
+                        <h1 className="max-w-4xl text-3xl font-semibold tracking-[-0.03em] text-kumo-default sm:text-4xl lg:text-[2.75rem] lg:leading-tight">
+                            {title}
+                        </h1>
+                        <p className="max-w-3xl text-base leading-7 text-kumo-subtle sm:text-lg">
+                            {description}
+                        </p>
+                    </div>
+                    {actions === undefined ? null : (
+                        <div className="flex shrink-0 flex-wrap gap-2">
+                            {actions}
+                        </div>
+                    )}
+                </div>
             </header>
 
             {children === undefined ? null : children}
 
             {footer === undefined ? null : (
-                <footer className="text-sm text-kumo-subtle">{footer}</footer>
+                <footer className="mt-auto border-t border-kumo-line pt-6 text-sm text-kumo-subtle">
+                    {footer}
+                </footer>
             )}
         </main>
     );

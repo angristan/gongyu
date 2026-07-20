@@ -16,5 +16,22 @@ export async function loadPublicBookmarks(
             return yield* bookmarks.list({ page, perPage: 20, query });
         }),
     );
-    return { query, result };
+    return {
+        query,
+        result: {
+            bookmarks: result.bookmarks.map((bookmark) => ({
+                createdAt: bookmark.createdAt,
+                description: bookmark.description,
+                id: bookmark.id,
+                shortUrl: bookmark.shortUrl,
+                thumbnailSha256: bookmark.thumbnailSha256,
+                title: bookmark.title,
+                url: bookmark.url,
+            })),
+            page: result.page,
+            pageCount: result.pageCount,
+            perPage: result.perPage,
+            total: result.total,
+        },
+    };
 }

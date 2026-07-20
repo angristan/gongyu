@@ -14,6 +14,7 @@ import {
     useRouteLoaderData,
 } from 'react-router';
 import type { Route } from './+types/root';
+import { AppShell } from './components/app-shell';
 import { cloudflareRequestContext } from './platform-context';
 import { readThemeMode } from './theme.server';
 import './app.css';
@@ -90,7 +91,16 @@ export function Layout({ children }: { readonly children: ReactNode }) {
 }
 
 export default function App() {
-    return <Outlet />;
+    const rootData = useRouteLoaderData<typeof loader>('root');
+    return (
+        <AppShell
+            authenticated={rootData?.authenticated ?? false}
+            csrfToken={rootData?.csrfToken ?? null}
+            themeMode={rootData?.themeMode ?? 'light'}
+        >
+            <Outlet />
+        </AppShell>
+    );
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {

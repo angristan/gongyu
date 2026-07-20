@@ -1,4 +1,7 @@
-import { Button } from '@cloudflare/kumo/components/button';
+import { Banner } from '@cloudflare/kumo/components/banner';
+import { Button, LinkButton } from '@cloudflare/kumo/components/button';
+import { Empty } from '@cloudflare/kumo/components/empty';
+import { Input } from '@cloudflare/kumo/components/input';
 import { LayerCard } from '@cloudflare/kumo/components/layer-card';
 import {
     DataRunBusyError,
@@ -7,11 +10,14 @@ import {
 import type { DataWorkflowPayload } from '@gongyu/domain/portability';
 import { assertPublicHostname } from '@gongyu/integrations/network-safety';
 import { R2Store } from '@gongyu/integrations/r2-store';
-import { PageShell } from '@gongyu/ui/page-shell';
+import {
+    ArrowClockwiseIcon,
+    DatabaseIcon,
+    DownloadSimpleIcon,
+} from '@phosphor-icons/react';
 import { Effect } from 'effect';
 import {
     Form,
-    Link,
     redirect,
     useNavigation,
     useRouteLoaderData,
@@ -20,6 +26,9 @@ import {
     requireAuthenticatedMutation,
     requireAuthentication,
 } from '../auth/session.server';
+import { AdminPage } from '../components/admin-page';
+import { OperationProgress } from '../components/operation-progress';
+import { StatusBadge } from '../components/status-badge';
 import { cloudflareRequestContext } from '../platform-context';
 import type { loader as rootLoader } from '../root';
 import type { Route } from './+types/admin-data';
@@ -520,20 +529,17 @@ export default function AdminData({ loaderData }: Route.ComponentProps) {
     const navigation = useNavigation();
     const isSubmitting = navigation.state !== 'idle';
     return (
-        <PageShell
-            description="Portable imports and exports plus full disaster backups and restores. Every operation runs durably in a Workflow."
-            eyebrow="Administrator"
-            footer={
-                <Link className="text-kumo-link" to="/admin/dashboard">
-                    Back to dashboard
-                </Link>
-            }
-            title="Data portability"
+        <AdminPage
+            description="Move bookmarks between systems, create portable exports, and manage disaster recovery."
+            section="Data & recovery"
+            title="Data & recovery"
         >
             {isSubmitting ? (
-                <output className="mb-4 block text-sm font-medium text-kumo-default">
-                    Submitting the data operation. Keep this page open…
-                </output>
+                <Banner
+                    description="Keep this page open until the operation has been accepted by its durable Workflow."
+                    title="Starting data operation"
+                    variant="secondary"
+                />
             ) : null}
             <div aria-busy={isSubmitting} className="grid gap-5 lg:grid-cols-2">
                 <LayerCard>
@@ -599,29 +605,17 @@ export default function AdminData({ loaderData }: Route.ComponentProps) {
                             type="hidden"
                             value="shaarli_api"
                         />
-                        <label
-                            className="block text-sm font-medium"
-                            htmlFor="shaarli-url"
-                        >
-                            Shaarli URL
-                        </label>
-                        <input
-                            className="w-full rounded-md border border-kumo-line bg-kumo-base px-3 py-2"
+                        <Input
                             id="shaarli-url"
+                            label="Shaarli URL"
                             name="shaarli_url"
                             placeholder="https://links.example.com"
                             required
                             type="url"
                         />
-                        <label
-                            className="block text-sm font-medium"
-                            htmlFor="shaarli-secret"
-                        >
-                            API secret
-                        </label>
-                        <input
-                            className="w-full rounded-md border border-kumo-line bg-kumo-base px-3 py-2"
+                        <Input
                             id="shaarli-secret"
+                            label="API secret"
                             minLength={12}
                             name="api_secret"
                             placeholder="API secret"
@@ -733,17 +727,12 @@ export default function AdminData({ loaderData }: Route.ComponentProps) {
                             <option value="merge">Merge</option>
                             <option value="replacement">Replacement</option>
                         </select>
-                        <label
-                            className="block text-sm font-medium"
-                            htmlFor="restore-confirmation"
-                        >
-                            Replacement confirmation
-                        </label>
-                        <input
-                            className="w-full rounded-md border border-kumo-line bg-kumo-base px-3 py-2"
+                        <Input
+                            description="Required only when replacement mode is selected."
                             id="restore-confirmation"
+                            label="Replacement confirmation"
                             name="confirmation"
-                            placeholder="Type REPLACE ALL DATA for replacement"
+                            placeholder="Type REPLACE ALL DATA"
                         />
                         <Button
                             disabled={isSubmitting}
@@ -756,95 +745,164 @@ export default function AdminData({ loaderData }: Route.ComponentProps) {
                 </LayerCard>
             </div>
 
-            <section className="mt-8 space-y-3" aria-labelledby="runs-heading">
-                <h2
-                    className="text-xl font-semibold text-kumo-default"
-                    id="runs-heading"
-                >
-                    Recent operations
-                </h2>
+            <section className="space-y-4" aria-labelledby="runs-heading">
+                <div>
+                    <h2
+                        className="text-xl font-semibold text-kumo-default"
+                        id="runs-heading"
+                    >
+                        Recent operations
+                    </h2>
+                    <p className="mt-1 text-sm text-kumo-subtle">
+                        Durable Workflow progress, row outcomes, and temporary
+                        downloads.
+                    </p>
+                </div>
                 {loaderData.operations.length === 0 ? (
                     <LayerCard>
-                        <p className="p-6 text-kumo-subtle">
-                            No portability operations yet.
-                        </p>
+                        <Empty
+                            description="Imports, exports, backups, and restores will appear here."
+                            icon={
+                                <DatabaseIcon
+                                    aria-hidden="true"
+                                    size={42}
+                                    weight="duotone"
+                                />
+                            }
+                            title="No data operations yet"
+                        />
                     </LayerCard>
                 ) : (
-                    loaderData.operations.map(({ errors, run }) => (
-                        <LayerCard key={run.id}>
-                            <div className="flex flex-wrap items-center justify-between gap-4 p-5">
-                                <div>
-                                    <p className="font-medium text-kumo-default">
-                                        {run.kind} ·{' '}
-                                        {run.format ?? run.mode ?? 'data'} ·{' '}
-                                        {run.state}
-                                    </p>
-                                    <p className="text-sm text-kumo-subtle">
-                                        {run.importedRows} imported ·{' '}
-                                        {run.skippedRows} skipped ·{' '}
-                                        {run.errorRows} errors ·{' '}
-                                        {formatDate(run.createdAt)}
-                                    </p>
-                                </div>
-                                {run.state === 'pending' ? (
-                                    <Form method="post">
-                                        <input
-                                            name="_csrf"
-                                            type="hidden"
-                                            value={csrfToken}
-                                        />
-                                        <input
-                                            name="intent"
-                                            type="hidden"
-                                            value="retry"
-                                        />
-                                        <input
-                                            name="run_id"
-                                            type="hidden"
-                                            value={run.id}
-                                        />
-                                        <Button
-                                            disabled={isSubmitting}
-                                            type="submit"
-                                            variant="secondary"
-                                        >
-                                            Start again
-                                        </Button>
-                                    </Form>
-                                ) : null}
-                                {run.state === 'completed' &&
-                                run.artifactKey !== null &&
-                                run.expiresAt !== null &&
-                                run.expiresAt > loaderData.now ? (
-                                    <Link
-                                        className="text-kumo-link"
-                                        to={`/admin/data/${run.id}/download`}
-                                    >
-                                        Download
-                                    </Link>
-                                ) : null}
-                            </div>
-                            {run.errorCode !== null ? (
-                                <p className="border-t border-kumo-line px-5 py-3 text-sm text-kumo-danger">
-                                    {run.errorCode}
-                                </p>
-                            ) : null}
-                            {errors.length > 0 ? (
-                                <ul className="border-t border-kumo-line px-5 py-3 text-sm text-kumo-subtle">
-                                    {errors.map((error) => (
-                                        <li
-                                            key={`${error.rowIndex}:${error.code}`}
-                                        >
-                                            Row {error.rowIndex + 1}:{' '}
-                                            {error.code} — {error.message}
-                                        </li>
-                                    ))}
-                                </ul>
-                            ) : null}
-                        </LayerCard>
-                    ))
+                    <div className="grid gap-4 xl:grid-cols-2">
+                        {loaderData.operations.map(({ errors, run }) => (
+                            <LayerCard key={run.id}>
+                                <article className="space-y-5 p-5 sm:p-6">
+                                    <div className="flex items-start justify-between gap-4">
+                                        <div className="min-w-0">
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <h3 className="font-semibold capitalize text-kumo-default">
+                                                    {run.kind.replace('_', ' ')}
+                                                </h3>
+                                                <StatusBadge
+                                                    state={run.state}
+                                                />
+                                            </div>
+                                            <p className="mt-1 truncate text-xs text-kumo-subtle">
+                                                {run.format ??
+                                                    run.mode ??
+                                                    'data'}{' '}
+                                                · {formatDate(run.createdAt)}
+                                            </p>
+                                        </div>
+                                        {run.state === 'pending' ? (
+                                            <Form method="post">
+                                                <input
+                                                    name="_csrf"
+                                                    type="hidden"
+                                                    value={csrfToken}
+                                                />
+                                                <input
+                                                    name="intent"
+                                                    type="hidden"
+                                                    value="retry"
+                                                />
+                                                <input
+                                                    name="run_id"
+                                                    type="hidden"
+                                                    value={run.id}
+                                                />
+                                                <Button
+                                                    disabled={isSubmitting}
+                                                    icon={ArrowClockwiseIcon}
+                                                    size="sm"
+                                                    type="submit"
+                                                    variant="secondary"
+                                                >
+                                                    Start again
+                                                </Button>
+                                            </Form>
+                                        ) : null}
+                                        {run.state === 'completed' &&
+                                        run.artifactKey !== null &&
+                                        run.expiresAt !== null &&
+                                        run.expiresAt > loaderData.now ? (
+                                            <LinkButton
+                                                href={`/admin/data/${run.id}/download`}
+                                                icon={DownloadSimpleIcon}
+                                                size="sm"
+                                                variant="secondary"
+                                            >
+                                                Download
+                                            </LinkButton>
+                                        ) : null}
+                                    </div>
+
+                                    <OperationProgress
+                                        label="Rows processed"
+                                        processed={run.processedRows}
+                                        total={run.totalRows}
+                                    />
+
+                                    <dl className="grid grid-cols-3 gap-3 text-center">
+                                        <div className="rounded-lg bg-kumo-tint p-3">
+                                            <dt className="text-xs text-kumo-subtle">
+                                                Imported
+                                            </dt>
+                                            <dd className="mt-1 font-semibold text-kumo-default">
+                                                {run.importedRows}
+                                            </dd>
+                                        </div>
+                                        <div className="rounded-lg bg-kumo-tint p-3">
+                                            <dt className="text-xs text-kumo-subtle">
+                                                Skipped
+                                            </dt>
+                                            <dd className="mt-1 font-semibold text-kumo-default">
+                                                {run.skippedRows}
+                                            </dd>
+                                        </div>
+                                        <div className="rounded-lg bg-kumo-tint p-3">
+                                            <dt className="text-xs text-kumo-subtle">
+                                                Errors
+                                            </dt>
+                                            <dd className="mt-1 font-semibold text-kumo-default">
+                                                {run.errorRows}
+                                            </dd>
+                                        </div>
+                                    </dl>
+
+                                    {run.errorCode === null &&
+                                    errors.length === 0 ? null : (
+                                        <details className="border-t border-kumo-line pt-4 text-sm">
+                                            <summary className="cursor-pointer font-medium text-kumo-danger">
+                                                View operation errors
+                                            </summary>
+                                            {run.errorCode === null ? null : (
+                                                <p className="mt-3 font-mono text-xs text-kumo-danger">
+                                                    {run.errorCode}
+                                                </p>
+                                            )}
+                                            {errors.length === 0 ? null : (
+                                                <ul className="mt-3 max-h-40 space-y-2 overflow-auto text-xs text-kumo-subtle">
+                                                    {errors.map((error) => (
+                                                        <li
+                                                            key={`${error.rowIndex}:${error.code}`}
+                                                        >
+                                                            Row{' '}
+                                                            {error.rowIndex + 1}
+                                                            : {error.code} —{' '}
+                                                            {error.message}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            )}
+                                        </details>
+                                    )}
+                                </article>
+                            </LayerCard>
+                        ))}
+                    </div>
                 )}
             </section>
-        </PageShell>
+        </AdminPage>
     );
 }
