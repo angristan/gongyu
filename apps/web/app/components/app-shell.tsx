@@ -9,8 +9,8 @@ import {
     MoonIcon,
     PlusIcon,
     QueueIcon,
+    RssSimpleIcon,
     ShieldCheckIcon,
-    SignInIcon,
     SignOutIcon,
     SunIcon,
 } from '@phosphor-icons/react';
@@ -124,23 +124,13 @@ function Brand({
                 width={prominent ? 44 : 36}
             />
             {compact ? null : (
-                <span className="min-w-0 leading-tight">
-                    <span
-                        className={cn(
-                            'block truncate font-semibold tracking-[-0.01em]',
-                            prominent ? 'text-lg' : 'text-sm',
-                        )}
-                    >
-                        Gongyu
-                    </span>
-                    <span
-                        className={cn(
-                            'mt-0.5 block truncate text-gongyu-subtle',
-                            prominent ? 'text-xs' : 'text-[11px]',
-                        )}
-                    >
-                        A simple bookmark manager
-                    </span>
+                <span
+                    className={cn(
+                        'block truncate font-semibold leading-tight tracking-[-0.01em]',
+                        prominent ? 'text-xl' : 'text-sm',
+                    )}
+                >
+                    Gongyu
                 </span>
             )}
         </Link>
@@ -183,36 +173,39 @@ function PublicShell({
             <header className="pt-5 sm:pt-6">
                 <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-4 sm:px-6">
                     <Brand prominent />
-                    <nav
-                        aria-label="Public navigation"
-                        className="flex items-center gap-1 sm:gap-2"
-                    >
-                        <ThemeForm returnTo={returnTo} themeMode={themeMode} />
-                        <LinkButton
-                            href={authenticated ? '/admin/bookmarks' : '/login'}
-                            icon={
-                                authenticated ? BookmarkSimpleIcon : SignInIcon
-                            }
-                            variant="secondary"
+                    <nav aria-label="Public navigation">
+                        <Link
+                            className="text-sm font-medium text-gongyu-link hover:underline"
+                            to={authenticated ? '/admin/dashboard' : '/login'}
                         >
-                            <span className="hidden sm:inline">
-                                {authenticated ? 'Manage' : 'Sign in'}
-                            </span>
-                        </LinkButton>
+                            {authenticated ? 'Dashboard' : 'Login'}
+                        </Link>
                     </nav>
                 </div>
             </header>
             {children}
             <footer className="px-4 pb-6 pt-3 text-xs text-gongyu-subtle sm:px-6">
-                <div className="mx-auto flex max-w-4xl flex-col gap-2 border-t border-gongyu-line pt-5 sm:flex-row sm:items-center sm:justify-between">
-                    <p>Gongyu · a calm place for links worth keeping.</p>
-                    <div className="flex items-center gap-4">
-                        <Link className="text-gongyu-link" to="/search">
-                            Search
-                        </Link>
-                        <a className="text-gongyu-link" href="/feed">
-                            Atom feed
+                <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 border-t border-gongyu-line pt-5">
+                    <p>
+                        Powered by{' '}
+                        <a
+                            className="font-medium text-gongyu-default hover:text-gongyu-link hover:underline"
+                            href="https://github.com/angristan/gongyu"
+                            rel="noreferrer"
+                            target="_blank"
+                        >
+                            Gongyu
                         </a>
+                    </p>
+                    <div className="flex items-center gap-1">
+                        <LinkButton
+                            aria-label="Atom feed"
+                            href="/feed"
+                            icon={RssSimpleIcon}
+                            shape="square"
+                            variant="ghost"
+                        />
+                        <ThemeForm returnTo={returnTo} themeMode={themeMode} />
                     </div>
                 </div>
             </footer>

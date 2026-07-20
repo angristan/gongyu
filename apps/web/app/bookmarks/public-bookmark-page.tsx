@@ -2,7 +2,6 @@ import {
     ArrowRightIcon,
     BookmarkSimpleIcon,
     MagnifyingGlassIcon,
-    PlusIcon,
     XIcon,
 } from '@phosphor-icons/react';
 import { Form, Link } from 'react-router';
@@ -28,7 +27,6 @@ interface PublicBookmark {
 }
 
 interface PublicBookmarkPageProps {
-    readonly authenticated: boolean;
     readonly basePath: string;
     readonly query: string;
     readonly result: {
@@ -241,7 +239,6 @@ function BookmarkPagination({
 }
 
 export function PublicBookmarkPage({
-    authenticated,
     basePath,
     query,
     result,
@@ -254,27 +251,24 @@ export function PublicBookmarkPage({
             id="main-content"
             tabIndex={-1}
         >
-            <header className="flex items-end justify-between gap-3">
-                <div className="min-w-0">
+            {hasQuery ? (
+                <header>
                     <h1 className="truncate text-lg font-semibold tracking-[-0.02em] text-gongyu-default">
-                        {hasQuery ? `Results for “${query}”` : 'Bookmarks'}
+                        Results for “{query}”
                     </h1>
                     <p className="mt-0.5 text-xs text-gongyu-subtle">
                         {result.total}{' '}
                         {result.total === 1 ? 'bookmark' : 'bookmarks'}
                     </p>
-                </div>
-                {authenticated ? (
-                    <LinkButton
-                        href="/admin/bookmarks/new"
-                        icon={PlusIcon}
-                        size="sm"
-                        variant="primary"
-                    >
-                        Save a link
-                    </LinkButton>
-                ) : null}
-            </header>
+                </header>
+            ) : (
+                <header>
+                    <h1 className="sr-only">Bookmarks</h1>
+                    <p className="text-sm text-gongyu-subtle">
+                        A simple bookmark manager
+                    </p>
+                </header>
+            )}
 
             <section
                 aria-label="Search and view options"
@@ -317,25 +311,15 @@ export function PublicBookmarkPage({
                 <LayerCard>
                     <Empty
                         contents={
-                            <div className="flex flex-wrap justify-center gap-2">
-                                {hasQuery ? (
-                                    <LinkButton
-                                        href={`/?view=${view}`}
-                                        icon={XIcon}
-                                        variant="secondary"
-                                    >
-                                        Clear search
-                                    </LinkButton>
-                                ) : authenticated ? (
-                                    <LinkButton
-                                        href="/admin/bookmarks/new"
-                                        icon={PlusIcon}
-                                        variant="primary"
-                                    >
-                                        Save your first link
-                                    </LinkButton>
-                                ) : null}
-                            </div>
+                            hasQuery ? (
+                                <LinkButton
+                                    href={`/?view=${view}`}
+                                    icon={XIcon}
+                                    variant="secondary"
+                                >
+                                    Clear search
+                                </LinkButton>
+                            ) : undefined
                         }
                         description={
                             hasQuery
