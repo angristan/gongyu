@@ -1,10 +1,16 @@
-import { Button } from '@cloudflare/kumo/components/button';
+import { Banner } from '@cloudflare/kumo/components/banner';
+import { Button, LinkButton } from '@cloudflare/kumo/components/button';
 import { LayerCard } from '@cloudflare/kumo/components/layer-card';
 import {
     AuthenticationOptionsEnvelope,
     AuthenticationVerificationRequest,
 } from '@gongyu/auth/contracts';
 import { PageShell } from '@gongyu/ui/page-shell';
+import {
+    ArrowLeftIcon,
+    FingerprintSimpleIcon,
+    ShieldCheckIcon,
+} from '@phosphor-icons/react';
 import { startAuthentication } from '@simplewebauthn/browser';
 import { Schema } from 'effect';
 import { useState } from 'react';
@@ -84,24 +90,87 @@ export default function Login({ loaderData }: Route.ComponentProps) {
 
     return (
         <PageShell
-            description="Authentication uses one discoverable passkey. No password or administrator profile is stored."
-            eyebrow="Administrator"
-            title="Sign in to Gongyu"
+            actions={
+                <LinkButton href="/" icon={ArrowLeftIcon} variant="ghost">
+                    Back to library
+                </LinkButton>
+            }
+            description="One passkey protects the entire administrator interface—there is no password to remember or database of user profiles."
+            eyebrow="Secure administrator access"
+            title="Welcome back."
         >
-            <LayerCard className="max-w-xl">
-                <div className="space-y-5 p-6">
-                    <p aria-live="polite" className="text-kumo-default">
-                        {message}
-                    </p>
-                    <Button
-                        loading={processing}
-                        onClick={authenticate}
-                        type="button"
-                    >
-                        Sign in with passkey
-                    </Button>
-                </div>
-            </LayerCard>
+            <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(17rem,0.8fr)]">
+                <LayerCard>
+                    <div className="space-y-6 p-6 sm:p-8">
+                        <span className="flex size-14 items-center justify-center rounded-2xl bg-kumo-tint text-kumo-link">
+                            <FingerprintSimpleIcon
+                                aria-hidden="true"
+                                size={32}
+                                weight="duotone"
+                            />
+                        </span>
+                        <div>
+                            <h2 className="text-xl font-semibold text-kumo-default">
+                                Sign in with your passkey
+                            </h2>
+                            <p className="mt-2 text-sm leading-6 text-kumo-subtle">
+                                Your browser will ask for the device lock,
+                                biometric, or security key associated with this
+                                Gongyu deployment.
+                            </p>
+                        </div>
+                        <Button
+                            className="w-full sm:w-auto"
+                            icon={FingerprintSimpleIcon}
+                            loading={processing}
+                            onClick={authenticate}
+                            size="lg"
+                            type="button"
+                            variant="primary"
+                        >
+                            Sign in with passkey
+                        </Button>
+                        <p
+                            aria-live="polite"
+                            className="rounded-xl bg-kumo-tint/60 p-3 text-sm text-kumo-default"
+                        >
+                            {message}
+                        </p>
+                    </div>
+                </LayerCard>
+                <aside>
+                    <LayerCard>
+                        <div className="space-y-4 p-6">
+                            <ShieldCheckIcon
+                                aria-hidden="true"
+                                className="text-kumo-success"
+                                size={28}
+                                weight="duotone"
+                            />
+                            <h2 className="font-semibold text-kumo-default">
+                                Passwordless by design
+                            </h2>
+                            <ul className="space-y-3 text-sm leading-6 text-kumo-subtle">
+                                <li>
+                                    Credential verification stays on your
+                                    device.
+                                </li>
+                                <li>Sessions use secure host-only cookies.</li>
+                                <li>
+                                    Every mutation is origin and CSRF protected.
+                                </li>
+                            </ul>
+                        </div>
+                    </LayerCard>
+                </aside>
+            </div>
+            <noscript>
+                <Banner
+                    description="Passkey authentication uses the browser WebAuthn API and cannot continue without JavaScript."
+                    title="JavaScript is required to sign in"
+                    variant="error"
+                />
+            </noscript>
         </PageShell>
     );
 }

@@ -1,4 +1,7 @@
-import { Button } from '@cloudflare/kumo/components/button';
+import { Badge } from '@cloudflare/kumo/components/badge';
+import { Button, LinkButton } from '@cloudflare/kumo/components/button';
+import { Dialog } from '@cloudflare/kumo/components/dialog';
+import { Input, InputArea } from '@cloudflare/kumo/components/input';
 import { LayerCard } from '@cloudflare/kumo/components/layer-card';
 import { BookmarkRepository } from '@gongyu/data/bookmark-repository';
 import { MetadataRepository } from '@gongyu/data/metadata-repository';
@@ -9,13 +12,18 @@ import {
     decodeBookmarkInput,
 } from '@gongyu/domain/bookmarks';
 import { R2Store } from '@gongyu/integrations/r2-store';
-import { PageShell } from '@gongyu/ui/page-shell';
+import {
+    ArrowLeftIcon,
+    ArrowSquareOutIcon,
+    FloppyDiskIcon,
+    SparkleIcon,
+    TrashIcon,
+} from '@phosphor-icons/react';
 import { Effect } from 'effect';
 import { useState } from 'react';
 import {
     data,
     Form,
-    Link,
     redirect,
     useNavigation,
     useRouteLoaderData,
@@ -28,6 +36,7 @@ import {
     type MetadataCandidates,
     MetadataPreview,
 } from '../bookmarks/metadata-preview';
+import { AdminPage } from '../components/admin-page';
 import { failure, success } from '../effect/result';
 import { cloudflareRequestContext } from '../platform-context';
 import type { loader as rootLoader } from '../root';
@@ -182,176 +191,273 @@ export default function AdminBookmarkEdit({
     const [candidates, setCandidates] = useState<MetadataCandidates | null>(
         null,
     );
+    const hostname = new URL(loaderData.bookmark.url).hostname.replace(
+        /^www\./u,
+        '',
+    );
+    const savedDate = new Intl.DateTimeFormat('en-US', {
+        dateStyle: 'medium',
+        timeZone: 'UTC',
+    }).format(new Date(loaderData.bookmark.createdAt / 1_000));
     return (
-        <PageShell
-            description={`Stable short URL: ${loaderData.bookmark.shortUrl}`}
-            eyebrow="Administrator · Bookmarks"
-            footer={
-                <Link className="text-kumo-link" to="/admin/bookmarks">
-                    Back to bookmarks
-                </Link>
+        <AdminPage
+            actions={
+                <>
+                    <LinkButton
+                        href="/admin/bookmarks"
+                        icon={ArrowLeftIcon}
+                        variant="secondary"
+                    >
+                        Back
+                    </LinkButton>
+                    <LinkButton
+                        external
+                        href={loaderData.bookmark.url}
+                        icon={ArrowSquareOutIcon}
+                        variant="secondary"
+                    >
+                        Open original
+                    </LinkButton>
+                </>
             }
+            description="Update the saved context without changing its stable public address."
+            section="Bookmarks"
+            sectionHref="/admin/bookmarks"
             title="Edit bookmark"
         >
-            <div className="space-y-6">
-                <LayerCard className="max-w-3xl">
-                    <Form className="space-y-5 p-6" method="post">
+            <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
+                <LayerCard>
+                    <Form className="space-y-6 p-5 sm:p-7" method="post">
                         <input name="_csrf" type="hidden" value={csrfToken} />
                         <input name="intent" type="hidden" value="update" />
-                        <label className="block space-y-2 text-sm font-medium text-kumo-default">
-                            <span>URL</span>
-                            <input
-                                aria-describedby={
-                                    urlError === undefined
-                                        ? undefined
-                                        : 'edit-url-error'
-                                }
-                                aria-invalid={
-                                    urlError === undefined ? undefined : true
-                                }
-                                className="w-full rounded-md border border-kumo-line bg-kumo-base px-3 py-2"
-                                maxLength={2048}
-                                name="url"
-                                onChange={(event) =>
-                                    setUrl(event.currentTarget.value)
-                                }
-                                required
-                                type="url"
-                                value={url}
-                            />
-                            {urlError === undefined ? null : (
-                                <span
-                                    className="text-kumo-danger"
-                                    id="edit-url-error"
-                                    role="alert"
-                                >
-                                    {urlError}
-                                </span>
-                            )}
-                        </label>
+                        <Input
+                            description="Changing the URL triggers fresh metadata enrichment."
+                            error={urlError}
+                            label="URL"
+                            maxLength={2048}
+                            name="url"
+                            onChange={(event) =>
+                                setUrl(event.currentTarget.value)
+                            }
+                            required
+                            type="url"
+                            value={url}
+                        />
                         <MetadataPreview
                             csrfToken={csrfToken}
                             onCandidates={setCandidates}
                             url={url}
                         />
                         {candidates === null ? null : (
-                            <div className="flex flex-wrap gap-3">
-                                {candidates.title === null ? null : (
-                                    <Button
-                                        onClick={() =>
-                                            setTitle(candidates.title ?? title)
-                                        }
-                                        type="button"
-                                        variant="secondary"
-                                    >
-                                        Use fetched title
-                                    </Button>
-                                )}
-                                {candidates.description === null ? null : (
-                                    <Button
-                                        onClick={() =>
-                                            setDescription(
-                                                candidates.description ??
-                                                    description,
-                                            )
-                                        }
-                                        type="button"
-                                        variant="secondary"
-                                    >
-                                        Use fetched description
-                                    </Button>
-                                )}
+                            <div className="rounded-xl border border-kumo-line bg-kumo-tint/40 p-4">
+                                <div className="flex items-center gap-2 text-sm font-medium text-kumo-default">
+                                    <SparkleIcon aria-hidden="true" size={17} />
+                                    Suggestions are ready
+                                </div>
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                    {candidates.title === null ? null : (
+                                        <Button
+                                            onClick={() =>
+                                                setTitle(
+                                                    candidates.title ?? title,
+                                                )
+                                            }
+                                            size="sm"
+                                            type="button"
+                                            variant="secondary"
+                                        >
+                                            Use suggested title
+                                        </Button>
+                                    )}
+                                    {candidates.description === null ? null : (
+                                        <Button
+                                            onClick={() =>
+                                                setDescription(
+                                                    candidates.description ??
+                                                        description,
+                                                )
+                                            }
+                                            size="sm"
+                                            type="button"
+                                            variant="secondary"
+                                        >
+                                            Use suggested notes
+                                        </Button>
+                                    )}
+                                </div>
                             </div>
                         )}
-                        <label className="block space-y-2 text-sm font-medium text-kumo-default">
-                            <span>Title</span>
-                            <input
-                                aria-describedby={
-                                    titleError === undefined
-                                        ? undefined
-                                        : 'edit-title-error'
-                                }
-                                aria-invalid={
-                                    titleError === undefined ? undefined : true
-                                }
-                                className="w-full rounded-md border border-kumo-line bg-kumo-base px-3 py-2"
-                                maxLength={500}
-                                name="title"
-                                onChange={(event) =>
-                                    setTitle(event.currentTarget.value)
-                                }
-                                required
-                                value={title}
-                            />
-                            {titleError === undefined ? null : (
-                                <span
-                                    className="text-kumo-danger"
-                                    id="edit-title-error"
-                                    role="alert"
-                                >
-                                    {titleError}
-                                </span>
-                            )}
-                        </label>
-                        <label className="block space-y-2 text-sm font-medium text-kumo-default">
-                            <span>Description</span>
-                            <textarea
-                                className="min-h-32 w-full rounded-md border border-kumo-line bg-kumo-base px-3 py-2"
-                                name="description"
-                                onChange={(event) =>
-                                    setDescription(event.currentTarget.value)
-                                }
-                                value={description}
-                            />
-                        </label>
-                        <Button loading={isSubmitting} type="submit">
-                            Save changes
-                        </Button>
+                        <Input
+                            error={titleError}
+                            label="Title"
+                            maxLength={500}
+                            name="title"
+                            onChange={(event) =>
+                                setTitle(event.currentTarget.value)
+                            }
+                            required
+                            value={title}
+                        />
+                        <InputArea
+                            className="min-h-40"
+                            description="Keep the details that make this link worth returning to."
+                            label="Notes"
+                            name="description"
+                            onChange={(event) =>
+                                setDescription(event.currentTarget.value)
+                            }
+                            value={description}
+                        />
+                        <div className="border-t border-kumo-line pt-5">
+                            <Button
+                                icon={FloppyDiskIcon}
+                                loading={isSubmitting}
+                                type="submit"
+                                variant="primary"
+                            >
+                                Save changes
+                            </Button>
+                        </div>
                     </Form>
                 </LayerCard>
 
-                <LayerCard className="max-w-3xl">
-                    <Form className="space-y-4 p-6" method="post">
-                        <input name="_csrf" type="hidden" value={csrfToken} />
-                        <input name="intent" type="hidden" value="delete" />
-                        <label className="block space-y-2 text-sm font-medium text-kumo-default">
-                            <span>
-                                Type DELETE to permanently remove this bookmark
-                            </span>
-                            <input
-                                aria-describedby={
-                                    confirmationError === undefined
-                                        ? undefined
-                                        : 'delete-error'
-                                }
-                                aria-invalid={
-                                    confirmationError === undefined
-                                        ? undefined
-                                        : true
-                                }
-                                className="w-full rounded-md border border-kumo-line bg-kumo-base px-3 py-2"
-                                name="confirmation"
+                <aside className="space-y-5">
+                    <LayerCard className="overflow-hidden">
+                        {loaderData.bookmark.thumbnailSha256 === null ? (
+                            <div className="flex aspect-[16/9] items-center justify-center bg-kumo-tint">
+                                <span className="text-sm text-kumo-subtle">
+                                    No mirrored preview
+                                </span>
+                            </div>
+                        ) : (
+                            <img
+                                alt=""
+                                className="aspect-[16/9] w-full object-cover"
+                                src={`/thumbnails/${loaderData.bookmark.shortUrl}/${loaderData.bookmark.thumbnailSha256}`}
                             />
-                        </label>
-                        {confirmationError === undefined ? null : (
-                            <p
-                                className="text-kumo-danger"
-                                id="delete-error"
-                                role="alert"
-                            >
-                                {confirmationError}
-                            </p>
                         )}
-                        <Button
-                            loading={isSubmitting}
-                            type="submit"
-                            variant="destructive"
-                        >
+                        <dl className="space-y-4 p-5 text-sm">
+                            <div>
+                                <dt className="text-kumo-subtle">Source</dt>
+                                <dd className="mt-1">
+                                    <Badge variant="secondary">
+                                        {hostname}
+                                    </Badge>
+                                </dd>
+                            </div>
+                            <div>
+                                <dt className="text-kumo-subtle">Saved</dt>
+                                <dd className="mt-1 font-medium text-kumo-default">
+                                    {savedDate}
+                                </dd>
+                            </div>
+                            <div>
+                                <dt className="text-kumo-subtle">
+                                    Public short URL
+                                </dt>
+                                <dd className="mt-1 font-mono text-xs text-kumo-default">
+                                    /b/{loaderData.bookmark.shortUrl}
+                                </dd>
+                            </div>
+                        </dl>
+                    </LayerCard>
+
+                    <section className="rounded-2xl border border-kumo-danger/20 bg-kumo-danger-tint/25 p-5">
+                        <h2 className="font-semibold text-kumo-default">
                             Delete bookmark
-                        </Button>
-                    </Form>
-                </LayerCard>
+                        </h2>
+                        <p className="mt-1 text-sm leading-6 text-kumo-subtle">
+                            The bookmark disappears immediately while mirrored
+                            objects are cleaned up safely.
+                        </p>
+                        <Dialog.Root
+                            defaultOpen={confirmationError !== undefined}
+                            role="alertdialog"
+                        >
+                            <Dialog.Trigger
+                                render={
+                                    <Button
+                                        className="mt-4"
+                                        icon={TrashIcon}
+                                        variant="secondary-destructive"
+                                    />
+                                }
+                            >
+                                Delete bookmark
+                            </Dialog.Trigger>
+                            <Dialog className="space-y-5 p-6" size="lg">
+                                <div className="space-y-2">
+                                    <Dialog.Title>
+                                        Delete this bookmark?
+                                    </Dialog.Title>
+                                    <Dialog.Description>
+                                        Type DELETE to permanently remove “
+                                        {loaderData.bookmark.title}”.
+                                    </Dialog.Description>
+                                </div>
+                                <Form className="space-y-4" method="post">
+                                    <input
+                                        name="_csrf"
+                                        type="hidden"
+                                        value={csrfToken}
+                                    />
+                                    <input
+                                        name="intent"
+                                        type="hidden"
+                                        value="delete"
+                                    />
+                                    <Input
+                                        error={confirmationError}
+                                        label="Confirmation phrase"
+                                        name="confirmation"
+                                        placeholder="DELETE"
+                                    />
+                                    <div className="flex justify-end gap-2">
+                                        <Dialog.Close
+                                            render={
+                                                <Button variant="secondary" />
+                                            }
+                                        >
+                                            Cancel
+                                        </Dialog.Close>
+                                        <Button
+                                            loading={isSubmitting}
+                                            type="submit"
+                                            variant="destructive"
+                                        >
+                                            Delete permanently
+                                        </Button>
+                                    </div>
+                                </Form>
+                            </Dialog>
+                        </Dialog.Root>
+                        <noscript>
+                            <Form className="mt-4 space-y-3" method="post">
+                                <input
+                                    name="_csrf"
+                                    type="hidden"
+                                    value={csrfToken}
+                                />
+                                <input
+                                    name="intent"
+                                    type="hidden"
+                                    value="delete"
+                                />
+                                <label className="block space-y-2 text-sm text-kumo-default">
+                                    <span>Type DELETE to confirm</span>
+                                    <input
+                                        className="w-full rounded-lg border border-kumo-line bg-kumo-base px-3 py-2"
+                                        name="confirmation"
+                                    />
+                                </label>
+                                <Button type="submit" variant="destructive">
+                                    Delete permanently
+                                </Button>
+                            </Form>
+                        </noscript>
+                    </section>
+                </aside>
             </div>
-        </PageShell>
+        </AdminPage>
     );
 }

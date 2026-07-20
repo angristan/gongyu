@@ -1,4 +1,5 @@
 import { Button } from '@cloudflare/kumo/components/button';
+import { SparkleIcon } from '@phosphor-icons/react';
 import { Schema } from 'effect';
 import { useState } from 'react';
 
@@ -65,8 +66,20 @@ export function MetadataPreview(props: {
     }
 
     return (
-        <div className="space-y-2">
+        <div className="flex flex-col gap-2 rounded-xl border border-kumo-line bg-kumo-tint/40 p-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+                <p className="text-sm font-medium text-kumo-default">
+                    Need a starting point?
+                </p>
+                <p aria-live="polite" className="text-xs text-kumo-subtle">
+                    {message === ''
+                        ? 'Fetch a suggested title and description from the page.'
+                        : message}
+                </p>
+            </div>
             <Button
+                className="shrink-0"
+                icon={SparkleIcon}
                 disabled={!props.url.startsWith('https://')}
                 loading={processing}
                 onClick={preview}
@@ -75,11 +88,6 @@ export function MetadataPreview(props: {
             >
                 Fetch title and description
             </Button>
-            {message === '' ? null : (
-                <p aria-live="polite" className="text-sm text-kumo-subtle">
-                    {message}
-                </p>
-            )}
         </div>
     );
 }

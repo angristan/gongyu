@@ -93,8 +93,9 @@ test('renders the SSR shell and persists hydrated theme changes', async ({
     );
     const html = await response.text();
     expect(html).toContain('<html lang="en" data-mode="light">');
-    expect(html).toContain('Personal bookmarks');
-    expect(html).toContain('No bookmarks have been saved yet.');
+    expect(html).toContain('Personal knowledge library');
+    expect(html).toContain('Search bookmarks');
+    expect(html).toContain('<main id="main-content"');
 
     const healthResponse = await request.get('/health');
     expect(healthResponse.status()).toBe(200);
@@ -111,7 +112,10 @@ test('renders the SSR shell and persists hydrated theme changes', async ({
             : `/?staging-smoke=${Date.now()}`,
     );
     await expect(
-        page.getByRole('heading', { name: 'Gongyu', exact: true }),
+        page.getByRole('heading', {
+            name: 'Links worth returning to.',
+            exact: true,
+        }),
     ).toBeVisible();
     await page.keyboard.press('Tab');
     await expect(
@@ -137,6 +141,7 @@ test('renders the SSR shell and persists hydrated theme changes', async ({
 });
 
 test('sets up one passkey, rotates sessions, and logs in', async ({
+    browser,
     context,
     page,
 }) => {
@@ -286,11 +291,15 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
     await page.getByLabel('Description').fill('Searchable Cloudflare notes');
     await page.getByRole('button', { name: 'Save bookmark' }).click();
     await expect(page).toHaveURL(/\/admin\/bookmarks$/u);
-    await expect(page.getByText('Phase Two Bookmark')).toBeVisible();
+    await expect(
+        page
+            .getByRole('link', { exact: true, name: 'Phase Two Bookmark' })
+            .first(),
+    ).toBeVisible();
 
     await page.goto('/?q=cloudflare');
     await expect(page.getByText('Phase Two Bookmark')).toBeVisible();
-    await page.locator('a[href^="/b/"]').click();
+    await page.locator('a[href^="/b/"]').first().click();
     await expect(
         page.getByRole('heading', { name: 'Phase Two Bookmark' }),
     ).toBeVisible();
@@ -299,12 +308,18 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
     await page.getByRole('link', { name: 'Edit' }).click();
     await page.getByLabel('Title').fill('Updated Phase Two Bookmark');
     await page.getByRole('button', { name: 'Save changes' }).click();
-    await expect(page.getByText('Updated Phase Two Bookmark')).toBeVisible();
+    await expect(
+        page
+            .getByRole('link', {
+                exact: true,
+                name: 'Updated Phase Two Bookmark',
+            })
+            .first(),
+    ).toBeVisible();
     await page.getByRole('link', { name: 'Edit' }).click();
-    await page
-        .getByLabel('Type DELETE to permanently remove this bookmark')
-        .fill('DELETE');
     await page.getByRole('button', { name: 'Delete bookmark' }).click();
+    await page.getByLabel('Confirmation phrase').fill('DELETE');
+    await page.getByRole('button', { name: 'Delete permanently' }).click();
     await expect(page.getByText('Updated Phase Two Bookmark')).toHaveCount(0);
 
     const popupPromise = context.waitForEvent('page');
@@ -330,13 +345,25 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
 
     await page.goto('/admin/dashboard?period=30d');
     await expect(
-        page.getByRole('heading', { name: 'Dashboard' }),
+        page.getByRole('heading', { name: 'Overview', exact: true }),
     ).toBeVisible();
     await expect(page.getByText('Total bookmarks')).toBeVisible();
+    await page.setViewportSize({ height: 844, width: 390 });
+    await page.getByRole('button', { name: 'Open navigation' }).click();
+    await expect(
+        page.getByRole('link', { name: 'Bookmarks', exact: true }),
+    ).toBeVisible();
+    expect(
+        await page.evaluate(
+            () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+    ).toBe(true);
+    await page.keyboard.press('Escape');
+    await page.setViewportSize({ height: 900, width: 1280 });
 
     await page.goto('/admin/data');
     await expect(
-        page.getByRole('heading', { name: 'Data portability' }),
+        page.getByRole('heading', { name: 'Data & recovery', exact: true }),
     ).toBeVisible();
     await expect(page.getByLabel('Source format')).toBeVisible();
     await expect(
@@ -345,13 +372,30 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
 
     await page.goto('/admin/settings');
     await page.getByLabel('Twitter API key').fill('browser-test-key');
-    await page.getByLabel('Atom feed item count').fill('250');
+    await page.getByLabel('Feed item count').fill('250');
     await page.getByRole('button', { name: 'Save settings' }).click();
     await expect(page).toHaveURL(/\/admin\/settings\?saved=1$/u);
     await expect(page.getByLabel('Twitter API key')).toHaveValue(
         'browser-test-key',
     );
-    await expect(page.getByLabel('Atom feed item count')).toHaveValue('250');
+    await expect(page.getByLabel('Feed item count')).toHaveValue('250');
+
+    const noJavaScriptContext = await browser.newContext({
+        javaScriptEnabled: false,
+    });
+    await noJavaScriptContext.addCookies(await context.cookies());
+    const noJavaScriptAdmin = await noJavaScriptContext.newPage();
+    await noJavaScriptAdmin.goto('/admin/bookmarks');
+    await expect(
+        noJavaScriptAdmin.getByRole('heading', {
+            exact: true,
+            name: 'Bookmarks',
+        }),
+    ).toBeVisible();
+    await expect(
+        noJavaScriptAdmin.getByRole('link', { name: 'New bookmark' }),
+    ).toBeVisible();
+    await noJavaScriptContext.close();
 
     const feedResponse = await context.request.get('/feed');
     expect(feedResponse.status()).toBe(200);
@@ -380,10 +424,8 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
         (cookie) => cookie.name === '__Host-gongyu-session',
     )?.value;
     await page.goto('/admin/security');
-    await page.waitForFunction(
-        () => document.querySelector('button')?.onclick !== null,
-    );
     await page.getByRole('button', { name: 'Replace passkey' }).click();
+    await page.getByRole('button', { name: 'Continue' }).click();
     await expect
         .poll(
             async () =>
@@ -426,7 +468,10 @@ test('serves public list, search, detail, and feed without JavaScript', async ({
     const page = await context.newPage();
     await page.goto('/search?q=Captured');
     await expect(page.getByText('Captured page')).toBeVisible();
-    const detailLink = page.locator('a[href^="/b/"]');
+    const publicHtml = await page.content();
+    expect(publicHtml).not.toContain('thumbnailCleanupKey');
+    expect(publicHtml).not.toContain('thumbnailKey');
+    const detailLink = page.locator('a[href^="/b/"]').first();
     await expect(detailLink).toBeVisible();
     await detailLink.click();
     await expect(

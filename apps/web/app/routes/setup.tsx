@@ -1,4 +1,6 @@
+import { Banner } from '@cloudflare/kumo/components/banner';
 import { Button } from '@cloudflare/kumo/components/button';
+import { Input } from '@cloudflare/kumo/components/input';
 import { LayerCard } from '@cloudflare/kumo/components/layer-card';
 import {
     RegistrationOptionsEnvelope,
@@ -6,6 +8,11 @@ import {
 } from '@gongyu/auth/contracts';
 import { hasPasskey } from '@gongyu/auth/service';
 import { PageShell } from '@gongyu/ui/page-shell';
+import {
+    FingerprintSimpleIcon,
+    KeyIcon,
+    ShieldCheckIcon,
+} from '@phosphor-icons/react';
 import { startRegistration } from '@simplewebauthn/browser';
 import { Schema } from 'effect';
 import { useState } from 'react';
@@ -93,37 +100,81 @@ export default function Setup() {
 
     return (
         <PageShell
-            description="Setup closes permanently after one administrator passkey is registered."
-            eyebrow="First-run setup"
-            title="Secure Gongyu"
+            description="Use the deployment bootstrap token once, then protect the administrator interface with a passkey."
+            eyebrow="First-run security"
+            title="Make this Gongyu yours."
         >
-            <LayerCard className="max-w-xl">
-                <div className="space-y-5 p-6">
-                    <label className="block space-y-2 text-sm font-medium text-kumo-default">
-                        <span>Bootstrap token</span>
-                        <input
+            <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(17rem,0.8fr)]">
+                <LayerCard>
+                    <div className="space-y-6 p-6 sm:p-8">
+                        <span className="flex size-14 items-center justify-center rounded-2xl bg-kumo-tint text-kumo-link">
+                            <KeyIcon
+                                aria-hidden="true"
+                                size={30}
+                                weight="duotone"
+                            />
+                        </span>
+                        <div>
+                            <h2 className="text-xl font-semibold text-kumo-default">
+                                Verify deployment access
+                            </h2>
+                            <p className="mt-2 text-sm leading-6 text-kumo-subtle">
+                                Find SETUP_TOKEN in the Worker secret
+                                configuration. It is never stored in the browser
+                                or database.
+                            </p>
+                        </div>
+                        <Input
                             autoComplete="off"
-                            className="w-full rounded-md border border-kumo-line bg-kumo-base px-3 py-2 text-kumo-default"
+                            label="Bootstrap token"
                             onChange={(event) =>
                                 setBootstrapToken(event.currentTarget.value)
                             }
                             type="password"
                             value={bootstrapToken}
                         />
-                    </label>
-                    <p aria-live="polite" className="text-kumo-default">
-                        {message}
-                    </p>
-                    <Button
-                        disabled={bootstrapToken.length === 0}
-                        loading={processing}
-                        onClick={register}
-                        type="button"
-                    >
-                        Register administrator passkey
-                    </Button>
-                </div>
-            </LayerCard>
+                        <Button
+                            disabled={bootstrapToken.length === 0}
+                            icon={FingerprintSimpleIcon}
+                            loading={processing}
+                            onClick={register}
+                            size="lg"
+                            type="button"
+                            variant="primary"
+                        >
+                            Register administrator passkey
+                        </Button>
+                        <p
+                            aria-live="polite"
+                            className="rounded-xl bg-kumo-tint/60 p-3 text-sm text-kumo-default"
+                        >
+                            {message}
+                        </p>
+                    </div>
+                </LayerCard>
+                <aside className="space-y-4">
+                    <Banner
+                        description="After successful registration, this setup route closes permanently. Gongyu stores exactly one administrator passkey."
+                        icon={<ShieldCheckIcon aria-hidden="true" size={20} />}
+                        title="One-time setup"
+                        variant="secondary"
+                    />
+                    <LayerCard>
+                        <ol className="space-y-4 p-5 text-sm text-kumo-subtle">
+                            <li>1. Enter the deployment token.</li>
+                            <li>2. Choose a device or security key.</li>
+                            <li>3. Confirm the passkey ceremony.</li>
+                        </ol>
+                    </LayerCard>
+                </aside>
+            </div>
+            <noscript>
+                <Banner
+                    description="Passkey registration uses the browser WebAuthn API and cannot continue without JavaScript."
+                    title="JavaScript is required for setup"
+                    variant="error"
+                />
+            </noscript>
         </PageShell>
     );
 }
