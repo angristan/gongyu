@@ -27,6 +27,14 @@ import {
     requireAuthentication,
 } from '../auth/session.server';
 import { AdminPage } from '../components/admin-page';
+import {
+    AdminNativeField,
+    AdminPanelHeader,
+    adminFileInputClass,
+    adminNativeControlClass,
+    adminPanelBodyClass,
+    adminPanelFooterClass,
+} from '../components/admin-panel';
 import { OperationProgress } from '../components/operation-progress';
 import { StatusBadge } from '../components/status-badge';
 import { cloudflareRequestContext } from '../platform-context';
@@ -542,98 +550,124 @@ export default function AdminData({ loaderData }: Route.ComponentProps) {
                     variant="secondary"
                 />
             ) : null}
-            <div aria-busy={isSubmitting} className="grid gap-5 lg:grid-cols-2">
+            <div aria-busy={isSubmitting} className="grid gap-3 lg:grid-cols-2">
                 <LayerCard>
-                    <Form
-                        className="space-y-4 p-6"
-                        encType="multipart/form-data"
-                        method="post"
-                    >
-                        <h2 className="text-lg font-semibold text-kumo-default">
-                            Import bookmarks
-                        </h2>
-                        <input name="_csrf" type="hidden" value={csrfToken} />
-                        <input name="intent" type="hidden" value="import" />
-                        <label
-                            className="block text-sm font-medium"
-                            htmlFor="import-format"
-                        >
-                            Source format
-                        </label>
-                        <select
-                            className="w-full rounded-md border border-kumo-line bg-kumo-base px-3 py-2"
-                            id="import-format"
-                            name="format"
-                        >
-                            <option value="gongyu_json">
-                                Gongyu JSON v1.0
-                            </option>
-                            <option value="netscape_html">
-                                Netscape / Shaarli HTML
-                            </option>
-                            <option value="shaarli_datastore">
-                                Shaarli datastore.php
-                            </option>
-                        </select>
-                        <label
-                            className="block text-sm font-medium"
-                            htmlFor="import-file"
-                        >
-                            Source file (up to 10 MiB)
-                        </label>
-                        <input
-                            className="block w-full"
-                            id="import-file"
-                            name="file"
-                            required
-                            type="file"
-                        />
-                        <Button disabled={isSubmitting} type="submit">
-                            Start import
-                        </Button>
+                    <AdminPanelHeader
+                        description="Gongyu JSON, Netscape HTML, or a Shaarli datastore."
+                        title="Import bookmarks"
+                    />
+                    <Form encType="multipart/form-data" method="post">
+                        <div className={adminPanelBodyClass}>
+                            <input
+                                name="_csrf"
+                                type="hidden"
+                                value={csrfToken}
+                            />
+                            <input name="intent" type="hidden" value="import" />
+                            <AdminNativeField
+                                htmlFor="import-format"
+                                label="Source format"
+                            >
+                                <select
+                                    className={adminNativeControlClass}
+                                    id="import-format"
+                                    name="format"
+                                >
+                                    <option value="gongyu_json">
+                                        Gongyu JSON v1.0
+                                    </option>
+                                    <option value="netscape_html">
+                                        Netscape / Shaarli HTML
+                                    </option>
+                                    <option value="shaarli_datastore">
+                                        Shaarli datastore.php
+                                    </option>
+                                </select>
+                            </AdminNativeField>
+                            <AdminNativeField
+                                description="Maximum file size: 10 MiB."
+                                htmlFor="import-file"
+                                label="Source file"
+                            >
+                                <input
+                                    className={adminFileInputClass}
+                                    id="import-file"
+                                    name="file"
+                                    required
+                                    type="file"
+                                />
+                            </AdminNativeField>
+                        </div>
+                        <div className={adminPanelFooterClass}>
+                            <Button
+                                disabled={isSubmitting}
+                                type="submit"
+                                variant="primary"
+                            >
+                                Start import
+                            </Button>
+                        </div>
                     </Form>
                 </LayerCard>
 
                 <LayerCard>
-                    <Form className="space-y-4 p-6" method="post">
-                        <h2 className="text-lg font-semibold text-kumo-default">
-                            Import Shaarli API
-                        </h2>
-                        <input name="_csrf" type="hidden" value={csrfToken} />
-                        <input name="intent" type="hidden" value="import_api" />
-                        <input
-                            name="format"
-                            type="hidden"
-                            value="shaarli_api"
-                        />
-                        <Input
-                            id="shaarli-url"
-                            label="Shaarli URL"
-                            name="shaarli_url"
-                            placeholder="https://links.example.com"
-                            required
-                            type="url"
-                        />
-                        <Input
-                            id="shaarli-secret"
-                            label="API secret"
-                            minLength={12}
-                            name="api_secret"
-                            placeholder="API secret"
-                            required
-                            type="password"
-                        />
-                        <Button disabled={isSubmitting} type="submit">
-                            Fetch and import
-                        </Button>
+                    <AdminPanelHeader
+                        description="Fetch bookmarks directly from an existing Shaarli instance."
+                        title="Import from Shaarli API"
+                    />
+                    <Form method="post">
+                        <div className={adminPanelBodyClass}>
+                            <input
+                                name="_csrf"
+                                type="hidden"
+                                value={csrfToken}
+                            />
+                            <input
+                                name="intent"
+                                type="hidden"
+                                value="import_api"
+                            />
+                            <input
+                                name="format"
+                                type="hidden"
+                                value="shaarli_api"
+                            />
+                            <Input
+                                id="shaarli-url"
+                                label="Shaarli URL"
+                                name="shaarli_url"
+                                placeholder="https://links.example.com"
+                                required
+                                type="url"
+                            />
+                            <Input
+                                id="shaarli-secret"
+                                label="API secret"
+                                minLength={12}
+                                name="api_secret"
+                                placeholder="API secret"
+                                required
+                                type="password"
+                            />
+                        </div>
+                        <div className={adminPanelFooterClass}>
+                            <Button
+                                disabled={isSubmitting}
+                                type="submit"
+                                variant="primary"
+                            >
+                                Fetch and import
+                            </Button>
+                        </div>
                     </Form>
                 </LayerCard>
 
                 <LayerCard>
-                    <div className="space-y-4 p-6">
-                        <h2 className="text-lg font-semibold text-kumo-default">
-                            Portable exports
-                        </h2>
+                    <AdminPanelHeader
+                        description="Create a portable download without changing your library."
+                        title="Portable exports"
+                    />
+                    <div className="flex flex-wrap gap-2 p-4">
                         {[
                             ['gongyu_json', 'Gongyu JSON v1.0'],
                             ['netscape_html', 'Netscape HTML'],
@@ -656,6 +690,7 @@ export default function AdminData({ loaderData }: Route.ComponentProps) {
                                 />
                                 <Button
                                     disabled={isSubmitting}
+                                    size="sm"
                                     type="submit"
                                     variant="secondary"
                                 >
@@ -667,15 +702,11 @@ export default function AdminData({ loaderData }: Route.ComponentProps) {
                 </LayerCard>
 
                 <LayerCard>
-                    <div className="space-y-4 p-6">
-                        <h2 className="text-lg font-semibold text-kumo-default">
-                            Full backup
-                        </h2>
-                        <p className="text-sm text-kumo-subtle">
-                            Includes bookmarks, encrypted settings, the passkey,
-                            stable configuration, and mirrored thumbnails.
-                            Expires after 24 hours.
-                        </p>
+                    <AdminPanelHeader
+                        description="Includes bookmarks, settings, the passkey, configuration, and mirrored thumbnails. Expires after 24 hours."
+                        title="Full backup"
+                    />
+                    <div className="p-4">
                         <Form method="post">
                             <input
                                 name="_csrf"
@@ -683,7 +714,12 @@ export default function AdminData({ loaderData }: Route.ComponentProps) {
                                 value={csrfToken}
                             />
                             <input name="intent" type="hidden" value="backup" />
-                            <Button disabled={isSubmitting} type="submit">
+                            <Button
+                                disabled={isSubmitting}
+                                size="sm"
+                                type="submit"
+                                variant="secondary"
+                            >
                                 Create full backup
                             </Button>
                         </Form>
@@ -691,65 +727,77 @@ export default function AdminData({ loaderData }: Route.ComponentProps) {
                 </LayerCard>
 
                 <LayerCard className="lg:col-span-2">
-                    <Form
-                        className="space-y-4 p-6"
-                        encType="multipart/form-data"
-                        method="post"
-                    >
-                        <h2 className="text-lg font-semibold text-kumo-default">
-                            Restore full backup
-                        </h2>
-                        <input name="_csrf" type="hidden" value={csrfToken} />
-                        <input name="intent" type="hidden" value="restore" />
-                        <label
-                            className="block text-sm font-medium"
-                            htmlFor="restore-file"
-                        >
-                            Full backup file (up to 16 MiB)
-                        </label>
-                        <input
-                            className="block w-full"
-                            id="restore-file"
-                            name="file"
-                            required
-                            type="file"
-                        />
-                        <label
-                            className="block text-sm font-medium"
-                            htmlFor="restore-mode"
-                        >
-                            Restore mode
-                        </label>
-                        <select
-                            className="w-full rounded-md border border-kumo-line bg-kumo-base px-3 py-2"
-                            id="restore-mode"
-                            name="mode"
-                        >
-                            <option value="merge">Merge</option>
-                            <option value="replacement">Replacement</option>
-                        </select>
-                        <Input
-                            description="Required only when replacement mode is selected."
-                            id="restore-confirmation"
-                            label="Replacement confirmation"
-                            name="confirmation"
-                            placeholder="Type REPLACE ALL DATA"
-                        />
-                        <Button
-                            disabled={isSubmitting}
-                            type="submit"
-                            variant="destructive"
-                        >
-                            Start restore
-                        </Button>
+                    <AdminPanelHeader
+                        description="Merge a backup into this library or explicitly replace all existing data."
+                        title="Restore full backup"
+                    />
+                    <Form encType="multipart/form-data" method="post">
+                        <div className={adminPanelBodyClass}>
+                            <input
+                                name="_csrf"
+                                type="hidden"
+                                value={csrfToken}
+                            />
+                            <input
+                                name="intent"
+                                type="hidden"
+                                value="restore"
+                            />
+                            <div className="grid gap-3 sm:grid-cols-2">
+                                <AdminNativeField
+                                    description="Maximum file size: 16 MiB."
+                                    htmlFor="restore-file"
+                                    label="Full backup file"
+                                >
+                                    <input
+                                        className={adminFileInputClass}
+                                        id="restore-file"
+                                        name="file"
+                                        required
+                                        type="file"
+                                    />
+                                </AdminNativeField>
+                                <AdminNativeField
+                                    htmlFor="restore-mode"
+                                    label="Restore mode"
+                                >
+                                    <select
+                                        className={adminNativeControlClass}
+                                        id="restore-mode"
+                                        name="mode"
+                                    >
+                                        <option value="merge">Merge</option>
+                                        <option value="replacement">
+                                            Replacement
+                                        </option>
+                                    </select>
+                                </AdminNativeField>
+                            </div>
+                            <Input
+                                description="Required only for replacement mode."
+                                id="restore-confirmation"
+                                label="Replacement confirmation"
+                                name="confirmation"
+                                placeholder="Type REPLACE ALL DATA"
+                            />
+                        </div>
+                        <div className={adminPanelFooterClass}>
+                            <Button
+                                disabled={isSubmitting}
+                                type="submit"
+                                variant="primary"
+                            >
+                                Start restore
+                            </Button>
+                        </div>
                     </Form>
                 </LayerCard>
             </div>
 
-            <section className="space-y-4" aria-labelledby="runs-heading">
+            <section className="space-y-3" aria-labelledby="runs-heading">
                 <div>
                     <h2
-                        className="text-xl font-semibold text-kumo-default"
+                        className="text-lg font-semibold text-kumo-default"
                         id="runs-heading"
                     >
                         Recent operations
@@ -774,10 +822,10 @@ export default function AdminData({ loaderData }: Route.ComponentProps) {
                         />
                     </LayerCard>
                 ) : (
-                    <div className="grid gap-4 xl:grid-cols-2">
+                    <div className="grid gap-3 xl:grid-cols-2">
                         {loaderData.operations.map(({ errors, run }) => (
                             <LayerCard key={run.id}>
-                                <article className="space-y-5 p-5 sm:p-6">
+                                <article className="space-y-4 p-4">
                                     <div className="flex items-start justify-between gap-4">
                                         <div className="min-w-0">
                                             <div className="flex flex-wrap items-center gap-2">
@@ -844,8 +892,8 @@ export default function AdminData({ loaderData }: Route.ComponentProps) {
                                         total={run.totalRows}
                                     />
 
-                                    <dl className="grid grid-cols-3 gap-3 text-center">
-                                        <div className="rounded-lg bg-kumo-tint p-3">
+                                    <dl className="grid grid-cols-3 gap-2 text-center">
+                                        <div className="rounded-md border border-kumo-line p-2">
                                             <dt className="text-xs text-kumo-subtle">
                                                 Imported
                                             </dt>
@@ -853,7 +901,7 @@ export default function AdminData({ loaderData }: Route.ComponentProps) {
                                                 {run.importedRows}
                                             </dd>
                                         </div>
-                                        <div className="rounded-lg bg-kumo-tint p-3">
+                                        <div className="rounded-md border border-kumo-line p-2">
                                             <dt className="text-xs text-kumo-subtle">
                                                 Skipped
                                             </dt>
@@ -861,7 +909,7 @@ export default function AdminData({ loaderData }: Route.ComponentProps) {
                                                 {run.skippedRows}
                                             </dd>
                                         </div>
-                                        <div className="rounded-lg bg-kumo-tint p-3">
+                                        <div className="rounded-md border border-kumo-line p-2">
                                             <dt className="text-xs text-kumo-subtle">
                                                 Errors
                                             </dt>

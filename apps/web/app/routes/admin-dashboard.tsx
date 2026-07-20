@@ -94,6 +94,7 @@ export default function AdminDashboard({ loaderData }: Route.ComponentProps) {
                 <LinkButton
                     href="/admin/bookmarks/new"
                     icon={PlusIcon}
+                    size="sm"
                     variant="primary"
                 >
                     New bookmark
@@ -107,7 +108,7 @@ export default function AdminDashboard({ loaderData }: Route.ComponentProps) {
                 <dl className="grid divide-y divide-kumo-line sm:grid-cols-3 sm:divide-x sm:divide-y-0">
                     {summary.map(({ icon: Icon, label, value }) => (
                         <div
-                            className="flex items-center gap-4 px-5 py-4"
+                            className="flex items-center gap-3 px-4 py-3"
                             key={label}
                         >
                             <Icon
@@ -116,7 +117,7 @@ export default function AdminDashboard({ loaderData }: Route.ComponentProps) {
                                 size={20}
                             />
                             <div>
-                                <dd className="text-2xl font-semibold tracking-[-0.03em] text-kumo-default">
+                                <dd className="text-xl font-semibold tracking-[-0.03em] text-kumo-default">
                                     {value.toLocaleString('en-US')}
                                 </dd>
                                 <dt className="text-xs text-kumo-subtle">
@@ -128,10 +129,10 @@ export default function AdminDashboard({ loaderData }: Route.ComponentProps) {
                 </dl>
             </LayerCard>
 
-            <div className="grid gap-5 lg:grid-cols-[minmax(0,1.7fr)_minmax(16rem,0.7fr)]">
+            <div className="grid gap-3 lg:grid-cols-[minmax(0,1.7fr)_minmax(16rem,0.7fr)]">
                 <LayerCard>
-                    <section className="p-5 sm:p-6">
-                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <section className="p-4">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div>
                                 <h2 className="font-semibold text-kumo-default">
                                     Activity
@@ -154,7 +155,7 @@ export default function AdminDashboard({ loaderData }: Route.ComponentProps) {
                                         className={cn(
                                             'rounded-md px-2.5 py-1.5 text-xs',
                                             option.value === period
-                                                ? 'bg-kumo-base font-semibold text-kumo-default shadow-sm'
+                                                ? 'bg-kumo-base font-semibold text-kumo-default shadow-xs ring ring-kumo-line'
                                                 : 'font-medium text-kumo-subtle hover:text-kumo-default',
                                         )}
                                         key={option.value}
@@ -174,7 +175,7 @@ export default function AdminDashboard({ loaderData }: Route.ComponentProps) {
                                 title="No activity yet"
                             />
                         ) : (
-                            <div className="mt-6 overflow-x-auto">
+                            <div className="mt-4 overflow-x-auto">
                                 <div
                                     aria-label="Daily bookmark counts"
                                     className="flex h-44 min-w-full items-end gap-1"
@@ -233,7 +234,7 @@ export default function AdminDashboard({ loaderData }: Route.ComponentProps) {
                 </LayerCard>
 
                 <LayerCard>
-                    <section className="p-5 sm:p-6">
+                    <section className="p-4">
                         <h2 className="font-semibold text-kumo-default">
                             Top sources
                         </h2>
@@ -247,7 +248,7 @@ export default function AdminDashboard({ loaderData }: Route.ComponentProps) {
                                 title="No sources yet"
                             />
                         ) : (
-                            <ol className="mt-5 space-y-4">
+                            <ol className="mt-4 space-y-3">
                                 {stats.bookmarksByDomain.map((entry) => (
                                     <li
                                         className="space-y-1.5"
@@ -278,7 +279,7 @@ export default function AdminDashboard({ loaderData }: Route.ComponentProps) {
             </div>
 
             <LayerCard>
-                <section className="p-5 sm:p-6">
+                <section className="p-4">
                     <div className="flex items-center justify-between gap-4">
                         <div>
                             <h2 className="font-semibold text-kumo-default">

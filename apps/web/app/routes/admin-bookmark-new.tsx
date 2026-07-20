@@ -26,6 +26,10 @@ import {
 } from '../auth/session.server';
 import { MetadataPreview } from '../bookmarks/metadata-preview';
 import { AdminPage } from '../components/admin-page';
+import {
+    adminPanelBodyClass,
+    adminPanelFooterClass,
+} from '../components/admin-panel';
 import { failure, success } from '../effect/result';
 import { cloudflareRequestContext } from '../platform-context';
 import type { loader as rootLoader } from '../root';
@@ -143,75 +147,83 @@ export default function AdminBookmarkNew({
             sectionHref="/admin/bookmarks"
             title="New bookmark"
         >
-            <div className="max-w-3xl">
+            <div className="max-w-2xl">
                 <LayerCard>
-                    <Form className="space-y-6 p-5 sm:p-7" method="post">
-                        <input name="_csrf" type="hidden" value={csrfToken} />
-                        <Input
-                            autoFocus
-                            description="Use the exact URL you want Gongyu to preserve."
-                            error={errors.url}
-                            label="URL"
-                            maxLength={2048}
-                            name="url"
-                            onChange={(event) =>
-                                setUrl(event.currentTarget.value)
-                            }
-                            placeholder="https://example.com/article"
-                            required
-                            size="lg"
-                            type="url"
-                            value={url}
-                        />
-                        <MetadataPreview
-                            csrfToken={csrfToken}
-                            onCandidates={(candidates) => {
-                                if (title === '' && candidates.title !== null) {
-                                    setTitle(candidates.title);
-                                }
-                                if (
-                                    description === '' &&
-                                    candidates.description !== null
-                                ) {
-                                    setDescription(candidates.description);
-                                }
-                            }}
-                            url={url}
-                        />
-                        <Input
-                            error={titleError}
-                            label="Title"
-                            maxLength={500}
-                            name="title"
-                            onChange={(event) =>
-                                setTitle(event.currentTarget.value)
-                            }
-                            placeholder="A clear title for this link"
-                            required
-                            value={title}
-                        />
-                        <InputArea
-                            className="min-h-36"
-                            description="Optional notes, a quote, or why this link matters."
-                            label="Description"
-                            name="description"
-                            onChange={(event) =>
-                                setDescription(event.currentTarget.value)
-                            }
-                            placeholder="Add context for your future self…"
-                            value={description}
-                        />
-                        {loaderData.providers.length === 0 ? null : (
-                            <Checkbox
-                                checked={shareSocial}
-                                label={`Share through ${loaderData.providers.join(', ')}`}
-                                name="share_social"
-                                onCheckedChange={(checked) =>
-                                    setShareSocial(checked)
-                                }
+                    <Form method="post">
+                        <div className={adminPanelBodyClass}>
+                            <input
+                                name="_csrf"
+                                type="hidden"
+                                value={csrfToken}
                             />
-                        )}
-                        <div className="flex flex-wrap items-center gap-3 border-t border-kumo-line pt-5">
+                            <Input
+                                autoFocus
+                                description="Use the exact URL you want Gongyu to preserve."
+                                error={errors.url}
+                                label="URL"
+                                maxLength={2048}
+                                name="url"
+                                onChange={(event) =>
+                                    setUrl(event.currentTarget.value)
+                                }
+                                placeholder="https://example.com/article"
+                                required
+                                type="url"
+                                value={url}
+                            />
+                            <MetadataPreview
+                                csrfToken={csrfToken}
+                                onCandidates={(candidates) => {
+                                    if (
+                                        title === '' &&
+                                        candidates.title !== null
+                                    ) {
+                                        setTitle(candidates.title);
+                                    }
+                                    if (
+                                        description === '' &&
+                                        candidates.description !== null
+                                    ) {
+                                        setDescription(candidates.description);
+                                    }
+                                }}
+                                url={url}
+                            />
+                            <Input
+                                error={titleError}
+                                label="Title"
+                                maxLength={500}
+                                name="title"
+                                onChange={(event) =>
+                                    setTitle(event.currentTarget.value)
+                                }
+                                placeholder="A clear title for this link"
+                                required
+                                value={title}
+                            />
+                            <InputArea
+                                className="min-h-28"
+                                description="Optional notes, a quote, or why this link matters."
+                                label="Description"
+                                name="description"
+                                onChange={(event) =>
+                                    setDescription(event.currentTarget.value)
+                                }
+                                placeholder="Add context for your future self…"
+                                value={description}
+                            />
+                            {loaderData.providers.length === 0 ? null : (
+                                <Checkbox
+                                    checked={shareSocial}
+                                    label={`Share through ${loaderData.providers.join(', ')}`}
+                                    name="share_social"
+                                    onCheckedChange={(checked) =>
+                                        setShareSocial(checked)
+                                    }
+                                />
+                            )}
+                        </div>
+                        <div className={adminPanelFooterClass}>
                             <Button
                                 icon={FloppyDiskIcon}
                                 loading={isSubmitting}

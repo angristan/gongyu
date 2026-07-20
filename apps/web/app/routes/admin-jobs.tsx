@@ -3,7 +3,6 @@ import { Button } from '@cloudflare/kumo/components/button';
 import { Dialog } from '@cloudflare/kumo/components/dialog';
 import { Empty } from '@cloudflare/kumo/components/empty';
 import { LayerCard } from '@cloudflare/kumo/components/layer-card';
-import { Table } from '@cloudflare/kumo/components/table';
 import { cn } from '@cloudflare/kumo/utils';
 import { WorkRepository } from '@gongyu/data/work-repository';
 import {
@@ -167,7 +166,7 @@ function TwitterReviewChoices({
                     icon={ArrowClockwiseIcon}
                     loading={processing}
                     type="submit"
-                    variant="primary"
+                    variant="destructive"
                 >
                     Retry despite risk
                 </Button>
@@ -221,7 +220,7 @@ function RecoveryActions({
                     </Dialog>
                 </Dialog.Root>
                 <noscript>
-                    <div className="space-y-3 rounded-xl border border-kumo-line bg-kumo-tint/40 p-4">
+                    <div className="space-y-3 rounded-lg border border-kumo-line p-3">
                         <p className="text-sm leading-6 text-kumo-default">
                             Twitter may have accepted this post. Choose whether
                             to mark it delivered or retry despite duplicate
@@ -288,42 +287,50 @@ export default function AdminJobs({
                 />
             )}
 
-            <nav
-                aria-label="Background work filters"
-                className="flex gap-1 overflow-x-auto border-b border-kumo-line"
-            >
-                {[
-                    ['All', loaderData.summary.total, 'all'],
-                    ['Active', loaderData.summary.active, 'active'],
-                    ['Needs attention', loaderData.summary.failed, 'failed'],
-                    ['Completed', loaderData.summary.completed, 'completed'],
-                ].map(([label, count, value]) => (
-                    <Link
-                        aria-current={
-                            loaderData.filter === value ? 'page' : undefined
-                        }
-                        className={cn(
-                            'flex shrink-0 items-center gap-2 border-b-2 px-3 py-2.5 text-sm',
-                            loaderData.filter === value
-                                ? 'border-kumo-brand font-medium text-kumo-default'
-                                : 'border-transparent text-kumo-subtle hover:text-kumo-default',
-                        )}
-                        key={value}
-                        to={
-                            value === 'all'
-                                ? '/admin/jobs'
-                                : `/admin/jobs?state=${value}`
-                        }
-                    >
-                        {label}
-                        <span className="rounded-full bg-kumo-tint px-1.5 py-0.5 text-xs tabular-nums">
-                            {count}
-                        </span>
-                    </Link>
-                ))}
-            </nav>
-
             <LayerCard className="overflow-hidden">
+                <nav
+                    aria-label="Background work filters"
+                    className="flex gap-1 overflow-x-auto border-b border-kumo-line"
+                >
+                    {[
+                        ['All', loaderData.summary.total, 'all'],
+                        ['Active', loaderData.summary.active, 'active'],
+                        [
+                            'Needs attention',
+                            loaderData.summary.failed,
+                            'failed',
+                        ],
+                        [
+                            'Completed',
+                            loaderData.summary.completed,
+                            'completed',
+                        ],
+                    ].map(([label, count, value]) => (
+                        <Link
+                            aria-current={
+                                loaderData.filter === value ? 'page' : undefined
+                            }
+                            className={cn(
+                                'flex shrink-0 items-center gap-2 border-b-2 px-3 py-2.5 text-sm',
+                                loaderData.filter === value
+                                    ? 'border-kumo-brand font-medium text-kumo-default'
+                                    : 'border-transparent text-kumo-subtle hover:text-kumo-default',
+                            )}
+                            key={value}
+                            to={
+                                value === 'all'
+                                    ? '/admin/jobs'
+                                    : `/admin/jobs?state=${value}`
+                            }
+                        >
+                            {label}
+                            <span className="rounded-full bg-kumo-tint px-1.5 py-0.5 text-xs tabular-nums">
+                                {count}
+                            </span>
+                        </Link>
+                    ))}
+                </nav>
+
                 {loaderData.jobs.length === 0 ? (
                     <Empty
                         description="Background activity matching this filter will appear here."
@@ -338,86 +345,64 @@ export default function AdminJobs({
                     />
                 ) : (
                     <>
-                        <div className="hidden overflow-x-auto md:block">
-                            <Table>
-                                <Table.Header>
-                                    <Table.Row>
-                                        <Table.Head>Job</Table.Head>
-                                        <Table.Head>Status</Table.Head>
-                                        <Table.Head>Attempts</Table.Head>
-                                        <Table.Head>Updated</Table.Head>
-                                        <Table.Head className="text-right">
-                                            Recovery
-                                        </Table.Head>
-                                    </Table.Row>
-                                </Table.Header>
-                                <Table.Body>
-                                    {loaderData.jobs.map((job) => (
-                                        <Table.Row key={job.id}>
-                                            <Table.Cell>
-                                                <div>
-                                                    <p className="font-medium text-kumo-default">
-                                                        {job.kind.replace(
-                                                            ':',
-                                                            ' · ',
-                                                        )}
-                                                    </p>
-                                                    <Link
-                                                        className="text-xs text-kumo-link"
-                                                        to={`/b/${job.bookmarkShortUrl}`}
-                                                    >
-                                                        {job.bookmarkShortUrl}
-                                                    </Link>
-                                                    {job.lastErrorCode ===
-                                                    null ? null : (
-                                                        <p className="mt-1 font-mono text-xs text-kumo-danger">
-                                                            {job.lastErrorCode}
-                                                        </p>
-                                                    )}
-                                                </div>
-                                            </Table.Cell>
-                                            <Table.Cell>
-                                                <StatusBadge
-                                                    state={job.state}
-                                                />
-                                            </Table.Cell>
-                                            <Table.Cell>
-                                                {job.attempts}
-                                            </Table.Cell>
-                                            <Table.Cell className="whitespace-nowrap text-sm text-kumo-subtle">
-                                                {formatDate(job.updatedAt)}
-                                            </Table.Cell>
-                                            <Table.Cell>
-                                                <div className="flex justify-end">
-                                                    {job.recoverable === 1 &&
-                                                    [
-                                                        'failed',
-                                                        'needs_review',
-                                                    ].includes(job.state) ? (
-                                                        <RecoveryActions
-                                                            csrfToken={
-                                                                csrfToken
-                                                            }
-                                                            job={job}
-                                                            processing={
-                                                                processing
-                                                            }
-                                                        />
-                                                    ) : (
-                                                        <span className="text-xs text-kumo-subtle">
-                                                            —
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </Table.Cell>
-                                        </Table.Row>
-                                    ))}
-                                </Table.Body>
-                            </Table>
+                        <div className="hidden grid-cols-[minmax(0,1fr)_7rem_4rem_9rem_8rem] gap-3 bg-kumo-tint/45 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-kumo-subtle md:grid">
+                            <span>Job</span>
+                            <span>Status</span>
+                            <span>Tries</span>
+                            <span>Updated</span>
+                            <span className="text-right">Recovery</span>
                         </div>
+                        <ol className="hidden divide-y divide-kumo-line md:block">
+                            {loaderData.jobs.map((job) => (
+                                <li
+                                    className="grid grid-cols-[minmax(0,1fr)_7rem_4rem_9rem_8rem] items-center gap-3 px-3 py-2"
+                                    key={job.id}
+                                >
+                                    <div className="min-w-0">
+                                        <p className="truncate text-sm font-medium text-kumo-default">
+                                            {job.kind.replace(':', ' · ')}
+                                        </p>
+                                        <Link
+                                            className="text-xs text-kumo-link"
+                                            to={`/b/${job.bookmarkShortUrl}`}
+                                        >
+                                            {job.bookmarkShortUrl}
+                                        </Link>
+                                        {job.lastErrorCode === null ? null : (
+                                            <p className="mt-0.5 truncate font-mono text-xs text-kumo-danger">
+                                                {job.lastErrorCode}
+                                            </p>
+                                        )}
+                                    </div>
+                                    <StatusBadge state={job.state} />
+                                    <span className="text-sm tabular-nums text-kumo-subtle">
+                                        {job.attempts}
+                                    </span>
+                                    <time className="whitespace-nowrap text-xs text-kumo-subtle">
+                                        {formatDate(job.updatedAt)}
+                                    </time>
+                                    <div className="flex justify-end">
+                                        {job.recoverable === 1 &&
+                                        ['failed', 'needs_review'].includes(
+                                            job.state,
+                                        ) ? (
+                                            <RecoveryActions
+                                                csrfToken={csrfToken}
+                                                job={job}
+                                                processing={processing}
+                                            />
+                                        ) : (
+                                            <span className="text-xs text-kumo-subtle">
+                                                —
+                                            </span>
+                                        )}
+                                    </div>
+                                </li>
+                            ))}
+                        </ol>
                         <ol className="divide-y divide-kumo-line md:hidden">
                             {loaderData.jobs.map((job) => (
-                                <li className="space-y-3 p-4" key={job.id}>
+                                <li className="space-y-3 p-3" key={job.id}>
                                     <div className="flex items-start justify-between gap-3">
                                         <div>
                                             <p className="font-medium text-kumo-default">

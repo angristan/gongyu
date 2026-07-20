@@ -470,9 +470,7 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
         page.getByRole('heading', { name: 'Data & recovery', exact: true }),
     ).toBeVisible();
     await expect(page.getByLabel('Source format')).toBeVisible();
-    await expect(
-        page.getByLabel('Full backup file (up to 16 MiB)'),
-    ).toBeVisible();
+    await expect(page.getByLabel('Full backup file')).toBeVisible();
 
     await page.goto('/admin/settings');
     await page.getByLabel('Twitter API key').fill('browser-test-key');
@@ -610,7 +608,7 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
     )?.value;
     await page.goto('/admin/security');
     await page.getByRole('button', { name: 'Replace passkey' }).click();
-    await page.getByRole('button', { name: 'Continue' }).click();
+    await page.getByRole('button', { name: 'Replace now' }).click();
     await expect
         .poll(
             async () =>

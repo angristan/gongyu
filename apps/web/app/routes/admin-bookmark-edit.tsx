@@ -36,6 +36,11 @@ import {
     MetadataPreview,
 } from '../bookmarks/metadata-preview';
 import { AdminPage } from '../components/admin-page';
+import {
+    adminNativeControlClass,
+    adminPanelBodyClass,
+    adminPanelFooterClass,
+} from '../components/admin-panel';
 import { failure, success } from '../effect/result';
 import { cloudflareRequestContext } from '../platform-context';
 import type { loader as rootLoader } from '../root';
@@ -205,6 +210,7 @@ export default function AdminBookmarkEdit({
                     external
                     href={loaderData.bookmark.url}
                     icon={ArrowSquareOutIcon}
+                    size="sm"
                     variant="secondary"
                 >
                     Open original
@@ -216,90 +222,101 @@ export default function AdminBookmarkEdit({
             title="Edit bookmark"
             width="wide"
         >
-            <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,2.2fr)_minmax(16rem,1fr)]">
                 <LayerCard>
-                    <Form className="space-y-6 p-5 sm:p-7" method="post">
-                        <input name="_csrf" type="hidden" value={csrfToken} />
-                        <input name="intent" type="hidden" value="update" />
-                        <Input
-                            description="Changing the URL triggers fresh metadata enrichment."
-                            error={urlError}
-                            label="URL"
-                            maxLength={2048}
-                            name="url"
-                            onChange={(event) =>
-                                setUrl(event.currentTarget.value)
-                            }
-                            required
-                            type="url"
-                            value={url}
-                        />
-                        <MetadataPreview
-                            csrfToken={csrfToken}
-                            onCandidates={setCandidates}
-                            url={url}
-                        />
-                        {candidates === null ? null : (
-                            <div className="rounded-xl border border-kumo-line bg-kumo-tint/40 p-4">
-                                <div className="flex items-center gap-2 text-sm font-medium text-kumo-default">
-                                    <SparkleIcon aria-hidden="true" size={17} />
-                                    Suggestions are ready
+                    <Form method="post">
+                        <div className={adminPanelBodyClass}>
+                            <input
+                                name="_csrf"
+                                type="hidden"
+                                value={csrfToken}
+                            />
+                            <input name="intent" type="hidden" value="update" />
+                            <Input
+                                description="Changing the URL triggers fresh metadata enrichment."
+                                error={urlError}
+                                label="URL"
+                                maxLength={2048}
+                                name="url"
+                                onChange={(event) =>
+                                    setUrl(event.currentTarget.value)
+                                }
+                                required
+                                type="url"
+                                value={url}
+                            />
+                            <MetadataPreview
+                                csrfToken={csrfToken}
+                                onCandidates={setCandidates}
+                                url={url}
+                            />
+                            {candidates === null ? null : (
+                                <div className="rounded-lg border border-kumo-line p-3">
+                                    <div className="flex items-center gap-2 text-sm font-medium text-kumo-default">
+                                        <SparkleIcon
+                                            aria-hidden="true"
+                                            size={17}
+                                        />
+                                        Suggestions are ready
+                                    </div>
+                                    <div className="mt-3 flex flex-wrap gap-2">
+                                        {candidates.title === null ? null : (
+                                            <Button
+                                                onClick={() =>
+                                                    setTitle(
+                                                        candidates.title ??
+                                                            title,
+                                                    )
+                                                }
+                                                size="sm"
+                                                type="button"
+                                                variant="secondary"
+                                            >
+                                                Use suggested title
+                                            </Button>
+                                        )}
+                                        {candidates.description ===
+                                        null ? null : (
+                                            <Button
+                                                onClick={() =>
+                                                    setDescription(
+                                                        candidates.description ??
+                                                            description,
+                                                    )
+                                                }
+                                                size="sm"
+                                                type="button"
+                                                variant="secondary"
+                                            >
+                                                Use suggested notes
+                                            </Button>
+                                        )}
+                                    </div>
                                 </div>
-                                <div className="mt-3 flex flex-wrap gap-2">
-                                    {candidates.title === null ? null : (
-                                        <Button
-                                            onClick={() =>
-                                                setTitle(
-                                                    candidates.title ?? title,
-                                                )
-                                            }
-                                            size="sm"
-                                            type="button"
-                                            variant="secondary"
-                                        >
-                                            Use suggested title
-                                        </Button>
-                                    )}
-                                    {candidates.description === null ? null : (
-                                        <Button
-                                            onClick={() =>
-                                                setDescription(
-                                                    candidates.description ??
-                                                        description,
-                                                )
-                                            }
-                                            size="sm"
-                                            type="button"
-                                            variant="secondary"
-                                        >
-                                            Use suggested notes
-                                        </Button>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-                        <Input
-                            error={titleError}
-                            label="Title"
-                            maxLength={500}
-                            name="title"
-                            onChange={(event) =>
-                                setTitle(event.currentTarget.value)
-                            }
-                            required
-                            value={title}
-                        />
-                        <InputArea
-                            className="min-h-40"
-                            description="Keep the details that make this link worth returning to."
-                            label="Notes"
-                            name="description"
-                            onChange={(event) =>
-                                setDescription(event.currentTarget.value)
-                            }
-                            value={description}
-                        />
-                        <div className="border-t border-kumo-line pt-5">
+                            )}
+                            <Input
+                                error={titleError}
+                                label="Title"
+                                maxLength={500}
+                                name="title"
+                                onChange={(event) =>
+                                    setTitle(event.currentTarget.value)
+                                }
+                                required
+                                value={title}
+                            />
+                            <InputArea
+                                className="min-h-28"
+                                description="Keep the details that make this link worth returning to."
+                                label="Description"
+                                name="description"
+                                onChange={(event) =>
+                                    setDescription(event.currentTarget.value)
+                                }
+                                value={description}
+                            />
+                        </div>
+                        <div className={adminPanelFooterClass}>
                             <Button
                                 icon={FloppyDiskIcon}
                                 loading={isSubmitting}
@@ -312,7 +329,7 @@ export default function AdminBookmarkEdit({
                     </Form>
                 </LayerCard>
 
-                <aside className="space-y-5">
+                <aside className="space-y-3">
                     <LayerCard className="overflow-hidden">
                         {loaderData.bookmark.thumbnailSha256 === null ? (
                             <div className="flex aspect-[16/9] items-center justify-center bg-kumo-tint">
@@ -327,7 +344,7 @@ export default function AdminBookmarkEdit({
                                 src={`/thumbnails/${loaderData.bookmark.shortUrl}/${loaderData.bookmark.thumbnailSha256}`}
                             />
                         )}
-                        <dl className="space-y-4 p-5 text-sm">
+                        <dl className="space-y-3 p-4 text-sm">
                             <div>
                                 <dt className="text-kumo-subtle">Source</dt>
                                 <dd className="mt-1">
@@ -354,13 +371,13 @@ export default function AdminBookmarkEdit({
                     </LayerCard>
 
                     <details
-                        className="border-t border-kumo-line pt-4"
+                        className="border-t border-kumo-line pt-2"
                         open={confirmationError !== undefined}
                     >
-                        <summary className="cursor-pointer text-sm text-kumo-subtle hover:text-kumo-default">
+                        <summary className="cursor-pointer text-sm text-kumo-danger hover:underline">
                             Delete bookmark
                         </summary>
-                        <div className="mt-4 rounded-xl border border-kumo-danger/20 p-4">
+                        <div className="mt-3 rounded-lg bg-kumo-danger-tint/30 p-3 ring ring-kumo-danger/20">
                             <p className="text-sm leading-6 text-kumo-subtle">
                                 Permanently removes this bookmark and its
                                 mirrored preview.
@@ -372,8 +389,9 @@ export default function AdminBookmarkEdit({
                                 <Dialog.Trigger
                                     render={
                                         <Button
-                                            className="mt-4"
+                                            className="mt-3"
                                             icon={TrashIcon}
+                                            size="sm"
                                             variant="secondary-destructive"
                                         />
                                     }
@@ -441,7 +459,7 @@ export default function AdminBookmarkEdit({
                                     <label className="block space-y-2 text-sm text-kumo-default">
                                         <span>Type DELETE to confirm</span>
                                         <input
-                                            className="w-full rounded-lg border border-kumo-line bg-kumo-base px-3 py-2"
+                                            className={adminNativeControlClass}
                                             name="confirmation"
                                         />
                                     </label>

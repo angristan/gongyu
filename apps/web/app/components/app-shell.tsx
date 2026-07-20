@@ -229,7 +229,7 @@ function NavigationSection({
 }) {
     return (
         <section>
-            <h2 className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-kumo-subtle/75">
+            <h2 className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-kumo-subtle">
                 {label}
             </h2>
             <ul>
@@ -316,7 +316,7 @@ function AdminShell({
     return (
         <div className="min-h-svh bg-kumo-base lg:flex">
             <aside
-                className="sticky top-0 hidden h-svh w-48 shrink-0 flex-col border-r border-kumo-line bg-kumo-recessed/55 lg:flex"
+                className="sticky top-0 hidden h-svh w-48 shrink-0 flex-col border-r border-kumo-line bg-kumo-recessed lg:flex"
                 data-admin-sidebar=""
             >
                 <div className="flex h-14 items-center border-b border-kumo-line px-3">
@@ -351,7 +351,7 @@ function AdminShell({
                                 <ListIcon aria-hidden="true" size={19} />
                                 <span className="sr-only">Menu</span>
                             </summary>
-                            <div className="absolute left-0 top-10 z-50 w-64 rounded-xl border border-kumo-line bg-kumo-base p-3 shadow-xl">
+                            <div className="absolute left-0 top-10 z-50 w-64 rounded-lg border border-kumo-line bg-kumo-base p-3 shadow-md">
                                 <AdminNavigation pathname={location.pathname} />
                                 <div className="mt-4 flex items-center justify-between border-t border-kumo-line pt-3">
                                     <Link

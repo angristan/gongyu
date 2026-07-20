@@ -24,6 +24,7 @@ import {
     requireAuthentication,
 } from '../auth/session.server';
 import { AdminPage } from '../components/admin-page';
+import { adminPanelFooterClass } from '../components/admin-panel';
 import { cloudflareRequestContext } from '../platform-context';
 import type { loader as rootLoader } from '../root';
 import type { Route } from './+types/admin-settings';
@@ -201,12 +202,7 @@ export default function AdminSettings({
                     variant="secondary"
                 />
             ) : null}
-            <p className="text-sm text-kumo-subtle">
-                Credentials are encrypted before they are stored. This page is
-                never cached.
-            </p>
-
-            <Form className="max-w-5xl space-y-5" method="post">
+            <Form className="max-w-5xl" method="post">
                 <input name="_csrf" type="hidden" value={csrfToken} />
                 <LayerCard className="overflow-hidden">
                     <div className="divide-y divide-kumo-line">
@@ -217,11 +213,8 @@ export default function AdminSettings({
                             );
                             const Icon = provider.icon;
                             return (
-                                <section
-                                    className="p-5 sm:p-6"
-                                    key={provider.name}
-                                >
-                                    <div className="mb-5 flex items-start justify-between gap-4">
+                                <section className="p-4" key={provider.name}>
+                                    <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                                         <div className="flex items-center gap-2.5">
                                             <Icon
                                                 aria-hidden="true"
@@ -250,7 +243,7 @@ export default function AdminSettings({
                                                 : 'Not configured'}
                                         </Badge>
                                     </div>
-                                    <div className="grid gap-4 sm:grid-cols-2">
+                                    <div className="grid gap-3 sm:grid-cols-2">
                                         {provider.fields.map((field) => {
                                             const error = errors[field.name];
                                             return (
@@ -276,8 +269,8 @@ export default function AdminSettings({
                                 </section>
                             );
                         })}
-                        <section className="p-5 sm:p-6">
-                            <div className="mb-4">
+                        <section className="p-4">
+                            <div className="mb-3">
                                 <h2 className="font-semibold text-kumo-default">
                                     Public feed
                                 </h2>
@@ -296,18 +289,17 @@ export default function AdminSettings({
                             />
                         </section>
                     </div>
+                    <div className={adminPanelFooterClass}>
+                        <Button
+                            icon={FloppyDiskIcon}
+                            loading={isSubmitting}
+                            type="submit"
+                            variant="primary"
+                        >
+                            Save settings
+                        </Button>
+                    </div>
                 </LayerCard>
-
-                <div className="flex justify-end border-t border-kumo-line pt-4">
-                    <Button
-                        icon={FloppyDiskIcon}
-                        loading={isSubmitting}
-                        type="submit"
-                        variant="primary"
-                    >
-                        Save settings
-                    </Button>
-                </div>
             </Form>
         </AdminPage>
     );
