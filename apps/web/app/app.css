@@ -143,20 +143,28 @@ body {
 }
 
 .gongyu-admin-app {
-    background: light-dark(
-        var(--mantine-color-gray-0),
-        var(--mantine-color-dark-8)
-    );
+    --mantine-color-body: #faf7f3;
+    --mantine-color-text: #4b443e;
+    --mantine-color-dimmed: #7c736b;
+    --mantine-color-anchor: #a55338;
+    --mantine-color-default: rgb(255 253 250 / 64%);
+    --mantine-color-default-hover: rgb(247 242 237 / 78%);
+    --mantine-color-default-border: #e5ddd5;
+    --color-gongyu-fill: #ece5de;
+    --color-gongyu-tint: #f4eee8;
+
+    background: var(--mantine-color-body);
+}
+
+.gongyu-admin-app .mantine-Paper-root {
+    border-color: #e6ded6;
+    background: rgb(255 253 250 / 68%);
+    box-shadow: 0 1px 3px rgb(95 70 52 / 6%);
 }
 
 .gongyu-admin-sidebar {
-    background:
-        linear-gradient(
-            180deg,
-            color-mix(in srgb, var(--mantine-color-body) 96%, var(--mantine-color-hearth-1)),
-            var(--mantine-color-body)
-        );
-    box-shadow: 8px 0 32px rgb(0 0 0 / 3%);
+    background: linear-gradient(180deg, #fcfaf7, #faf7f3);
+    box-shadow: 8px 0 32px rgb(95 70 52 / 2%);
 }
 
 .gongyu-admin-main {
@@ -164,20 +172,36 @@ body {
         circle at 72% -8rem,
         color-mix(
             in oklch,
-            var(--mantine-primary-color-filled) 5%,
+            var(--mantine-primary-color-filled) 3%,
             transparent
         ),
         transparent 32rem
     );
 }
 
+[data-mantine-color-scheme="dark"] .gongyu-admin-app {
+    --mantine-color-body: #1d1a18;
+    --mantine-color-text: #d7d0c8;
+    --mantine-color-dimmed: #aaa198;
+    --mantine-color-anchor: #d78a6c;
+    --mantine-color-default: rgb(47 42 38 / 60%);
+    --mantine-color-default-hover: rgb(58 52 47 / 76%);
+    --mantine-color-default-border: #3b3631;
+    --color-gongyu-fill: #37322e;
+    --color-gongyu-tint: #302b27;
+}
+
+[data-mantine-color-scheme="dark"]
+    .gongyu-admin-app
+    .mantine-Paper-root {
+    border-color: #3a3530;
+    background: rgb(42 37 34 / 62%);
+    box-shadow: 0 1px 3px rgb(0 0 0 / 10%);
+}
+
 [data-mantine-color-scheme="dark"] .gongyu-admin-sidebar {
-    background: linear-gradient(
-        180deg,
-        color-mix(in srgb, var(--mantine-color-dark-8) 92%, var(--mantine-color-hearth-9)),
-        var(--mantine-color-dark-9)
-    );
-    box-shadow: 8px 0 32px rgb(0 0 0 / 18%);
+    background: linear-gradient(180deg, #211d1a, #1d1a18);
+    box-shadow: 8px 0 32px rgb(0 0 0 / 12%);
 }
 
 .mantine-Paper-root {
