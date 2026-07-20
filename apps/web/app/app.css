@@ -100,17 +100,6 @@ body {
         );
 }
 
-.gongyu-brand-mark {
-    background: linear-gradient(
-        145deg,
-        var(--mantine-color-hearth-5),
-        var(--mantine-color-hearth-8)
-    );
-    box-shadow:
-        0 1px 2px rgb(0 0 0 / 18%),
-        0 8px 24px color-mix(in srgb, var(--mantine-color-hearth-6) 24%, transparent);
-}
-
 .gongyu-admin-app {
     background: light-dark(
         var(--mantine-color-gray-0),

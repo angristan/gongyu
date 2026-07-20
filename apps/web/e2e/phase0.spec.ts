@@ -106,9 +106,10 @@ test('renders the SSR shell and persists hydrated theme changes', async ({
     const html = await response.text();
     expect(html).toContain('data-mantine-color-scheme="light"');
     expect(html).toContain('data-mode="light"');
-    expect(html).toContain('Personal knowledge library');
+    expect(html).toContain('A simple bookmark manager');
+    expect(html).toContain('src="/images/logo.png"');
     expect(html).toContain('Search bookmarks');
-    expect(html).toContain('<main id="main-content"');
+    expect(html).toContain('id="main-content"');
 
     const adminResponse = await request.get('/admin/bookmarks', {
         maxRedirects: 0,
@@ -132,7 +133,7 @@ test('renders the SSR shell and persists hydrated theme changes', async ({
     );
     await expect(
         page.getByRole('heading', {
-            name: 'Links worth returning to.',
+            name: 'Bookmarks',
             exact: true,
         }),
     ).toBeVisible();
