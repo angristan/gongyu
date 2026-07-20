@@ -9,7 +9,6 @@ import {
     AtIcon,
     FloppyDiskIcon,
     GlobeHemisphereWestIcon,
-    LockKeyIcon,
     ShareNetworkIcon,
 } from '@phosphor-icons/react';
 import { Effect } from 'effect';
@@ -202,110 +201,104 @@ export default function AdminSettings({
                     variant="secondary"
                 />
             ) : null}
-            <Banner
-                description="Every value on this page is encrypted before it reaches D1. Sensitive fields are revealed only on demand."
-                icon={<LockKeyIcon aria-hidden="true" size={20} />}
-                title="Encrypted configuration"
-                variant="default"
-            />
+            <p className="text-sm text-kumo-subtle">
+                Credentials are encrypted before they are stored. This page is
+                never cached.
+            </p>
 
-            <Form className="space-y-6" method="post">
+            <Form className="max-w-5xl space-y-5" method="post">
                 <input name="_csrf" type="hidden" value={csrfToken} />
-                {providerGroups.map((provider) => {
-                    const configured = provider.fields.every(
-                        (field) => String(values[field.key]).trim() !== '',
-                    );
-                    const Icon = provider.icon;
-                    return (
-                        <LayerCard key={provider.name}>
-                            <section className="p-5 sm:p-7">
-                                <div className="mb-6 flex items-start justify-between gap-4">
-                                    <div className="flex items-start gap-3">
-                                        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-kumo-tint text-kumo-link">
+                <LayerCard className="overflow-hidden">
+                    <div className="divide-y divide-kumo-line">
+                        {providerGroups.map((provider) => {
+                            const configured = provider.fields.every(
+                                (field) =>
+                                    String(values[field.key]).trim() !== '',
+                            );
+                            const Icon = provider.icon;
+                            return (
+                                <section
+                                    className="p-5 sm:p-6"
+                                    key={provider.name}
+                                >
+                                    <div className="mb-5 flex items-start justify-between gap-4">
+                                        <div className="flex items-center gap-2.5">
                                             <Icon
                                                 aria-hidden="true"
-                                                size={21}
+                                                className="text-kumo-subtle"
+                                                size={18}
                                             />
-                                        </span>
-                                        <div>
-                                            <h2 className="text-lg font-semibold text-kumo-default">
-                                                {provider.name}
-                                            </h2>
-                                            <p className="mt-1 text-sm text-kumo-subtle">
-                                                {provider.description}
-                                            </p>
+                                            <div>
+                                                <h2 className="font-semibold text-kumo-default">
+                                                    {provider.name}
+                                                </h2>
+                                                <p className="mt-0.5 text-sm text-kumo-subtle">
+                                                    {provider.description}
+                                                </p>
+                                            </div>
                                         </div>
+                                        <Badge
+                                            appearance="dot"
+                                            variant={
+                                                configured
+                                                    ? 'success'
+                                                    : 'secondary'
+                                            }
+                                        >
+                                            {configured
+                                                ? 'Configured'
+                                                : 'Not configured'}
+                                        </Badge>
                                     </div>
-                                    <Badge
-                                        appearance="dot"
-                                        variant={
-                                            configured ? 'success' : 'secondary'
-                                        }
-                                    >
-                                        {configured
-                                            ? 'Configured'
-                                            : 'Not configured'}
-                                    </Badge>
-                                </div>
-                                <div className="grid gap-5 sm:grid-cols-2">
-                                    {provider.fields.map((field) => {
-                                        const error = errors[field.name];
-                                        const common = {
-                                            autoComplete: 'off',
-                                            defaultValue: String(
-                                                values[field.key],
-                                            ),
-                                            description:
-                                                field.sensitive === true
-                                                    ? 'Encrypted at rest.'
-                                                    : undefined,
-                                            error,
-                                            label: field.label,
-                                            maxLength: 255,
-                                            name: field.name,
-                                        } as const;
-                                        return (
-                                            <Input
-                                                {...common}
-                                                key={field.name}
-                                                type={
-                                                    field.sensitive === true
-                                                        ? 'password'
-                                                        : 'text'
-                                                }
-                                            />
-                                        );
-                                    })}
-                                </div>
-                            </section>
-                        </LayerCard>
-                    );
-                })}
-
-                <LayerCard>
-                    <section className="p-5 sm:p-7">
-                        <div className="mb-5">
-                            <h2 className="text-lg font-semibold text-kumo-default">
-                                Public feed
-                            </h2>
-                            <p className="mt-1 text-sm text-kumo-subtle">
-                                Control how many recent bookmarks appear in the
-                                Atom feed.
-                            </p>
-                        </div>
-                        <Input
-                            className="max-w-xs"
-                            error={errors.feed_count}
-                            label="Feed item count"
-                            min={1}
-                            name="feed_count"
-                            type="number"
-                            defaultValue={values.feedCount}
-                        />
-                    </section>
+                                    <div className="grid gap-4 sm:grid-cols-2">
+                                        {provider.fields.map((field) => {
+                                            const error = errors[field.name];
+                                            return (
+                                                <Input
+                                                    autoComplete="off"
+                                                    defaultValue={String(
+                                                        values[field.key],
+                                                    )}
+                                                    error={error}
+                                                    key={field.name}
+                                                    label={field.label}
+                                                    maxLength={255}
+                                                    name={field.name}
+                                                    type={
+                                                        field.sensitive === true
+                                                            ? 'password'
+                                                            : 'text'
+                                                    }
+                                                />
+                                            );
+                                        })}
+                                    </div>
+                                </section>
+                            );
+                        })}
+                        <section className="p-5 sm:p-6">
+                            <div className="mb-4">
+                                <h2 className="font-semibold text-kumo-default">
+                                    Public feed
+                                </h2>
+                                <p className="mt-0.5 text-sm text-kumo-subtle">
+                                    Number of recent bookmarks in the Atom feed.
+                                </p>
+                            </div>
+                            <Input
+                                className="max-w-xs"
+                                defaultValue={values.feedCount}
+                                error={errors.feed_count}
+                                label="Feed item count"
+                                min={1}
+                                name="feed_count"
+                                type="number"
+                            />
+                        </section>
+                    </div>
                 </LayerCard>
 
-                <div className="sticky bottom-4 flex justify-end rounded-2xl border border-kumo-line bg-kumo-base/95 p-3 shadow-lg backdrop-blur">
+                <div className="flex justify-end border-t border-kumo-line pt-4">
                     <Button
                         icon={FloppyDiskIcon}
                         loading={isSubmitting}

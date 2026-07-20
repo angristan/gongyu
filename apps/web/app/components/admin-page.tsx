@@ -1,57 +1,62 @@
 import { Breadcrumbs } from '@cloudflare/kumo/components/breadcrumbs';
-import { PageShell } from '@gongyu/ui/page-shell';
-import type { ComponentProps } from 'react';
+import { cn } from '@cloudflare/kumo/utils';
+import type { ReactNode } from 'react';
 
-interface AdminPageProps
-    extends Omit<
-        ComponentProps<typeof PageShell>,
-        'breadcrumbs' | 'eyebrow' | 'width'
-    > {
+interface AdminPageProps {
+    readonly actions?: ReactNode;
+    readonly children?: ReactNode;
+    readonly description: ReactNode;
     readonly section?: string;
     readonly sectionHref?: string;
+    readonly title: ReactNode;
     readonly width?: 'default' | 'wide';
 }
 
 export function AdminPage({
+    actions,
+    children,
+    description,
     section,
     sectionHref,
     title,
-    width = 'wide',
-    ...props
+    width = 'default',
 }: AdminPageProps) {
     return (
-        <PageShell
-            {...props}
-            breadcrumbs={
-                <Breadcrumbs size="sm">
-                    <Breadcrumbs.Link href="/admin/dashboard">
-                        Administrator
-                    </Breadcrumbs.Link>
-                    {section === undefined ? null : (
-                        <>
-                            <Breadcrumbs.Separator />
-                            {sectionHref === undefined ? (
-                                <Breadcrumbs.Current>
-                                    {section}
-                                </Breadcrumbs.Current>
-                            ) : (
-                                <Breadcrumbs.Link href={sectionHref}>
-                                    {section}
-                                </Breadcrumbs.Link>
-                            )}
-                        </>
+        <main
+            className={cn(
+                'mx-auto flex w-full flex-col gap-5 px-4 py-5 sm:px-6 sm:py-6 lg:px-8',
+                width === 'wide' ? 'max-w-7xl' : 'max-w-4xl',
+            )}
+            id="main-content"
+            tabIndex={-1}
+        >
+            <header className="border-b border-kumo-line pb-4">
+                {sectionHref === undefined ? null : (
+                    <Breadcrumbs className="mb-4" size="sm">
+                        <Breadcrumbs.Link href={sectionHref}>
+                            {section ?? 'Back'}
+                        </Breadcrumbs.Link>
+                        <Breadcrumbs.Separator />
+                        <Breadcrumbs.Current>{title}</Breadcrumbs.Current>
+                    </Breadcrumbs>
+                )}
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                        <h1 className="text-2xl font-semibold tracking-[-0.025em] text-kumo-default">
+                            {title}
+                        </h1>
+                        <p className="mt-1 max-w-2xl text-sm leading-5 text-kumo-subtle">
+                            {description}
+                        </p>
+                    </div>
+                    {actions === undefined ? null : (
+                        <div className="flex shrink-0 flex-wrap gap-2">
+                            {actions}
+                        </div>
                     )}
-                    {section !== undefined && sectionHref !== undefined ? (
-                        <>
-                            <Breadcrumbs.Separator />
-                            <Breadcrumbs.Current>{title}</Breadcrumbs.Current>
-                        </>
-                    ) : null}
-                </Breadcrumbs>
-            }
-            eyebrow="Gongyu administrator"
-            title={title}
-            width={width}
-        />
+                </div>
+            </header>
+            {children}
+        </main>
     );
 }

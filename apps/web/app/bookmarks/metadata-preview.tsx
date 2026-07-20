@@ -66,28 +66,24 @@ export function MetadataPreview(props: {
     }
 
     return (
-        <div className="flex flex-col gap-2 rounded-xl border border-kumo-line bg-kumo-tint/40 p-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0">
-                <p className="text-sm font-medium text-kumo-default">
-                    Need a starting point?
-                </p>
-                <p aria-live="polite" className="text-xs text-kumo-subtle">
-                    {message === ''
-                        ? 'Fetch a suggested title and description from the page.'
-                        : message}
-                </p>
-            </div>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <Button
                 className="shrink-0"
-                icon={SparkleIcon}
                 disabled={!props.url.startsWith('https://')}
+                icon={SparkleIcon}
                 loading={processing}
                 onClick={preview}
+                size="sm"
                 type="button"
                 variant="secondary"
             >
-                Fetch title and description
+                Fetch metadata
             </Button>
+            <p aria-live="polite" className="text-xs text-kumo-subtle">
+                {message === ''
+                    ? 'Optionally suggest a title and description.'
+                    : message}
+            </p>
         </div>
     );
 }

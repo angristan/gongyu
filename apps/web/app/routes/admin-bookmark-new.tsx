@@ -1,5 +1,4 @@
-import { Banner } from '@cloudflare/kumo/components/banner';
-import { Button, LinkButton } from '@cloudflare/kumo/components/button';
+import { Button } from '@cloudflare/kumo/components/button';
 import { Checkbox } from '@cloudflare/kumo/components/checkbox';
 import { Input, InputArea } from '@cloudflare/kumo/components/input';
 import { LayerCard } from '@cloudflare/kumo/components/layer-card';
@@ -11,7 +10,7 @@ import {
     decodeBookmarkInput,
 } from '@gongyu/domain/bookmarks';
 import { configuredProviders } from '@gongyu/domain/social';
-import { ArrowLeftIcon, FloppyDiskIcon } from '@phosphor-icons/react';
+import { FloppyDiskIcon } from '@phosphor-icons/react';
 import { Effect } from 'effect';
 import { useState } from 'react';
 import {
@@ -139,21 +138,12 @@ export default function AdminBookmarkNew({
     const [shareSocial, setShareSocial] = useState(true);
     return (
         <AdminPage
-            actions={
-                <LinkButton
-                    href="/admin/bookmarks"
-                    icon={ArrowLeftIcon}
-                    variant="secondary"
-                >
-                    Cancel
-                </LinkButton>
-            }
             description="Save the URL and the context that will make it useful later."
             section="Bookmarks"
             sectionHref="/admin/bookmarks"
             title="New bookmark"
         >
-            <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
+            <div className="max-w-3xl">
                 <LayerCard>
                     <Form className="space-y-6 p-5 sm:p-7" method="post">
                         <input name="_csrf" type="hidden" value={csrfToken} />
@@ -237,31 +227,6 @@ export default function AdminBookmarkNew({
                         </div>
                     </Form>
                 </LayerCard>
-                <aside className="space-y-4">
-                    <Banner
-                        description="The title and notes you submit stay authoritative. Suggested metadata only fills empty fields."
-                        title="You stay in control"
-                        variant="secondary"
-                    />
-                    <LayerCard>
-                        <div className="space-y-3 p-5 text-sm">
-                            <h2 className="font-semibold text-kumo-default">
-                                What happens next
-                            </h2>
-                            <ol className="space-y-3 text-kumo-subtle">
-                                <li>1. The bookmark is saved immediately.</li>
-                                <li>
-                                    2. Metadata is fetched with strict URL
-                                    safety checks.
-                                </li>
-                                <li>
-                                    3. Safe thumbnails are mirrored to private
-                                    storage.
-                                </li>
-                            </ol>
-                        </div>
-                    </LayerCard>
-                </aside>
             </div>
         </AdminPage>
     );

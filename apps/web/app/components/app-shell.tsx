@@ -16,7 +16,7 @@ import {
     SignOutIcon,
     SunIcon,
 } from '@phosphor-icons/react';
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { Form, Link, useLocation } from 'react-router';
 import type { ThemeMode } from '../theme.server';
 
@@ -36,9 +36,9 @@ interface NavigationItem {
 
 const primaryNavigation: ReadonlyArray<NavigationItem> = [
     {
-        href: '/admin/dashboard',
-        icon: ChartLineUpIcon,
-        label: 'Overview',
+        href: '/admin/bookmarks/new',
+        icon: PlusIcon,
+        label: 'Save bookmark',
         match: 'exact',
     },
     {
@@ -48,9 +48,9 @@ const primaryNavigation: ReadonlyArray<NavigationItem> = [
         match: 'prefix',
     },
     {
-        href: '/admin/bookmarks/new',
-        icon: PlusIcon,
-        label: 'Add bookmark',
+        href: '/admin/dashboard',
+        icon: ChartLineUpIcon,
+        label: 'Overview',
         match: 'exact',
     },
 ];
@@ -102,14 +102,20 @@ function isActive(pathname: string, item: NavigationItem): boolean {
     return pathname === item.href;
 }
 
-function Brand({ compact = false }: { readonly compact?: boolean }) {
+function Brand({
+    compact = false,
+    href = '/',
+}: {
+    readonly compact?: boolean;
+    readonly href?: string;
+}) {
     return (
         <Link
             aria-label="Gongyu home"
             className="group flex min-w-0 items-center gap-3 text-kumo-default no-underline"
-            to="/"
+            to={href}
         >
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-kumo-brand text-sm font-bold text-kumo-inverse shadow-sm transition-transform group-hover:-rotate-3">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-kumo-brand text-sm font-semibold text-kumo-inverse">
                 G
             </span>
             {compact ? null : (
@@ -118,7 +124,7 @@ function Brand({ compact = false }: { readonly compact?: boolean }) {
                         Gongyu
                     </span>
                     <span className="block truncate text-xs text-kumo-subtle">
-                        Your private index
+                        Personal bookmarks
                     </span>
                 </span>
             )}
@@ -183,7 +189,7 @@ function PublicShell({
                         />
                         <ThemeForm returnTo={returnTo} themeMode={themeMode} />
                         <LinkButton
-                            href={authenticated ? '/admin/dashboard' : '/login'}
+                            href={authenticated ? '/admin/bookmarks' : '/login'}
                             icon={authenticated ? ChartLineUpIcon : SignInIcon}
                             variant="secondary"
                         >
@@ -314,11 +320,24 @@ function AdminShell({
 }: Omit<AppShellProps, 'authenticated'>) {
     const location = useLocation();
     const returnTo = `${location.pathname}${location.search}`;
+    const currentPage = [
+        ...primaryNavigation,
+        ...operationsNavigation,
+        ...configurationNavigation,
+    ].find((item) => isActive(location.pathname, item))?.label;
     return (
-        <Sidebar.Provider collapsible="icon" defaultOpen>
-            <Sidebar className="gongyu-admin-sidebar bg-kumo-base">
+        <Sidebar.Provider
+            collapsible="icon"
+            defaultOpen
+            style={
+                {
+                    '--sidebar-bg': 'var(--color-kumo-recessed)',
+                } as CSSProperties
+            }
+        >
+            <Sidebar className="gongyu-admin-sidebar bg-kumo-recessed">
                 <Sidebar.Header>
-                    <Brand />
+                    <Brand href="/admin/bookmarks" />
                 </Sidebar.Header>
                 <Sidebar.Content>
                     <NavigationGroup
@@ -327,17 +346,15 @@ function AdminShell({
                         pathname={location.pathname}
                     />
                     <NavigationGroup
-                        items={operationsNavigation}
-                        label="Operations"
-                        pathname={location.pathname}
-                    />
-                    <NavigationGroup
-                        items={configurationNavigation}
-                        label="Configuration"
+                        items={[
+                            ...operationsNavigation,
+                            ...configurationNavigation,
+                        ]}
+                        label="Tools"
                         pathname={location.pathname}
                     />
                 </Sidebar.Content>
-                <Sidebar.Footer className="space-y-2">
+                <Sidebar.Footer className="h-auto flex-col items-stretch gap-2 py-3">
                     <Sidebar.Menu>
                         <Sidebar.MenuButton
                             href="/"
@@ -379,9 +396,9 @@ function AdminShell({
                         returnTo={returnTo}
                         themeMode={themeMode}
                     />
-                    <Brand compact />
-                    <span className="truncate text-sm font-medium text-kumo-subtle">
-                        Administrator
+                    <Brand compact href="/admin/bookmarks" />
+                    <span className="truncate text-sm text-kumo-subtle">
+                        {currentPage ?? 'Library'}
                     </span>
                 </header>
                 {children}

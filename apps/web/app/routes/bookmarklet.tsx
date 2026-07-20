@@ -1,4 +1,3 @@
-import { Banner } from '@cloudflare/kumo/components/banner';
 import { Button, LinkButton } from '@cloudflare/kumo/components/button';
 import { Checkbox } from '@cloudflare/kumo/components/checkbox';
 import { Input, InputArea } from '@cloudflare/kumo/components/input';
@@ -14,7 +13,6 @@ import { configuredProviders } from '@gongyu/domain/social';
 import {
     BookmarkSimpleIcon,
     CheckCircleIcon,
-    CopyIcon,
     FloppyDiskIcon,
 } from '@phosphor-icons/react';
 import { Effect } from 'effect';
@@ -203,7 +201,7 @@ export default function Bookmarklet({
                 section="Bookmarklet"
                 title="Install bookmarklet"
             >
-                <div className="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(18rem,0.65fr)]">
+                <div className="max-w-3xl">
                     <LayerCard>
                         <section className="space-y-6 p-5 sm:p-7">
                             <div className="flex items-start gap-4">
@@ -237,42 +235,21 @@ export default function Bookmarklet({
                                     page.
                                 </p>
                             </div>
-                            <InputArea
-                                className="min-h-36 font-mono text-xs"
-                                description="Use this when your browser does not support dragging bookmarklets."
-                                id="bookmarklet-code"
-                                label="Bookmarklet code"
-                                readOnly
-                                value={loaderData.installCode}
-                            />
+                            <details className="border-t border-kumo-line pt-4">
+                                <summary className="cursor-pointer text-sm text-kumo-link">
+                                    Manual installation code
+                                </summary>
+                                <InputArea
+                                    className="mt-4 min-h-32 font-mono text-xs"
+                                    description="Copy this when dragging bookmarklets is unavailable."
+                                    id="bookmarklet-code"
+                                    label="Bookmarklet code"
+                                    readOnly
+                                    value={loaderData.installCode}
+                                />
+                            </details>
                         </section>
                     </LayerCard>
-                    <aside className="space-y-4">
-                        <LayerCard>
-                            <ol className="space-y-5 p-5 text-sm">
-                                {[
-                                    'Show the browser bookmarks bar.',
-                                    'Drag “Save to Gongyu” into the bar.',
-                                    'Open any article and click the bookmarklet.',
-                                ].map((step, index) => (
-                                    <li className="flex gap-3" key={step}>
-                                        <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-kumo-brand text-xs font-semibold text-kumo-inverse">
-                                            {index + 1}
-                                        </span>
-                                        <span className="leading-6 text-kumo-subtle">
-                                            {step}
-                                        </span>
-                                    </li>
-                                ))}
-                            </ol>
-                        </LayerCard>
-                        <Banner
-                            description="The popup sends the page URL and selected text only to your own Gongyu deployment."
-                            icon={<CopyIcon aria-hidden="true" size={20} />}
-                            title="Private by design"
-                            variant="secondary"
-                        />
-                    </aside>
                 </div>
             </AdminPage>
         );

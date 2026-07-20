@@ -533,6 +533,7 @@ export default function AdminData({ loaderData }: Route.ComponentProps) {
             description="Move bookmarks between systems, create portable exports, and manage disaster recovery."
             section="Data & recovery"
             title="Data & recovery"
+            width="wide"
         >
             {isSubmitting ? (
                 <Banner

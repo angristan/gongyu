@@ -10,7 +10,6 @@ import {
 import {
     FingerprintSimpleIcon,
     KeyIcon,
-    ShieldCheckIcon,
     WarningIcon,
 } from '@phosphor-icons/react';
 import { startRegistration } from '@simplewebauthn/browser';
@@ -114,133 +113,118 @@ export default function AdminSecurity() {
             description="Manage the single credential that protects the administrator interface."
             section="Security"
             title="Security"
+            width="default"
         >
-            <div className="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(18rem,0.6fr)]">
-                <div className="space-y-6">
-                    <LayerCard>
-                        <section className="p-5 sm:p-7">
-                            <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-                                <div className="flex items-start gap-4">
-                                    <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-kumo-success-tint text-kumo-success">
-                                        <FingerprintSimpleIcon
-                                            aria-hidden="true"
-                                            size={26}
-                                            weight="duotone"
-                                        />
-                                    </span>
-                                    <div>
-                                        <div className="flex flex-wrap items-center gap-2">
-                                            <h2 className="text-lg font-semibold text-kumo-default">
-                                                Administrator passkey
-                                            </h2>
-                                            <Badge
-                                                appearance="dot"
-                                                variant="success"
-                                            >
-                                                Active
-                                            </Badge>
-                                        </div>
-                                        <p className="mt-2 max-w-xl text-sm leading-6 text-kumo-subtle">
-                                            Gongyu accepts exactly one passkey.
-                                            It can use your device lock,
-                                            security key, or synchronized
-                                            credential.
-                                        </p>
+            <div className="space-y-5">
+                <LayerCard>
+                    <section className="p-5 sm:p-7">
+                        <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+                            <div className="flex items-start gap-4">
+                                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-kumo-success-tint text-kumo-success">
+                                    <FingerprintSimpleIcon
+                                        aria-hidden="true"
+                                        size={26}
+                                        weight="duotone"
+                                    />
+                                </span>
+                                <div>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <h2 className="text-lg font-semibold text-kumo-default">
+                                            Administrator passkey
+                                        </h2>
+                                        <Badge
+                                            appearance="dot"
+                                            variant="success"
+                                        >
+                                            Active
+                                        </Badge>
                                     </div>
+                                    <p className="mt-2 max-w-xl text-sm leading-6 text-kumo-subtle">
+                                        Gongyu accepts exactly one passkey. It
+                                        can use your device lock, security key,
+                                        or synchronized credential.
+                                    </p>
                                 </div>
-                                <Dialog.Root role="alertdialog">
-                                    <Dialog.Trigger
-                                        render={
-                                            <Button
-                                                icon={KeyIcon}
-                                                variant="secondary"
-                                            />
-                                        }
-                                    >
-                                        Replace passkey
-                                    </Dialog.Trigger>
-                                    <Dialog className="space-y-5 p-6" size="lg">
-                                        <div className="space-y-2">
-                                            <Dialog.Title>
-                                                Replace the administrator
-                                                passkey?
-                                            </Dialog.Title>
-                                            <Dialog.Description>
-                                                The current credential stops
-                                                working immediately. Every
-                                                session is invalidated, then
-                                                this browser signs in again with
-                                                the replacement.
-                                            </Dialog.Description>
-                                        </div>
-                                        <div className="flex justify-end gap-2">
-                                            <Dialog.Close
-                                                render={
-                                                    <Button variant="secondary" />
-                                                }
-                                            >
-                                                Cancel
-                                            </Dialog.Close>
-                                            <Button
-                                                loading={processing}
-                                                onClick={replacePasskey}
-                                                type="button"
-                                                variant="primary"
-                                            >
-                                                Continue
-                                            </Button>
-                                        </div>
-                                    </Dialog>
-                                </Dialog.Root>
                             </div>
-                            <div className="mt-6 rounded-xl border border-kumo-line bg-kumo-tint/40 p-4">
-                                <p
-                                    aria-live="polite"
-                                    className="text-sm text-kumo-default"
+                            <Dialog.Root role="alertdialog">
+                                <Dialog.Trigger
+                                    render={
+                                        <Button
+                                            icon={KeyIcon}
+                                            variant="secondary"
+                                        />
+                                    }
                                 >
-                                    {message}
-                                </p>
-                            </div>
-                        </section>
-                    </LayerCard>
-                    <Banner
-                        description="Replacement is intentionally disruptive: existing sessions and the previous passkey are revoked together."
-                        icon={<WarningIcon aria-hidden="true" size={20} />}
-                        title="Before replacing your passkey"
-                        variant="alert"
-                    />
-                </div>
-
-                <aside className="space-y-4">
-                    <LayerCard>
-                        <section className="space-y-4 p-5">
-                            <div className="flex size-10 items-center justify-center rounded-xl bg-kumo-tint text-kumo-link">
-                                <ShieldCheckIcon aria-hidden="true" size={22} />
-                            </div>
-                            <div>
-                                <h2 className="font-semibold text-kumo-default">
-                                    Session protection
-                                </h2>
-                                <p className="mt-2 text-sm leading-6 text-kumo-subtle">
-                                    Sessions expire after seven idle days and
-                                    have a fixed 30-day maximum lifetime.
-                                </p>
-                            </div>
-                        </section>
-                    </LayerCard>
-                    <LayerCard>
-                        <section className="p-5 text-sm">
-                            <h2 className="font-semibold text-kumo-default">
-                                Lost your passkey?
-                            </h2>
-                            <p className="mt-2 leading-6 text-kumo-subtle">
-                                Recovery requires Cloudflare deployment access,
-                                the setup token, and the exact operator
-                                confirmation phrase.
+                                    Replace passkey
+                                </Dialog.Trigger>
+                                <Dialog className="space-y-5 p-6" size="lg">
+                                    <div className="space-y-2">
+                                        <Dialog.Title>
+                                            Replace the administrator passkey?
+                                        </Dialog.Title>
+                                        <Dialog.Description>
+                                            The current credential stops working
+                                            immediately. Every session is
+                                            invalidated, then this browser signs
+                                            in again with the replacement.
+                                        </Dialog.Description>
+                                    </div>
+                                    <div className="flex justify-end gap-2">
+                                        <Dialog.Close
+                                            render={
+                                                <Button variant="secondary" />
+                                            }
+                                        >
+                                            Cancel
+                                        </Dialog.Close>
+                                        <Button
+                                            loading={processing}
+                                            onClick={replacePasskey}
+                                            type="button"
+                                            variant="primary"
+                                        >
+                                            Continue
+                                        </Button>
+                                    </div>
+                                </Dialog>
+                            </Dialog.Root>
+                        </div>
+                        <div className="mt-6 rounded-xl border border-kumo-line bg-kumo-tint/40 p-4">
+                            <p
+                                aria-live="polite"
+                                className="text-sm text-kumo-default"
+                            >
+                                {message}
                             </p>
-                        </section>
-                    </LayerCard>
-                </aside>
+                        </div>
+                    </section>
+                </LayerCard>
+                <Banner
+                    description="Replacement revokes existing sessions and the previous passkey together."
+                    icon={<WarningIcon aria-hidden="true" size={20} />}
+                    title="Before replacing your passkey"
+                    variant="alert"
+                />
+                <section className="grid gap-6 border-t border-kumo-line pt-5 text-sm sm:grid-cols-2">
+                    <div>
+                        <h2 className="font-medium text-kumo-default">
+                            Session protection
+                        </h2>
+                        <p className="mt-1.5 leading-6 text-kumo-subtle">
+                            Sessions expire after seven idle days and have a
+                            fixed 30-day maximum lifetime.
+                        </p>
+                    </div>
+                    <div>
+                        <h2 className="font-medium text-kumo-default">
+                            Lost your passkey?
+                        </h2>
+                        <p className="mt-1.5 leading-6 text-kumo-subtle">
+                            Recovery requires deployment access, the setup
+                            token, and the exact operator confirmation phrase.
+                        </p>
+                    </div>
+                </section>
             </div>
             <noscript>
                 <Banner
