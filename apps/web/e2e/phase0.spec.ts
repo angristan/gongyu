@@ -352,6 +352,16 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
     expect(bookmarkColumns.savedRight).toBeLessThan(
         bookmarkColumns.actionsLeft,
     );
+    await page.getByRole('link', { name: 'Gallery view' }).click();
+    await expect(page).toHaveURL(/view=gallery/u);
+    await expect(
+        page.getByRole('list', { name: 'Bookmarks in gallery view' }),
+    ).toBeVisible();
+    await page.getByRole('link', { name: 'List view' }).click();
+    await expect(page).toHaveURL(/view=list/u);
+    await expect(
+        page.getByRole('list', { name: 'Bookmarks in list view' }),
+    ).toBeVisible();
 
     await page.goto('/?q=cloudflare');
     await expect(page.getByText('Phase Two Bookmark')).toBeVisible();
@@ -654,6 +664,16 @@ test('serves public list, search, detail, and feed without JavaScript', async ({
     const page = await context.newPage();
     await page.goto(`/search?q=${staging ? 'Cloudflare' : 'Captured'}`);
     await expect(page.getByText(expectedTitle)).toBeVisible();
+    await expect(
+        page.getByRole('list', { name: 'Bookmarks in list view' }),
+    ).toBeVisible();
+    await page.getByRole('link', { name: 'Gallery view' }).click();
+    await expect(page).toHaveURL(/view=gallery/u);
+    await expect(
+        page.getByRole('list', { name: 'Bookmarks in gallery view' }),
+    ).toBeVisible();
+    await page.getByRole('link', { name: 'List view' }).click();
+    await expect(page).toHaveURL(/view=list/u);
     const publicHtml = await page.content();
     expect(publicHtml).not.toContain('thumbnailCleanupKey');
     expect(publicHtml).not.toContain('thumbnailKey');
