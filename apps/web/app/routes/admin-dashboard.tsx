@@ -1,5 +1,9 @@
 import { DashboardRepository } from '@gongyu/data/dashboard-repository';
-import type { DashboardPeriod } from '@gongyu/domain/dashboard';
+import type {
+    DashboardPeriod,
+    DashboardTrendGranularity,
+    DashboardTrendPoint,
+} from '@gongyu/domain/dashboard';
 import {
     BookmarkSimpleIcon,
     CalendarDotsIcon,
@@ -35,6 +39,84 @@ function formatDate(microseconds: number): string {
     }).format(new Date(microseconds / 1_000));
 }
 
+const granularityLabels: Record<DashboardTrendGranularity, string> = {
+    day: 'Daily',
+    month: 'Monthly',
+    quarter: 'Quarterly',
+    week: 'Weekly',
+};
+
+function ActivityChart({
+    granularity,
+    points,
+}: {
+    readonly granularity: DashboardTrendGranularity;
+    readonly points: ReadonlyArray<DashboardTrendPoint>;
+}) {
+    const maximum = Math.max(1, ...points.map((point) => point.count));
+    const midpoint = Math.ceil(maximum / 2);
+    const firstLabel = points[0]?.date ?? '';
+    const middleLabel = points[Math.floor(points.length / 2)]?.date ?? '';
+    const lastLabel = points.at(-1)?.date ?? '';
+    const total = points.reduce((sum, point) => sum + point.count, 0);
+
+    return (
+        <div className="mt-5">
+            <div className="flex h-44 gap-2">
+                <div
+                    aria-hidden="true"
+                    className="flex w-8 shrink-0 flex-col justify-between pb-0.5 text-right text-[0.65rem] tabular-nums text-gongyu-subtle"
+                >
+                    <span>{maximum}</span>
+                    <span>{maximum > 1 ? midpoint : ''}</span>
+                    <span>0</span>
+                </div>
+                <div className="relative min-w-0 flex-1 border-b border-l border-gongyu-line">
+                    <span className="absolute inset-x-0 top-0 border-t border-dashed border-gongyu-line" />
+                    <span className="absolute inset-x-0 top-1/2 border-t border-dashed border-gongyu-line" />
+                    <ol
+                        aria-label={`${granularityLabels[granularity]} bookmark activity: ${total} bookmarks from ${firstLabel} to ${lastLabel}.`}
+                        className="absolute inset-0 flex items-end gap-0.5 px-1"
+                        role="img"
+                    >
+                        {points.map((point) => (
+                            <li
+                                aria-hidden="true"
+                                className="flex h-full min-w-0 flex-1 items-end"
+                                key={point.date}
+                                title={`${point.date}: ${point.count} bookmarks`}
+                            >
+                                <span
+                                    className="block w-full rounded-t-sm bg-gongyu-brand/70 transition-colors hover:bg-gongyu-brand"
+                                    style={{
+                                        height:
+                                            point.count === 0
+                                                ? 0
+                                                : `${(point.count / maximum) * 100}%`,
+                                        minHeight:
+                                            point.count === 0 ? 0 : '3px',
+                                    }}
+                                />
+                            </li>
+                        ))}
+                    </ol>
+                </div>
+            </div>
+            <div
+                aria-hidden="true"
+                className="ml-10 mt-2 flex justify-between gap-3 text-[0.65rem] text-gongyu-subtle"
+            >
+                <span>{firstLabel}</span>
+                {middleLabel === firstLabel ||
+                middleLabel === lastLabel ? null : (
+                    <span>{middleLabel}</span>
+                )}
+                {lastLabel === firstLabel ? null : <span>{lastLabel}</span>}
+            </div>
+        </div>
+    );
+}
+
 export function meta(): Route.MetaDescriptors {
     return [{ title: 'Overview · Gongyu' }];
 }
@@ -59,10 +141,6 @@ export async function loader({ context, request }: Route.LoaderArgs) {
 
 export default function AdminDashboard({ loaderData }: Route.ComponentProps) {
     const { period, stats } = loaderData;
-    const maximumTrend = Math.max(
-        1,
-        ...stats.bookmarksOverTime.map((point) => point.count),
-    );
     const maximumDomain = Math.max(
         1,
         ...stats.bookmarksByDomain.map((entry) => entry.count),
@@ -172,35 +250,18 @@ export default function AdminDashboard({ loaderData }: Route.ComponentProps) {
                                 title="No activity yet"
                             />
                         ) : (
-                            <div className="mt-4 overflow-x-auto">
-                                <div
-                                    aria-label="Daily bookmark counts"
-                                    className="flex h-44 min-w-full items-end gap-1"
-                                    role="img"
-                                    style={{
-                                        width: `${Math.max(100, stats.bookmarksOverTime.length * 12)}px`,
-                                    }}
-                                >
-                                    {stats.bookmarksOverTime.map((point) => (
-                                        <div
-                                            className="group relative flex h-full min-w-2 flex-1 items-end"
-                                            key={point.date}
-                                            title={`${point.date}: ${point.count} bookmarks`}
-                                        >
-                                            <span
-                                                className="block w-full min-w-2 rounded-t-sm bg-gongyu-brand/65 group-hover:bg-gongyu-brand"
-                                                style={{
-                                                    height: `${Math.max(3, (point.count / maximumTrend) * 100)}%`,
-                                                }}
-                                            />
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
+                            <ActivityChart
+                                granularity={stats.trendGranularity}
+                                points={stats.bookmarksOverTime}
+                            />
                         )}
                         <details className="mt-4 border-t border-gongyu-line pt-3 text-sm">
                             <summary className="cursor-pointer text-gongyu-link">
-                                View daily totals
+                                View{' '}
+                                {granularityLabels[
+                                    stats.trendGranularity
+                                ].toLowerCase()}{' '}
+                                totals
                             </summary>
                             <div className="mt-3 max-h-64 overflow-auto">
                                 <table className="w-full text-left">
@@ -259,9 +320,13 @@ export default function AdminDashboard({ loaderData }: Route.ComponentProps) {
                                                 {entry.count}
                                             </span>
                                         </div>
-                                        <div className="h-1 overflow-hidden rounded-full bg-gongyu-fill">
+                                        <div
+                                            aria-label={`${entry.domain}: ${entry.count} bookmarks`}
+                                            className="h-1.5 overflow-hidden rounded-full bg-gongyu-fill"
+                                            role="img"
+                                        >
                                             <div
-                                                className="h-full rounded-full bg-gongyu-brand/65"
+                                                className="h-full rounded-full bg-gongyu-brand/70"
                                                 style={{
                                                     width: `${Math.max(4, (entry.count / maximumDomain) * 100)}%`,
                                                 }}

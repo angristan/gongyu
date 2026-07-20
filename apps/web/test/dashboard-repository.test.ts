@@ -43,6 +43,10 @@ it.layer(TestLayer)('dashboard repository', (it) => {
             Effect.gen(function* () {
                 const bookmarks = yield* BookmarkRepository;
                 const dashboard = yield* DashboardRepository;
+                const now = Date.parse('2025-01-15T12:00:00.000Z');
+                const empty = yield* dashboard.load({ now, period: '30d' });
+                assert.deepEqual(empty.bookmarksOverTime, []);
+
                 yield* bookmarks.create({
                     createdAt: micros('2025-01-14T10:00:00.000Z'),
                     description: null,
@@ -62,7 +66,6 @@ it.layer(TestLayer)('dashboard repository', (it) => {
                     url: 'https://other.example/older',
                 });
 
-                const now = Date.parse('2025-01-15T12:00:00.000Z');
                 const thirtyDays = yield* dashboard.load({
                     now,
                     period: '30d',
@@ -71,6 +74,7 @@ it.layer(TestLayer)('dashboard repository', (it) => {
                 assert.strictEqual(thirtyDays.bookmarksThisMonth, 2);
                 assert.strictEqual(thirtyDays.bookmarksThisWeek, 1);
                 assert.strictEqual(thirtyDays.bookmarksOverTime.length, 31);
+                assert.strictEqual(thirtyDays.trendGranularity, 'day');
                 assert.strictEqual(
                     thirtyDays.recentBookmarks[0]?.title,
                     'This week',
@@ -83,8 +87,23 @@ it.layer(TestLayer)('dashboard repository', (it) => {
                     [['example.com', 2]],
                 );
 
+                const ninetyDays = yield* dashboard.load({
+                    now,
+                    period: '90d',
+                });
+                assert.strictEqual(ninetyDays.trendGranularity, 'week');
+                assert.ok(ninetyDays.bookmarksOverTime.length <= 15);
+                assert.strictEqual(
+                    ninetyDays.bookmarksOverTime.reduce(
+                        (total, point) => total + point.count,
+                        0,
+                    ),
+                    3,
+                );
+
                 const all = yield* dashboard.load({ now, period: 'all' });
                 assert.strictEqual(all.bookmarksOverTime.length, 46);
+                assert.strictEqual(all.trendGranularity, 'day');
                 assert.deepEqual(
                     all.bookmarksByDomain.map((entry) => [
                         entry.domain,
@@ -94,6 +113,26 @@ it.layer(TestLayer)('dashboard repository', (it) => {
                         ['example.com', 2],
                         ['other.example', 1],
                     ],
+                );
+
+                yield* bookmarks.create({
+                    createdAt: micros('2018-05-08T10:00:00.000Z'),
+                    description: null,
+                    title: 'Much older',
+                    url: 'https://archive.example/older',
+                });
+                const longRange = yield* dashboard.load({
+                    now,
+                    period: 'all',
+                });
+                assert.strictEqual(longRange.trendGranularity, 'quarter');
+                assert.ok(longRange.bookmarksOverTime.length <= 30);
+                assert.strictEqual(
+                    longRange.bookmarksOverTime.reduce(
+                        (total, point) => total + point.count,
+                        0,
+                    ),
+                    4,
                 );
             }),
     );
