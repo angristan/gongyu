@@ -3,6 +3,7 @@ import { LinkButton } from '@cloudflare/kumo/components/button';
 import { Empty } from '@cloudflare/kumo/components/empty';
 import { Grid } from '@cloudflare/kumo/components/grid';
 import { LayerCard } from '@cloudflare/kumo/components/layer-card';
+import { cn } from '@cloudflare/kumo/utils';
 import { DashboardRepository } from '@gongyu/data/dashboard-repository';
 import type { DashboardPeriod } from '@gongyu/domain/dashboard';
 import {
@@ -149,11 +150,12 @@ export default function AdminDashboard({ loaderData }: Route.ComponentProps) {
                                             ? 'page'
                                             : undefined
                                     }
-                                    className={
+                                    className={cn(
+                                        'rounded-lg px-3 py-1.5 text-xs',
                                         option.value === period
-                                            ? 'rounded-lg bg-kumo-base px-3 py-1.5 text-xs font-semibold text-kumo-default shadow-sm'
-                                            : 'rounded-lg px-3 py-1.5 text-xs font-medium text-kumo-subtle hover:text-kumo-default'
-                                    }
+                                            ? 'bg-kumo-base font-semibold text-kumo-default shadow-sm'
+                                            : 'font-medium text-kumo-subtle hover:text-kumo-default',
+                                    )}
                                     key={option.value}
                                     to={`?period=${option.value}`}
                                 >

@@ -7,6 +7,7 @@ import { Input } from '@cloudflare/kumo/components/input';
 import { LayerCard } from '@cloudflare/kumo/components/layer-card';
 import { Table } from '@cloudflare/kumo/components/table';
 import { Toolbar } from '@cloudflare/kumo/components/toolbar';
+import { cn } from '@cloudflare/kumo/utils';
 import { BookmarkRepository } from '@gongyu/data/bookmark-repository';
 import {
     ArrowSquareOutIcon,
@@ -338,32 +339,34 @@ export default function AdminBookmarks({
                     <div className="flex gap-2">
                         <LinkButton
                             aria-disabled={result.page <= 1}
-                            className={
-                                result.page <= 1
-                                    ? 'pointer-events-none opacity-50'
-                                    : ''
-                            }
+                            className={cn(
+                                result.page <= 1 &&
+                                    'pointer-events-none opacity-50',
+                            )}
                             href={paginationHref(
                                 loaderData.query,
                                 result.page - 1,
                             )}
                             size="sm"
+                            tabIndex={result.page <= 1 ? -1 : undefined}
                             variant="secondary"
                         >
                             Previous
                         </LinkButton>
                         <LinkButton
                             aria-disabled={result.page >= result.pageCount}
-                            className={
-                                result.page >= result.pageCount
-                                    ? 'pointer-events-none opacity-50'
-                                    : ''
-                            }
+                            className={cn(
+                                result.page >= result.pageCount &&
+                                    'pointer-events-none opacity-50',
+                            )}
                             href={paginationHref(
                                 loaderData.query,
                                 result.page + 1,
                             )}
                             size="sm"
+                            tabIndex={
+                                result.page >= result.pageCount ? -1 : undefined
+                            }
                             variant="secondary"
                         >
                             Next
