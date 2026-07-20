@@ -168,6 +168,8 @@ function PublicShell({
 }: Omit<AppShellProps, 'csrfToken'>) {
     const location = useLocation();
     const returnTo = `${location.pathname}${location.search}`;
+    const isAuthenticationPage =
+        location.pathname === '/login' || location.pathname === '/setup';
     return (
         <div className="gongyu-public-app min-h-screen bg-gongyu-base">
             <header className="pt-5 sm:pt-6">
@@ -176,9 +178,19 @@ function PublicShell({
                     <nav aria-label="Public navigation">
                         <Link
                             className="text-sm font-medium text-gongyu-link hover:underline"
-                            to={authenticated ? '/admin/dashboard' : '/login'}
+                            to={
+                                isAuthenticationPage
+                                    ? '/'
+                                    : authenticated
+                                      ? '/admin/dashboard'
+                                      : '/login'
+                            }
                         >
-                            {authenticated ? 'Dashboard' : 'Login'}
+                            {isAuthenticationPage
+                                ? 'Back to library'
+                                : authenticated
+                                  ? 'Dashboard'
+                                  : 'Login'}
                         </Link>
                     </nav>
                 </div>
