@@ -229,10 +229,10 @@ function NavigationSection({
 }) {
     return (
         <section>
-            <h2 className="mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-kumo-subtle/75">
+            <h2 className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-kumo-subtle/75">
                 {label}
             </h2>
-            <ul className="space-y-0.5">
+            <ul>
                 {items.map((item) => {
                     const active = isActive(pathname, item);
                     const Icon = item.icon;
@@ -241,7 +241,7 @@ function NavigationSection({
                             <Link
                                 aria-current={active ? 'page' : undefined}
                                 className={cn(
-                                    'flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-colors',
+                                    'flex items-center gap-2 rounded-md px-2 py-1.5 text-[13px] font-medium transition-colors',
                                     active
                                         ? 'bg-kumo-brand/10 text-kumo-link'
                                         : 'text-kumo-subtle hover:bg-kumo-tint hover:text-kumo-default',
@@ -261,7 +261,7 @@ function NavigationSection({
 
 function AdminNavigation({ pathname }: { readonly pathname: string }) {
     return (
-        <nav aria-label="Administrator navigation" className="space-y-5">
+        <nav aria-label="Administrator navigation" className="space-y-3">
             <NavigationSection
                 items={libraryNavigation}
                 label="Library"
@@ -316,19 +316,19 @@ function AdminShell({
     return (
         <div className="min-h-svh bg-kumo-base lg:flex">
             <aside
-                className="sticky top-0 hidden h-svh w-52 shrink-0 flex-col border-r border-kumo-line bg-kumo-recessed/55 lg:flex"
+                className="sticky top-0 hidden h-svh w-48 shrink-0 flex-col border-r border-kumo-line bg-kumo-recessed/55 lg:flex"
                 data-admin-sidebar=""
             >
-                <div className="flex h-16 items-center border-b border-kumo-line px-4">
+                <div className="flex h-14 items-center border-b border-kumo-line px-3">
                     <Brand href="/admin/bookmarks" />
                 </div>
-                <div className="min-h-0 flex-1 overflow-y-auto px-3 py-5">
+                <div className="min-h-0 flex-1 overflow-y-auto px-2 py-3">
                     <AdminNavigation pathname={location.pathname} />
                 </div>
-                <div className="border-t border-kumo-line p-3">
-                    <div className="mb-2 flex items-center justify-between gap-2">
+                <div className="border-t border-kumo-line p-2">
+                    <div className="flex items-center justify-between gap-1">
                         <Link
-                            className="flex items-center gap-2 rounded-lg px-2 py-2 text-xs text-kumo-subtle hover:bg-kumo-tint hover:text-kumo-default"
+                            className="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs text-kumo-subtle hover:bg-kumo-tint hover:text-kumo-default"
                             to="/"
                         >
                             <ArrowSquareOutIcon aria-hidden="true" size={16} />

@@ -24,15 +24,15 @@ export function AdminPage({
     return (
         <main
             className={cn(
-                'mx-auto flex w-full flex-col gap-5 px-4 py-5 sm:px-6 sm:py-6 lg:px-8',
-                width === 'wide' ? 'max-w-7xl' : 'max-w-4xl',
+                'mx-auto flex w-full flex-col gap-3 px-3 py-3 sm:px-5 sm:py-4 lg:px-6',
+                width === 'wide' ? 'max-w-none' : 'max-w-5xl',
             )}
             id="main-content"
             tabIndex={-1}
         >
-            <header className="border-b border-kumo-line pb-4">
+            <header className="border-b border-kumo-line pb-3">
                 {sectionHref === undefined ? null : (
-                    <Breadcrumbs className="mb-4" size="sm">
+                    <Breadcrumbs className="mb-2" size="sm">
                         <Breadcrumbs.Link href={sectionHref}>
                             {section ?? 'Back'}
                         </Breadcrumbs.Link>
@@ -40,12 +40,12 @@ export function AdminPage({
                         <Breadcrumbs.Current>{title}</Breadcrumbs.Current>
                     </Breadcrumbs>
                 )}
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
-                        <h1 className="text-2xl font-semibold tracking-[-0.025em] text-kumo-default">
+                        <h1 className="text-xl font-semibold tracking-[-0.02em] text-kumo-default">
                             {title}
                         </h1>
-                        <p className="mt-1 max-w-2xl text-sm leading-5 text-kumo-subtle">
+                        <p className="mt-0.5 max-w-2xl text-sm leading-5 text-kumo-subtle">
                             {description}
                         </p>
                     </div>

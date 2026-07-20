@@ -116,6 +116,7 @@ export default function AdminBookmarks({
                 <LinkButton
                     href="/admin/bookmarks/new"
                     icon={PlusIcon}
+                    size="sm"
                     variant="primary"
                 >
                     New bookmark
@@ -135,7 +136,7 @@ export default function AdminBookmarks({
             ) : null}
 
             <section className="overflow-hidden rounded-xl border border-kumo-line bg-kumo-base shadow-sm">
-                <div className="flex flex-col gap-3 border-b border-kumo-line p-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col gap-2 border-b border-kumo-line p-2 sm:flex-row sm:items-center sm:justify-between">
                     <Form
                         className="flex w-full min-w-0 gap-2 sm:max-w-lg"
                         method="get"
@@ -209,7 +210,7 @@ export default function AdminBookmarks({
                     />
                 ) : (
                     <>
-                        <div className="hidden grid-cols-[minmax(0,1fr)_minmax(8rem,12rem)_7.5rem_4.5rem] gap-4 bg-kumo-tint/45 px-4 py-2.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-kumo-subtle md:grid">
+                        <div className="hidden grid-cols-[minmax(0,1fr)_minmax(8rem,12rem)_7.5rem_4.5rem] gap-3 bg-kumo-tint/45 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-kumo-subtle md:grid">
                             <span>Bookmark</span>
                             <span>Source</span>
                             <span>Saved</span>
@@ -222,11 +223,11 @@ export default function AdminBookmarks({
                                 ).hostname.replace(/^www\./u, '');
                                 return (
                                     <li
-                                        className="group px-4 py-3 transition-colors hover:bg-kumo-tint/35"
+                                        className="group px-3 py-2 transition-colors hover:bg-kumo-tint/35"
                                         key={bookmark.id}
                                     >
                                         <div
-                                            className="hidden grid-cols-[minmax(0,1fr)_minmax(8rem,12rem)_7.5rem_4.5rem] items-center gap-4 md:grid"
+                                            className="hidden grid-cols-[minmax(0,1fr)_minmax(8rem,12rem)_7.5rem_4.5rem] items-center gap-3 md:grid"
                                             data-bookmark-row=""
                                         >
                                             <div
@@ -312,63 +313,64 @@ export default function AdminBookmarks({
                         </ol>
                     </>
                 )}
+                {result.pageCount > 1 ? (
+                    <nav
+                        aria-label="Bookmark pages"
+                        className="flex items-center justify-between border-t border-kumo-line px-3 py-2"
+                    >
+                        <p className="text-xs text-kumo-subtle">
+                            Page {result.page} of {result.pageCount}
+                        </p>
+                        <div className="flex gap-1.5">
+                            <LinkButton
+                                aria-disabled={result.page <= 1}
+                                className={cn(
+                                    result.page <= 1 &&
+                                        'pointer-events-none opacity-50',
+                                )}
+                                href={paginationHref(
+                                    loaderData.query,
+                                    result.page - 1,
+                                )}
+                                size="sm"
+                                tabIndex={result.page <= 1 ? -1 : undefined}
+                                variant="secondary"
+                            >
+                                Previous
+                            </LinkButton>
+                            <LinkButton
+                                aria-disabled={result.page >= result.pageCount}
+                                className={cn(
+                                    result.page >= result.pageCount &&
+                                        'pointer-events-none opacity-50',
+                                )}
+                                href={paginationHref(
+                                    loaderData.query,
+                                    result.page + 1,
+                                )}
+                                size="sm"
+                                tabIndex={
+                                    result.page >= result.pageCount
+                                        ? -1
+                                        : undefined
+                                }
+                                variant="secondary"
+                            >
+                                Next
+                            </LinkButton>
+                        </div>
+                    </nav>
+                ) : null}
             </section>
 
-            {result.pageCount > 1 ? (
-                <nav
-                    aria-label="Bookmark pages"
-                    className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
-                >
-                    <p className="text-sm text-kumo-subtle">
-                        Page {result.page} of {result.pageCount}
-                    </p>
-                    <div className="flex gap-2">
-                        <LinkButton
-                            aria-disabled={result.page <= 1}
-                            className={cn(
-                                result.page <= 1 &&
-                                    'pointer-events-none opacity-50',
-                            )}
-                            href={paginationHref(
-                                loaderData.query,
-                                result.page - 1,
-                            )}
-                            size="sm"
-                            tabIndex={result.page <= 1 ? -1 : undefined}
-                            variant="secondary"
-                        >
-                            Previous
-                        </LinkButton>
-                        <LinkButton
-                            aria-disabled={result.page >= result.pageCount}
-                            className={cn(
-                                result.page >= result.pageCount &&
-                                    'pointer-events-none opacity-50',
-                            )}
-                            href={paginationHref(
-                                loaderData.query,
-                                result.page + 1,
-                            )}
-                            size="sm"
-                            tabIndex={
-                                result.page >= result.pageCount ? -1 : undefined
-                            }
-                            variant="secondary"
-                        >
-                            Next
-                        </LinkButton>
-                    </div>
-                </nav>
-            ) : null}
-
             <details
-                className="border-t border-kumo-line pt-4"
+                className="border-t border-kumo-line pt-2"
                 open={actionData?.error !== undefined}
             >
                 <summary className="cursor-pointer text-sm text-kumo-subtle hover:text-kumo-default">
                     Danger zone
                 </summary>
-                <div className="mt-4 flex flex-col gap-4 rounded-xl border border-kumo-danger/20 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="mt-3 flex flex-col gap-3 rounded-xl border border-kumo-danger/20 p-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h2 className="font-medium text-kumo-default">
                             Delete the entire library
@@ -386,6 +388,7 @@ export default function AdminBookmarks({
                             render={
                                 <Button
                                     icon={TrashIcon}
+                                    size="sm"
                                     variant="secondary-destructive"
                                 />
                             }
