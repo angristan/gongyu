@@ -77,14 +77,13 @@ bun run deploy:staging
 
 The root deployment script applies staging D1 migrations first, deploys the jobs Worker, then builds and deploys the web Worker.
 
-For an environment other than `staging`, add matching scripts or run the equivalent commands explicitly:
+For the checked-in production environment, run:
 
 ```bash
-bunx wrangler d1 migrations apply DB --remote --env production --config apps/jobs/wrangler.jsonc
-bunx wrangler deploy --env production --config apps/jobs/wrangler.jsonc
-CLOUDFLARE_ENV=production bun run --cwd apps/web build
-bunx wrangler deploy --config apps/web/build/server/wrangler.json
+bun run deploy:production
 ```
+
+This applies production D1 migrations first, deploys the jobs Worker, then builds and deploys the web Worker. For another environment, add equivalent environment bindings and migration-first scripts.
 
 ## 5. Enroll the administrator
 

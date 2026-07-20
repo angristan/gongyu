@@ -127,6 +127,64 @@
           "name": "gongyu-staging-data-workflow"
         }
       ]
+    },
+    "production": {
+      "name": "gongyu-cloudflare-production-jobs",
+      "limits": {
+        "cpu_ms": 300000
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "gongyu-production",
+          "database_id": "06ba6711-fd4e-4aaf-bd02-a34c2104c0fb",
+          "migrations_dir": "../../migrations"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "UPLOADS",
+          "bucket_name": "gongyu-production-uploads"
+        }
+      ],
+      "queues": {
+        "producers": [
+          {
+            "binding": "JOBS_QUEUE",
+            "queue": "gongyu-production-jobs"
+          }
+        ],
+        "consumers": [
+          {
+            "queue": "gongyu-production-jobs",
+            "dead_letter_queue": "gongyu-production-jobs-dlq",
+            "max_batch_size": 5,
+            "max_batch_timeout": 2,
+            "max_retries": 5,
+            "max_concurrency": 2
+          },
+          {
+            "queue": "gongyu-production-jobs-dlq",
+            "max_batch_size": 5,
+            "max_batch_timeout": 2,
+            "max_retries": 1,
+            "max_concurrency": 1
+          }
+        ]
+      },
+      "triggers": {
+        "crons": ["* * * * *"]
+      },
+      "vars": {
+        "RP_ID": "bookmarks.stanislas.blog"
+      },
+      "workflows": [
+        {
+          "binding": "DATA_WORKFLOW",
+          "class_name": "DataWorkflow",
+          "name": "gongyu-production-data-workflow"
+        }
+      ]
     }
   }
 }

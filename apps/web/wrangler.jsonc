@@ -71,6 +71,36 @@
         "RP_ID": "gongyu-cloudflare-staging.angristan.workers.dev",
         "RP_ORIGIN": "https://gongyu-cloudflare-staging.angristan.workers.dev"
       }
+    },
+    "production": {
+      "name": "gongyu-cloudflare-production",
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "gongyu-production",
+          "database_id": "06ba6711-fd4e-4aaf-bd02-a34c2104c0fb",
+          "migrations_dir": "../../migrations"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "UPLOADS",
+          "bucket_name": "gongyu-production-uploads"
+        }
+      ],
+      "workflows": [
+        {
+          "binding": "DATA_WORKFLOW",
+          "class_name": "DataWorkflow",
+          "name": "gongyu-production-data-workflow",
+          "script_name": "gongyu-cloudflare-production-jobs"
+        }
+      ],
+      "vars": {
+        "APP_ENV": "production",
+        "RP_ID": "bookmarks.stanislas.blog",
+        "RP_ORIGIN": "https://bookmarks.stanislas.blog"
+      }
     }
   }
 }
