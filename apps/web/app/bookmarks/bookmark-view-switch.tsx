@@ -46,7 +46,7 @@ export function BookmarkViewSwitch({
                 shape="square"
                 size="sm"
                 title="List view"
-                variant={view === 'list' ? 'primary' : 'ghost'}
+                variant={view === 'list' ? 'secondary' : 'ghost'}
             />
             <LinkButton
                 aria-current={view === 'gallery' ? 'page' : undefined}
@@ -56,7 +56,7 @@ export function BookmarkViewSwitch({
                 shape="square"
                 size="sm"
                 title="Gallery view"
-                variant={view === 'gallery' ? 'primary' : 'ghost'}
+                variant={view === 'gallery' ? 'secondary' : 'ghost'}
             />
         </nav>
     );

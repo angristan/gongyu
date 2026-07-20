@@ -64,7 +64,7 @@ function pageHref(
 function BookmarkCard({ bookmark }: { readonly bookmark: PublicBookmark }) {
     const hostname = new URL(bookmark.url).hostname.replace(/^www\./u, '');
     return (
-        <LayerCard className="group h-full overflow-hidden transition duration-200 hover:-translate-y-0.5 hover:shadow-lg">
+        <LayerCard className="gongyu-bookmark-card group h-full overflow-hidden transition duration-200 hover:-translate-y-0.5">
             <article className="flex h-full flex-col">
                 <Link
                     aria-label={`View details for ${bookmark.title}`}
@@ -136,7 +136,7 @@ function BookmarkCard({ bookmark }: { readonly bookmark: PublicBookmark }) {
 function BookmarkListItem({ bookmark }: { readonly bookmark: PublicBookmark }) {
     const hostname = new URL(bookmark.url).hostname.replace(/^www\./u, '');
     return (
-        <LayerCard className="transition-shadow hover:shadow-md">
+        <LayerCard className="gongyu-bookmark-card transition-shadow">
             <article className="flex items-start gap-3 p-3">
                 {bookmark.thumbnailSha256 === null ? null : (
                     <Link

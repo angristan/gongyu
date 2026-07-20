@@ -79,12 +79,19 @@ body {
 }
 
 .gongyu-public-app {
+    --mantine-color-text: #463f39;
+    --mantine-color-dimmed: #7a7067;
+    --mantine-color-anchor: #a55338;
+    --mantine-color-default: rgb(255 253 250 / 58%);
+    --mantine-color-default-hover: rgb(248 242 236 / 76%);
+    --mantine-color-default-border: #e4dcd3;
+
     background-image:
         radial-gradient(
             circle at 15% 0%,
             color-mix(
                 in oklch,
-                var(--mantine-primary-color-filled) 9%,
+                var(--mantine-primary-color-filled) 5%,
                 transparent
             ),
             transparent 28rem
@@ -93,11 +100,46 @@ body {
             circle at 85% 18rem,
             color-mix(
                 in oklch,
-                var(--mantine-color-yellow-filled) 5%,
+                var(--mantine-color-yellow-filled) 3%,
                 transparent
             ),
             transparent 24rem
         );
+}
+
+.gongyu-public-app .gongyu-bookmark-card {
+    border-color: #e7dfd7;
+    background: rgb(255 253 250 / 64%);
+    box-shadow: 0 1px 3px rgb(95 70 52 / 7%);
+}
+
+.gongyu-public-app .gongyu-bookmark-card:hover {
+    border-color: #ddd3ca;
+    box-shadow: 0 3px 10px rgb(95 70 52 / 9%);
+}
+
+[data-mantine-color-scheme="dark"] .gongyu-public-app {
+    --mantine-color-text: #d9d2ca;
+    --mantine-color-dimmed: #aaa198;
+    --mantine-color-anchor: #d98b6d;
+    --mantine-color-default: rgb(48 43 39 / 58%);
+    --mantine-color-default-hover: rgb(61 55 50 / 76%);
+    --mantine-color-default-border: #403a35;
+}
+
+[data-mantine-color-scheme="dark"]
+    .gongyu-public-app
+    .gongyu-bookmark-card {
+    border-color: #3e3934;
+    background: rgb(48 43 39 / 52%);
+    box-shadow: 0 1px 3px rgb(0 0 0 / 12%);
+}
+
+[data-mantine-color-scheme="dark"]
+    .gongyu-public-app
+    .gongyu-bookmark-card:hover {
+    border-color: #4a433d;
+    box-shadow: 0 3px 10px rgb(0 0 0 / 16%);
 }
 
 .gongyu-admin-app {
