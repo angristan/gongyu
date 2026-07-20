@@ -3,9 +3,6 @@ import { Button, LinkButton } from '@cloudflare/kumo/components/button';
 import { Dialog } from '@cloudflare/kumo/components/dialog';
 import { Empty } from '@cloudflare/kumo/components/empty';
 import { Input } from '@cloudflare/kumo/components/input';
-import { LayerCard } from '@cloudflare/kumo/components/layer-card';
-import { Table } from '@cloudflare/kumo/components/table';
-import { Toolbar } from '@cloudflare/kumo/components/toolbar';
 import { cn } from '@cloudflare/kumo/utils';
 import { BookmarkRepository } from '@gongyu/data/bookmark-repository';
 import {
@@ -137,10 +134,10 @@ export default function AdminBookmarks({
                 />
             ) : null}
 
-            <LayerCard className="overflow-hidden">
-                <Toolbar className="flex flex-col gap-3 border-b border-kumo-line p-3 sm:flex-row sm:items-center sm:justify-between">
+            <section className="overflow-hidden rounded-xl border border-kumo-line bg-kumo-base shadow-sm">
+                <div className="flex flex-col gap-3 border-b border-kumo-line p-3 sm:flex-row sm:items-center sm:justify-between">
                     <Form
-                        className="flex w-full min-w-0 gap-2 sm:max-w-xl"
+                        className="flex w-full min-w-0 gap-2 sm:max-w-lg"
                         method="get"
                     >
                         <Input
@@ -154,6 +151,7 @@ export default function AdminBookmarks({
                         <Button
                             icon={MagnifyingGlassIcon}
                             loading={isSubmitting}
+                            size="sm"
                             type="submit"
                             variant="secondary"
                         >
@@ -166,10 +164,10 @@ export default function AdminBookmarks({
                             size="sm"
                             variant="ghost"
                         >
-                            Clear search
+                            Clear
                         </LinkButton>
                     )}
-                </Toolbar>
+                </div>
 
                 {result.bookmarks.length === 0 ? (
                     <Empty
@@ -199,7 +197,7 @@ export default function AdminBookmarks({
                         icon={
                             <BookmarkSimpleIcon
                                 aria-hidden="true"
-                                size={42}
+                                size={36}
                                 weight="duotone"
                             />
                         }
@@ -211,122 +209,110 @@ export default function AdminBookmarks({
                     />
                 ) : (
                     <>
-                        <div className="hidden overflow-x-auto md:block">
-                            <Table>
-                                <Table.Header>
-                                    <Table.Row>
-                                        <Table.Head>Bookmark</Table.Head>
-                                        <Table.Head>Source</Table.Head>
-                                        <Table.Head>Saved</Table.Head>
-                                        <Table.Head className="w-24 text-right">
-                                            Actions
-                                        </Table.Head>
-                                    </Table.Row>
-                                </Table.Header>
-                                <Table.Body>
-                                    {result.bookmarks.map((bookmark) => {
-                                        const hostname = new URL(
-                                            bookmark.url,
-                                        ).hostname.replace(/^www\./u, '');
-                                        return (
-                                            <Table.Row key={bookmark.id}>
-                                                <Table.Cell>
-                                                    <div className="max-w-lg space-y-1">
-                                                        <Link
-                                                            className="line-clamp-1 font-medium text-kumo-default hover:text-kumo-link"
-                                                            to={`/admin/bookmarks/${bookmark.shortUrl}/edit`}
-                                                        >
-                                                            {bookmark.title}
-                                                        </Link>
-                                                        {bookmark.description ===
-                                                        null ? null : (
-                                                            <p className="line-clamp-1 text-xs text-kumo-subtle">
-                                                                {
-                                                                    bookmark.description
-                                                                }
-                                                            </p>
-                                                        )}
-                                                    </div>
-                                                </Table.Cell>
-                                                <Table.Cell>
-                                                    <span className="text-sm text-kumo-subtle">
-                                                        {hostname}
-                                                    </span>
-                                                </Table.Cell>
-                                                <Table.Cell className="whitespace-nowrap text-sm text-kumo-subtle">
+                        <div className="hidden grid-cols-[minmax(0,1fr)_minmax(8rem,12rem)_7.5rem_4.5rem] gap-4 bg-kumo-tint/45 px-4 py-2.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-kumo-subtle md:grid">
+                            <span>Bookmark</span>
+                            <span>Source</span>
+                            <span>Saved</span>
+                            <span className="text-right">Actions</span>
+                        </div>
+                        <ol className="divide-y divide-kumo-line">
+                            {result.bookmarks.map((bookmark) => {
+                                const hostname = new URL(
+                                    bookmark.url,
+                                ).hostname.replace(/^www\./u, '');
+                                return (
+                                    <li
+                                        className="group px-4 py-3 transition-colors hover:bg-kumo-tint/35"
+                                        key={bookmark.id}
+                                    >
+                                        <div
+                                            className="hidden grid-cols-[minmax(0,1fr)_minmax(8rem,12rem)_7.5rem_4.5rem] items-center gap-4 md:grid"
+                                            data-bookmark-row=""
+                                        >
+                                            <div
+                                                className="min-w-0"
+                                                data-bookmark-column="bookmark"
+                                            >
+                                                <Link
+                                                    className="block truncate text-sm font-medium text-kumo-default hover:text-kumo-link"
+                                                    to={`/admin/bookmarks/${bookmark.shortUrl}/edit`}
+                                                >
+                                                    {bookmark.title}
+                                                </Link>
+                                                {bookmark.description ===
+                                                null ? null : (
+                                                    <p className="mt-0.5 truncate text-xs text-kumo-subtle">
+                                                        {bookmark.description}
+                                                    </p>
+                                                )}
+                                            </div>
+                                            <span
+                                                className="truncate text-xs text-kumo-subtle"
+                                                data-bookmark-column="source"
+                                                title={hostname}
+                                            >
+                                                {hostname}
+                                            </span>
+                                            <time
+                                                className="whitespace-nowrap text-xs tabular-nums text-kumo-subtle"
+                                                data-bookmark-column="saved"
+                                            >
+                                                {formatDate(bookmark.createdAt)}
+                                            </time>
+                                            <div
+                                                className="flex justify-end gap-0.5 opacity-70 transition-opacity group-hover:opacity-100"
+                                                data-bookmark-column="actions"
+                                            >
+                                                <LinkButton
+                                                    aria-label={`Open ${bookmark.title}`}
+                                                    external
+                                                    href={bookmark.url}
+                                                    icon={ArrowSquareOutIcon}
+                                                    shape="square"
+                                                    size="sm"
+                                                    variant="ghost"
+                                                />
+                                                <LinkButton
+                                                    aria-label={`Edit ${bookmark.title}`}
+                                                    href={`/admin/bookmarks/${bookmark.shortUrl}/edit`}
+                                                    icon={PencilSimpleIcon}
+                                                    shape="square"
+                                                    size="sm"
+                                                    variant="ghost"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="flex items-start justify-between gap-3 md:hidden">
+                                            <div className="min-w-0">
+                                                <Link
+                                                    className="line-clamp-2 text-sm font-medium text-kumo-default"
+                                                    to={`/admin/bookmarks/${bookmark.shortUrl}/edit`}
+                                                >
+                                                    {bookmark.title}
+                                                </Link>
+                                                <p className="mt-1 truncate text-xs text-kumo-subtle">
+                                                    {hostname} ·{' '}
                                                     {formatDate(
                                                         bookmark.createdAt,
                                                     )}
-                                                </Table.Cell>
-                                                <Table.Cell>
-                                                    <div className="flex justify-end gap-1">
-                                                        <LinkButton
-                                                            aria-label={`Open ${bookmark.title}`}
-                                                            external
-                                                            href={bookmark.url}
-                                                            icon={
-                                                                ArrowSquareOutIcon
-                                                            }
-                                                            shape="square"
-                                                            size="sm"
-                                                            variant="ghost"
-                                                        />
-                                                        <LinkButton
-                                                            aria-label={`Edit ${bookmark.title}`}
-                                                            href={`/admin/bookmarks/${bookmark.shortUrl}/edit`}
-                                                            icon={
-                                                                PencilSimpleIcon
-                                                            }
-                                                            shape="square"
-                                                            size="sm"
-                                                            variant="ghost"
-                                                        />
-                                                    </div>
-                                                </Table.Cell>
-                                            </Table.Row>
-                                        );
-                                    })}
-                                </Table.Body>
-                            </Table>
-                        </div>
-
-                        <ol className="divide-y divide-kumo-line md:hidden">
-                            {result.bookmarks.map((bookmark) => (
-                                <li className="p-4" key={bookmark.id}>
-                                    <div className="flex items-start justify-between gap-4">
-                                        <div className="min-w-0 space-y-2">
-                                            <Link
-                                                className="line-clamp-2 font-medium text-kumo-default"
-                                                to={`/admin/bookmarks/${bookmark.shortUrl}/edit`}
-                                            >
-                                                {bookmark.title}
-                                            </Link>
-                                            <p className="truncate text-xs text-kumo-subtle">
-                                                {new URL(
-                                                    bookmark.url,
-                                                ).hostname.replace(
-                                                    /^www\./u,
-                                                    '',
-                                                )}{' '}
-                                                ·{' '}
-                                                {formatDate(bookmark.createdAt)}
-                                            </p>
+                                                </p>
+                                            </div>
+                                            <LinkButton
+                                                aria-label={`Edit ${bookmark.title}`}
+                                                href={`/admin/bookmarks/${bookmark.shortUrl}/edit`}
+                                                icon={PencilSimpleIcon}
+                                                shape="square"
+                                                size="sm"
+                                                variant="ghost"
+                                            />
                                         </div>
-                                        <LinkButton
-                                            aria-label={`Edit ${bookmark.title}`}
-                                            href={`/admin/bookmarks/${bookmark.shortUrl}/edit`}
-                                            icon={PencilSimpleIcon}
-                                            shape="square"
-                                            size="sm"
-                                            variant="secondary"
-                                        />
-                                    </div>
-                                </li>
-                            ))}
+                                    </li>
+                                );
+                            })}
                         </ol>
                     </>
                 )}
-            </LayerCard>
+            </section>
 
             {result.pageCount > 1 ? (
                 <nav
