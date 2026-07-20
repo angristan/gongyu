@@ -163,7 +163,7 @@ function PublicShell({
     return (
         <div className="gongyu-public-app min-h-screen bg-gongyu-base">
             <header className="sticky top-0 z-40 border-b border-gongyu-line bg-gongyu-base/95 backdrop-blur">
-                <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+                <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
                     <Brand />
                     <nav
                         aria-label="Public navigation"
@@ -200,7 +200,7 @@ function PublicShell({
                 </div>
             </header>
             {children}
-            <footer className="border-t border-gongyu-line px-4 py-8 text-sm text-gongyu-subtle sm:px-6 lg:px-8">
+            <footer className="border-t border-gongyu-line px-4 py-5 text-xs text-gongyu-subtle sm:px-6 lg:px-8">
                 <div className="mx-auto flex max-w-7xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <p>Gongyu · a calm place for links worth keeping.</p>
                     <div className="flex items-center gap-4">

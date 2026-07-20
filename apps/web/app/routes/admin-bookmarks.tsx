@@ -19,6 +19,11 @@ import {
     requireAuthenticatedMutation,
     requireAuthentication,
 } from '../auth/session.server';
+import {
+    type BookmarkView,
+    BookmarkViewSwitch,
+    parseBookmarkView,
+} from '../bookmarks/bookmark-view-switch';
 import { AdminPage } from '../components/admin-page';
 import { adminNativeControlClass } from '../components/admin-panel';
 import {
@@ -48,6 +53,7 @@ export async function loader({ context, request }: Route.LoaderArgs) {
         );
     }
     const query = location.searchParams.get('q')?.trim() ?? '';
+    const view = parseBookmarkView(location.searchParams.get('view'));
     const pageValue = Number.parseInt(
         location.searchParams.get('page') ?? '1',
         10,
@@ -56,13 +62,18 @@ export async function loader({ context, request }: Route.LoaderArgs) {
     const result = await effect.runPromise(
         Effect.gen(function* () {
             const bookmarks = yield* BookmarkRepository;
-            return yield* bookmarks.list({ page, perPage: 20, query });
+            return yield* bookmarks.list({
+                page,
+                perPage: view === 'list' ? 30 : 24,
+                query,
+            });
         }),
     );
     return {
         deletedAll: location.searchParams.get('deleted') === 'all',
         query,
         result,
+        view,
     };
 }
 
@@ -98,13 +109,221 @@ function formatDate(microseconds: number): string {
     }).format(new Date(microseconds / 1_000));
 }
 
-function paginationHref(query: string, page: number): string {
+function paginationHref(
+    query: string,
+    page: number,
+    view: BookmarkView,
+): string {
     const parameters = new URLSearchParams();
     if (query !== '') {
         parameters.set('q', query);
     }
     parameters.set('page', String(page));
+    parameters.set('view', view);
     return `/admin/bookmarks?${parameters.toString()}`;
+}
+
+interface AdminBookmark {
+    readonly createdAt: number;
+    readonly description: string | null;
+    readonly id: number;
+    readonly shortUrl: string;
+    readonly thumbnailSha256: string | null;
+    readonly title: string;
+    readonly url: string;
+}
+
+function AdminBookmarkList({
+    bookmarks,
+}: {
+    readonly bookmarks: ReadonlyArray<AdminBookmark>;
+}) {
+    return (
+        <>
+            <div className="hidden grid-cols-[minmax(0,1fr)_minmax(8rem,12rem)_7.5rem_4.5rem] gap-3 bg-gongyu-tint/45 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-gongyu-subtle md:grid">
+                <span>Bookmark</span>
+                <span>Source</span>
+                <span>Saved</span>
+                <span className="text-right">Actions</span>
+            </div>
+            <ol
+                aria-label="Bookmarks in list view"
+                className="divide-y divide-gongyu-line"
+            >
+                {bookmarks.map((bookmark) => {
+                    const hostname = new URL(bookmark.url).hostname.replace(
+                        /^www\./u,
+                        '',
+                    );
+                    return (
+                        <li
+                            className="group px-3 py-1.5 transition-colors hover:bg-gongyu-tint/35"
+                            key={bookmark.id}
+                        >
+                            <div
+                                className="hidden grid-cols-[minmax(0,1fr)_minmax(8rem,12rem)_7.5rem_4.5rem] items-center gap-3 md:grid"
+                                data-bookmark-row=""
+                            >
+                                <div
+                                    className="min-w-0"
+                                    data-bookmark-column="bookmark"
+                                >
+                                    <Link
+                                        className="block truncate text-sm font-medium text-gongyu-default hover:text-gongyu-link"
+                                        to={`/admin/bookmarks/${bookmark.shortUrl}/edit`}
+                                    >
+                                        {bookmark.title}
+                                    </Link>
+                                    {bookmark.description === null ? null : (
+                                        <p className="truncate text-[11px] text-gongyu-subtle">
+                                            {bookmark.description}
+                                        </p>
+                                    )}
+                                </div>
+                                <span
+                                    className="truncate text-xs text-gongyu-subtle"
+                                    data-bookmark-column="source"
+                                    title={hostname}
+                                >
+                                    {hostname}
+                                </span>
+                                <time
+                                    className="whitespace-nowrap text-xs tabular-nums text-gongyu-subtle"
+                                    data-bookmark-column="saved"
+                                >
+                                    {formatDate(bookmark.createdAt)}
+                                </time>
+                                <div
+                                    className="flex justify-end gap-0.5"
+                                    data-bookmark-column="actions"
+                                >
+                                    <LinkButton
+                                        aria-label={`Open ${bookmark.title}`}
+                                        external
+                                        href={bookmark.url}
+                                        icon={ArrowSquareOutIcon}
+                                        shape="square"
+                                        size="sm"
+                                        variant="ghost"
+                                    />
+                                    <LinkButton
+                                        aria-label={`Edit ${bookmark.title}`}
+                                        href={`/admin/bookmarks/${bookmark.shortUrl}/edit`}
+                                        icon={PencilSimpleIcon}
+                                        shape="square"
+                                        size="sm"
+                                        variant="ghost"
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex items-start justify-between gap-3 md:hidden">
+                                <div className="min-w-0">
+                                    <Link
+                                        className="line-clamp-2 text-sm font-medium text-gongyu-default"
+                                        to={`/admin/bookmarks/${bookmark.shortUrl}/edit`}
+                                    >
+                                        {bookmark.title}
+                                    </Link>
+                                    <p className="mt-0.5 truncate text-[11px] text-gongyu-subtle">
+                                        {hostname} ·{' '}
+                                        {formatDate(bookmark.createdAt)}
+                                    </p>
+                                </div>
+                                <LinkButton
+                                    aria-label={`Edit ${bookmark.title}`}
+                                    href={`/admin/bookmarks/${bookmark.shortUrl}/edit`}
+                                    icon={PencilSimpleIcon}
+                                    shape="square"
+                                    size="sm"
+                                    variant="ghost"
+                                />
+                            </div>
+                        </li>
+                    );
+                })}
+            </ol>
+        </>
+    );
+}
+
+function AdminBookmarkGallery({
+    bookmarks,
+}: {
+    readonly bookmarks: ReadonlyArray<AdminBookmark>;
+}) {
+    return (
+        <ol
+            aria-label="Bookmarks in gallery view"
+            className="grid gap-2 p-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+        >
+            {bookmarks.map((bookmark) => {
+                const hostname = new URL(bookmark.url).hostname.replace(
+                    /^www\./u,
+                    '',
+                );
+                return (
+                    <li
+                        className="group overflow-hidden rounded-lg border border-gongyu-line bg-gongyu-base"
+                        key={bookmark.id}
+                    >
+                        <Link
+                            aria-label={`Edit ${bookmark.title}`}
+                            className="block aspect-[16/9] overflow-hidden bg-gongyu-tint"
+                            to={`/admin/bookmarks/${bookmark.shortUrl}/edit`}
+                        >
+                            {bookmark.thumbnailSha256 === null ? (
+                                <span className="flex size-full items-center justify-center">
+                                    <BookmarkSimpleIcon
+                                        aria-hidden="true"
+                                        className="text-gongyu-subtle/45"
+                                        size={30}
+                                        weight="duotone"
+                                    />
+                                </span>
+                            ) : (
+                                <img
+                                    alt=""
+                                    className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                                    loading="lazy"
+                                    src={`/thumbnails/${bookmark.shortUrl}/${bookmark.thumbnailSha256}`}
+                                />
+                            )}
+                        </Link>
+                        <div className="p-2.5">
+                            <Link
+                                className="block truncate text-sm font-semibold text-gongyu-default hover:text-gongyu-link"
+                                to={`/admin/bookmarks/${bookmark.shortUrl}/edit`}
+                            >
+                                {bookmark.title}
+                            </Link>
+                            <p className="mt-1 truncate text-[11px] text-gongyu-subtle">
+                                {hostname} · {formatDate(bookmark.createdAt)}
+                            </p>
+                            <div className="mt-2 flex justify-end gap-0.5 border-t border-gongyu-line pt-1.5">
+                                <LinkButton
+                                    aria-label={`Open ${bookmark.title}`}
+                                    external
+                                    href={bookmark.url}
+                                    icon={ArrowSquareOutIcon}
+                                    shape="square"
+                                    size="sm"
+                                    variant="ghost"
+                                />
+                                <LinkButton
+                                    aria-label={`Edit ${bookmark.title}`}
+                                    href={`/admin/bookmarks/${bookmark.shortUrl}/edit`}
+                                    icon={PencilSimpleIcon}
+                                    shape="square"
+                                    size="sm"
+                                    variant="ghost"
+                                />
+                            </div>
+                        </div>
+                    </li>
+                );
+            })}
+        </ol>
+    );
 }
 
 export default function AdminBookmarks({
@@ -146,6 +365,11 @@ export default function AdminBookmarks({
                         className="flex w-full min-w-0 gap-2 sm:max-w-lg"
                         method="get"
                     >
+                        <input
+                            name="view"
+                            type="hidden"
+                            value={loaderData.view}
+                        />
                         <Input
                             aria-label="Search bookmarks"
                             className="min-w-0 flex-1"
@@ -164,15 +388,22 @@ export default function AdminBookmarks({
                             Search
                         </Button>
                     </Form>
-                    {loaderData.query === '' ? null : (
-                        <LinkButton
-                            href="/admin/bookmarks"
-                            size="sm"
-                            variant="ghost"
-                        >
-                            Clear
-                        </LinkButton>
-                    )}
+                    <div className="flex items-center gap-1.5">
+                        {loaderData.query === '' ? null : (
+                            <LinkButton
+                                href={`/admin/bookmarks?view=${loaderData.view}`}
+                                size="sm"
+                                variant="ghost"
+                            >
+                                Clear
+                            </LinkButton>
+                        )}
+                        <BookmarkViewSwitch
+                            basePath="/admin/bookmarks"
+                            query={loaderData.query}
+                            view={loaderData.view}
+                        />
+                    </div>
                 </div>
 
                 {result.bookmarks.length === 0 ? (
@@ -188,7 +419,7 @@ export default function AdminBookmarks({
                                 </LinkButton>
                             ) : (
                                 <LinkButton
-                                    href="/admin/bookmarks"
+                                    href={`/admin/bookmarks?view=${loaderData.view}`}
                                     variant="secondary"
                                 >
                                     Clear search
@@ -213,110 +444,10 @@ export default function AdminBookmarks({
                                 : 'No matching bookmarks'
                         }
                     />
+                ) : loaderData.view === 'gallery' ? (
+                    <AdminBookmarkGallery bookmarks={result.bookmarks} />
                 ) : (
-                    <>
-                        <div className="hidden grid-cols-[minmax(0,1fr)_minmax(8rem,12rem)_7.5rem_4.5rem] gap-3 bg-gongyu-tint/45 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-gongyu-subtle md:grid">
-                            <span>Bookmark</span>
-                            <span>Source</span>
-                            <span>Saved</span>
-                            <span className="text-right">Actions</span>
-                        </div>
-                        <ol className="divide-y divide-gongyu-line">
-                            {result.bookmarks.map((bookmark) => {
-                                const hostname = new URL(
-                                    bookmark.url,
-                                ).hostname.replace(/^www\./u, '');
-                                return (
-                                    <li
-                                        className="group px-3 py-2 transition-colors hover:bg-gongyu-tint/35"
-                                        key={bookmark.id}
-                                    >
-                                        <div
-                                            className="hidden grid-cols-[minmax(0,1fr)_minmax(8rem,12rem)_7.5rem_4.5rem] items-center gap-3 md:grid"
-                                            data-bookmark-row=""
-                                        >
-                                            <div
-                                                className="min-w-0"
-                                                data-bookmark-column="bookmark"
-                                            >
-                                                <Link
-                                                    className="block truncate text-sm font-medium text-gongyu-default hover:text-gongyu-link"
-                                                    to={`/admin/bookmarks/${bookmark.shortUrl}/edit`}
-                                                >
-                                                    {bookmark.title}
-                                                </Link>
-                                                {bookmark.description ===
-                                                null ? null : (
-                                                    <p className="mt-0.5 truncate text-xs text-gongyu-subtle">
-                                                        {bookmark.description}
-                                                    </p>
-                                                )}
-                                            </div>
-                                            <span
-                                                className="truncate text-xs text-gongyu-subtle"
-                                                data-bookmark-column="source"
-                                                title={hostname}
-                                            >
-                                                {hostname}
-                                            </span>
-                                            <time
-                                                className="whitespace-nowrap text-xs tabular-nums text-gongyu-subtle"
-                                                data-bookmark-column="saved"
-                                            >
-                                                {formatDate(bookmark.createdAt)}
-                                            </time>
-                                            <div
-                                                className="flex justify-end gap-0.5"
-                                                data-bookmark-column="actions"
-                                            >
-                                                <LinkButton
-                                                    aria-label={`Open ${bookmark.title}`}
-                                                    external
-                                                    href={bookmark.url}
-                                                    icon={ArrowSquareOutIcon}
-                                                    shape="square"
-                                                    size="sm"
-                                                    variant="ghost"
-                                                />
-                                                <LinkButton
-                                                    aria-label={`Edit ${bookmark.title}`}
-                                                    href={`/admin/bookmarks/${bookmark.shortUrl}/edit`}
-                                                    icon={PencilSimpleIcon}
-                                                    shape="square"
-                                                    size="sm"
-                                                    variant="ghost"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="flex items-start justify-between gap-3 md:hidden">
-                                            <div className="min-w-0">
-                                                <Link
-                                                    className="line-clamp-2 text-sm font-medium text-gongyu-default"
-                                                    to={`/admin/bookmarks/${bookmark.shortUrl}/edit`}
-                                                >
-                                                    {bookmark.title}
-                                                </Link>
-                                                <p className="mt-1 truncate text-xs text-gongyu-subtle">
-                                                    {hostname} ·{' '}
-                                                    {formatDate(
-                                                        bookmark.createdAt,
-                                                    )}
-                                                </p>
-                                            </div>
-                                            <LinkButton
-                                                aria-label={`Edit ${bookmark.title}`}
-                                                href={`/admin/bookmarks/${bookmark.shortUrl}/edit`}
-                                                icon={PencilSimpleIcon}
-                                                shape="square"
-                                                size="sm"
-                                                variant="ghost"
-                                            />
-                                        </div>
-                                    </li>
-                                );
-                            })}
-                        </ol>
-                    </>
+                    <AdminBookmarkList bookmarks={result.bookmarks} />
                 )}
                 {result.pageCount > 1 ? (
                     <nav
@@ -336,6 +467,7 @@ export default function AdminBookmarks({
                                 href={paginationHref(
                                     loaderData.query,
                                     result.page - 1,
+                                    loaderData.view,
                                 )}
                                 size="sm"
                                 tabIndex={result.page <= 1 ? -1 : undefined}
@@ -352,6 +484,7 @@ export default function AdminBookmarks({
                                 href={paginationHref(
                                     loaderData.query,
                                     result.page + 1,
+                                    loaderData.view,
                                 )}
                                 size="sm"
                                 tabIndex={
