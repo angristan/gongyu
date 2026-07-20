@@ -1,5 +1,5 @@
 import { HealthResponse } from '@gongyu/domain/health';
-import { loadPhase0Status } from '../effect/phase0';
+import { loadHealthStatus } from '../effect/health';
 import { cloudflareRequestContext } from '../platform-context';
 import type { Route } from './+types/health';
 
@@ -12,7 +12,7 @@ export async function loader({ context }: Route.LoaderArgs) {
     const { effect, env, requestId } = context.get(cloudflareRequestContext);
 
     try {
-        const status = await effect.runPromise(loadPhase0Status());
+        const status = await effect.runPromise(loadHealthStatus());
         const isHealthy = status.databaseReady;
         return Response.json(
             HealthResponse.make({

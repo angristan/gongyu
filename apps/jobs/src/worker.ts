@@ -6,7 +6,6 @@ import { failDeadLetterJob, processQueueJob } from './processor';
 import { makeJobsEffectRunner } from './runtime';
 
 export { DataWorkflow } from './data-workflow';
-export { Phase0Workflow } from './phase0-workflow';
 
 const OUTBOX_LEASE_MICROS = 60 * 1_000_000;
 

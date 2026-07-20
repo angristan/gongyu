@@ -13,6 +13,3 @@ trim_trailing_whitespace = false
 
 [*.{yml,yaml}]
 indent_size = 2
-
-[compose.yaml]
-indent_size = 4

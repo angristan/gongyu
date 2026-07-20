@@ -15,9 +15,6 @@ updates:
           - "react-dom"
           - "@types/react"
           - "@types/react-dom"
-      inertia:
-        patterns:
-          - "@inertiajs/*"
       minor-dependencies:
         update-types:
           - "minor"
@@ -30,27 +27,6 @@ updates:
           - "react-dom"
           - "@types/react"
           - "@types/react-dom"
-          - "@inertiajs/*"
-
-  - package-ecosystem: composer
-    directory: /
-    open-pull-requests-limit: 20
-    schedule:
-      interval: weekly
-    groups:
-      laravel:
-        patterns:
-          - "laravel/*"
-          - "inertiajs/*"
-      minor-dependencies:
-        update-types:
-          - "minor"
-          - "patch"
-        patterns:
-          - "*"
-        exclude-patterns:
-          - "laravel/*"
-          - "inertiajs/*"
 
   - package-ecosystem: github-actions
     directory: /
@@ -60,8 +36,3 @@ updates:
       actions:
         patterns:
           - "*"
-
-  - package-ecosystem: docker
-    directory: /deploy
-    schedule:
-      interval: weekly

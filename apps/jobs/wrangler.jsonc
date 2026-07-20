@@ -67,11 +67,6 @@
       "binding": "DATA_WORKFLOW",
       "class_name": "DataWorkflow",
       "name": "gongyu-data-workflow"
-    },
-    {
-      "binding": "PHASE0_WORKFLOW",
-      "class_name": "Phase0Workflow",
-      "name": "gongyu-phase0-workflow"
     }
   ],
   "env": {
@@ -130,11 +125,6 @@
           "binding": "DATA_WORKFLOW",
           "class_name": "DataWorkflow",
           "name": "gongyu-staging-data-workflow"
-        },
-        {
-          "binding": "PHASE0_WORKFLOW",
-          "class_name": "Phase0Workflow",
-          "name": "gongyu-phase0-staging-workflow"
         }
       ]
     }

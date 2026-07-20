@@ -2,16 +2,18 @@
 
 ## Status
 
-This document records the agreed direction for a full rewrite of Gongyu.
+> Historical implementation plan. The rewrite is complete on staging and production cutover remains pending. The implementation uses Mantine 9 instead of the originally proposed Cloudflare Kumo components; current operational guidance lives in [`README.md`](../README.md) and [`docs/self-hosting.md`](self-hosting.md).
+
+This document records the agreed direction for the full rewrite of Gongyu.
 
 - Deployment model: single-tenant personal application
 - Compatibility target: preserve existing features, data, and public URLs
 - Runtime: Cloudflare Workers Paid
 - Rendering: server-side rendering for public and authenticated routes
-- UI: a new design built with Cloudflare Kumo
+- UI: a compact design built with Mantine 9 and Tailwind CSS 4
 - Application architecture: Effect v4
-- Delivery: replace the current implementation on a long-lived rewrite branch
-- Production rollout: out of scope until the rewritten application reaches parity
+- Delivery: replace the legacy implementation through the Cloudflare rewrite pull request
+- Production rollout: pending an explicitly authorized cutover
 
 ## Goals
 

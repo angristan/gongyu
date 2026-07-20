@@ -1,12 +1,11 @@
 import { env } from 'cloudflare:workers';
 import { assert, it } from '@effect/vitest';
-import { Phase0WorkflowPayload } from '@gongyu/domain/workflows';
 import {
     makeR2Store,
     R2Store,
     R2StoreError,
 } from '@gongyu/integrations/r2-store';
-import { Effect, Layer, Schema } from 'effect';
+import { Effect, Layer } from 'effect';
 
 const R2StoreTest = Layer.succeed(R2Store)(makeR2Store(env.UPLOADS));
 
@@ -71,35 +70,3 @@ it.layer(R2StoreTest)('native R2 stream adapter', (it) => {
         }),
     );
 });
-
-it.effect('accepts only version 1 Workflow references', () =>
-    Effect.gen(function* () {
-        const valid = yield* Schema.decodeUnknownEffect(Phase0WorkflowPayload)({
-            operation: 'phase0.import',
-            source: {
-                bucket: 'uploads',
-                contentType: 'application/json',
-                etag: 'etag',
-                key: 'phase0/uploads/reference',
-                size: 42,
-            },
-            version: 1,
-        });
-        assert.strictEqual(valid.source.key, 'phase0/uploads/reference');
-
-        const failure = yield* Schema.decodeUnknownEffect(
-            Phase0WorkflowPayload,
-        )({
-            operation: 'phase0.import',
-            source: {
-                bucket: 'uploads',
-                contentType: 'application/json',
-                etag: 'etag',
-                key: 'phase0/uploads/reference',
-                size: 42,
-            },
-            version: 2,
-        }).pipe(Effect.flip);
-        assert.isDefined(failure);
-    }),
-);

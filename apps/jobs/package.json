@@ -6,14 +6,14 @@
     "./data-workflow": "./src/data-workflow.ts",
     "./legacy-migration": "./src/legacy-migration.ts",
     "./processor": "./src/processor.ts",
-    "./runtime": "./src/runtime.ts",
-    "./workflow": "./src/phase0-workflow.ts"
+    "./runtime": "./src/runtime.ts"
   },
   "scripts": {
     "cf-typegen": "wrangler types worker-configuration.d.ts",
     "check": "bun run typecheck && wrangler deploy --dry-run --env=\"\"",
     "deploy:staging": "wrangler deploy --env staging",
     "migrate:legacy": "bun scripts/migrate-legacy.ts",
+    "migrate:staging": "wrangler d1 migrations apply DB --remote --env staging",
     "typecheck": "bun run cf-typegen && tsc -p tsconfig.json"
   },
   "dependencies": {

@@ -1,6 +1,7 @@
 import { assert, it } from '@effect/vitest';
 import { MetadataError } from '@gongyu/domain/metadata';
 import {
+    cleanMetadataTitle,
     type MetadataFetch,
     makeMetadataClient,
 } from '@gongyu/integrations/metadata-client';
@@ -22,7 +23,7 @@ it.effect('extracts bounded candidates and resolves HTTPS images', () =>
                 `
                     <html>
                         <head>
-                            <title>  Cloudflare   metadata  </title>
+                            <title>  Cloudflare   metadata | Example  </title>
                             <meta name="description" content="Bounded description">
                             <meta property="og:image" content="/image.webp">
                         </head>
@@ -43,6 +44,36 @@ it.effect('extracts bounded candidates and resolves HTTPS images', () =>
         );
     }),
 );
+
+it('matches legacy title suffix cleaning behavior', () => {
+    const cases: ReadonlyArray<readonly [string, string]> = [
+        ['Article Title | Website Name', 'Article Title'],
+        ['Article Title - Website Name', 'Article Title'],
+        ['Article Title — Website Name', 'Article Title'],
+        ['Article Title – Website Name', 'Article Title'],
+        ['Article Title · Website Name', 'Article Title'],
+        ['Video Title: youtube', 'Video Title'],
+        ['Repository Name · GitHub', 'Repository Name'],
+        ['', ''],
+        ['   ', ''],
+        ['YouTube', 'YouTube'],
+        ['Simple Article Title', 'Simple Article Title'],
+        ['Part 1 - Part 2 | Website', 'Part 1'],
+        [
+            'Kubernetes v1.35: New level of efficiency with in-place Pod restart | Kubernetes',
+            'Kubernetes v1.35: New level of efficiency with in-place Pod restart',
+        ],
+        [
+            'A real-time, high-performance solution - TechSite',
+            'A real-time, high-performance solution',
+        ],
+        ['Self-hosted application', 'Self-hosted application'],
+    ];
+
+    for (const [title, expected] of cases) {
+        assert.strictEqual(cleanMetadataTitle(title), expected);
+    }
+});
 
 it.effect('rejects credentials HTTP redirects and oversized bodies', () =>
     Effect.gen(function* () {

@@ -12,8 +12,7 @@
     "./metadata": "./src/metadata.ts",
     "./portability": "./src/portability.ts",
     "./settings": "./src/settings.ts",
-    "./social": "./src/social.ts",
-    "./workflows": "./src/workflows.ts"
+    "./social": "./src/social.ts"
   },
   "dependencies": {
     "effect": "4.0.0-beta.97"
