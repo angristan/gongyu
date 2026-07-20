@@ -463,6 +463,14 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
         page.getByRole('heading', { name: 'Overview', exact: true }),
     ).toBeVisible();
     await expect(page.getByText('Total bookmarks')).toBeVisible();
+    await expect(
+        page.getByRole('img', { name: /Daily bookmark activity:/u }),
+    ).toBeVisible();
+    await expect(
+        page.getByRole('img', {
+            name: /example\.com: \d+ bookmarks/u,
+        }),
+    ).toBeVisible();
     await page.setViewportSize({ height: 844, width: 390 });
     const mobileMenu = page.locator('summary').filter({ hasText: /^Menu$/u });
     await mobileMenu.click();

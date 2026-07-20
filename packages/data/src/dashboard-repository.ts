@@ -2,6 +2,7 @@ import {
     DashboardDomainCount,
     type DashboardPeriod,
     DashboardStats,
+    type DashboardTrendGranularity,
     DashboardTrendPoint,
 } from '@gongyu/domain/dashboard';
 import { Context, Effect, Schema } from 'effect';
@@ -76,12 +77,67 @@ function dateKey(value: Date): string {
     return value.toISOString().slice(0, 10);
 }
 
-function dateLabel(value: Date, includeYear: boolean): string {
+function trendGranularity(start: Date, end: Date): DashboardTrendGranularity {
+    const days = Math.floor((end.getTime() - start.getTime()) / DAY_MS) + 1;
+    if (days <= 60) {
+        return 'day';
+    }
+    if (days <= 420) {
+        return 'week';
+    }
+    if (days <= 1_860) {
+        return 'month';
+    }
+    return 'quarter';
+}
+
+function startOfTrendBucket(
+    value: Date,
+    granularity: DashboardTrendGranularity,
+): Date {
+    if (granularity === 'day') {
+        return startOfUtcDay(value);
+    }
+    if (granularity === 'week') {
+        return startOfUtcWeek(value);
+    }
+    const month =
+        granularity === 'quarter'
+            ? Math.floor(value.getUTCMonth() / 3) * 3
+            : value.getUTCMonth();
+    return new Date(Date.UTC(value.getUTCFullYear(), month, 1));
+}
+
+function nextTrendBucket(
+    value: Date,
+    granularity: DashboardTrendGranularity,
+): Date {
+    const next = new Date(value);
+    if (granularity === 'day') {
+        next.setUTCDate(next.getUTCDate() + 1);
+    } else if (granularity === 'week') {
+        next.setUTCDate(next.getUTCDate() + 7);
+    } else if (granularity === 'month') {
+        next.setUTCMonth(next.getUTCMonth() + 1);
+    } else {
+        next.setUTCMonth(next.getUTCMonth() + 3);
+    }
+    return next;
+}
+
+function trendLabel(
+    value: Date,
+    granularity: DashboardTrendGranularity,
+    includeYear: boolean,
+): string {
+    if (granularity === 'quarter') {
+        return `Q${Math.floor(value.getUTCMonth() / 3) + 1} ${value.getUTCFullYear()}`;
+    }
     return new Intl.DateTimeFormat('en-US', {
-        day: 'numeric',
         month: 'short',
         timeZone: 'UTC',
-        ...(includeYear ? { year: 'numeric' } : {}),
+        ...(granularity === 'month' ? {} : { day: 'numeric' }),
+        ...(includeYear || granularity === 'month' ? { year: 'numeric' } : {}),
     }).format(value);
 }
 
@@ -155,22 +211,30 @@ export function makeDashboardRepository(
             bookmarks.list({ page: 1, perPage: 10 }),
         ]);
 
-        const countsByDate = new Map(
-            trendRows.rows.map((row) => [row.date, row.count]),
-        );
-        const includeYear = start.getUTCFullYear() !== end.getUTCFullYear();
+        const granularity = trendGranularity(start, end);
+        const countsByBucket = new Map<string, number>();
+        for (const row of trendRows.rows) {
+            const rowDate = new Date(`${row.date}T00:00:00.000Z`);
+            const key = dateKey(startOfTrendBucket(rowDate, granularity));
+            countsByBucket.set(key, (countsByBucket.get(key) ?? 0) + row.count);
+        }
+        const firstBucket = startOfTrendBucket(start, granularity);
+        const includeYear =
+            firstBucket.getUTCFullYear() !== end.getUTCFullYear();
         const bookmarksOverTime: DashboardTrendPoint[] = [];
-        for (
-            let cursor = new Date(start);
-            cursor.getTime() <= end.getTime();
-            cursor = new Date(cursor.getTime() + DAY_MS)
-        ) {
-            bookmarksOverTime.push(
-                DashboardTrendPoint.make({
-                    count: countsByDate.get(dateKey(cursor)) ?? 0,
-                    date: dateLabel(cursor, includeYear),
-                }),
-            );
+        if (trendRows.rows.length > 0) {
+            for (
+                let cursor = firstBucket;
+                cursor.getTime() <= end.getTime();
+                cursor = nextTrendBucket(cursor, granularity)
+            ) {
+                bookmarksOverTime.push(
+                    DashboardTrendPoint.make({
+                        count: countsByBucket.get(dateKey(cursor)) ?? 0,
+                        date: trendLabel(cursor, granularity, includeYear),
+                    }),
+                );
+            }
         }
 
         const domainCounts = new Map<string, number>();
@@ -206,6 +270,7 @@ export function makeDashboardRepository(
             bookmarksThisWeek: counts?.week ?? 0,
             recentBookmarks: recent.bookmarks,
             totalBookmarks: counts?.total ?? 0,
+            trendGranularity: granularity,
         });
     });
 

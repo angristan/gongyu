@@ -10,6 +10,14 @@ export const DashboardPeriod = Schema.Union([
 ]);
 export type DashboardPeriod = typeof DashboardPeriod.Type;
 
+export const DashboardTrendGranularity = Schema.Union([
+    Schema.Literal('day'),
+    Schema.Literal('week'),
+    Schema.Literal('month'),
+    Schema.Literal('quarter'),
+]);
+export type DashboardTrendGranularity = typeof DashboardTrendGranularity.Type;
+
 export class DashboardTrendPoint extends Schema.Class<DashboardTrendPoint>(
     'DashboardTrendPoint',
 )({
@@ -33,4 +41,5 @@ export class DashboardStats extends Schema.Class<DashboardStats>(
     bookmarksThisWeek: Schema.Number,
     recentBookmarks: Schema.Array(Bookmark),
     totalBookmarks: Schema.Number,
+    trendGranularity: DashboardTrendGranularity,
 }) {}
