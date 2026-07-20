@@ -1,8 +1,3 @@
-import { Banner } from '@cloudflare/kumo/components/banner';
-import { Button, LinkButton } from '@cloudflare/kumo/components/button';
-import { Empty } from '@cloudflare/kumo/components/empty';
-import { Input } from '@cloudflare/kumo/components/input';
-import { LayerCard } from '@cloudflare/kumo/components/layer-card';
 import {
     DataRunBusyError,
     DataRunRepository,
@@ -10,6 +5,7 @@ import {
 import type { DataWorkflowPayload } from '@gongyu/domain/portability';
 import { assertPublicHostname } from '@gongyu/integrations/network-safety';
 import { R2Store } from '@gongyu/integrations/r2-store';
+import { NativeSelect } from '@mantine/core';
 import {
     ArrowClockwiseIcon,
     DatabaseIcon,
@@ -31,12 +27,19 @@ import {
     AdminNativeField,
     AdminPanelHeader,
     adminFileInputClass,
-    adminNativeControlClass,
     adminPanelBodyClass,
     adminPanelFooterClass,
 } from '../components/admin-panel';
 import { OperationProgress } from '../components/operation-progress';
 import { StatusBadge } from '../components/status-badge';
+import {
+    Banner,
+    Button,
+    Empty,
+    Input,
+    LayerCard,
+    LinkButton,
+} from '../components/ui';
 import { cloudflareRequestContext } from '../platform-context';
 import type { loader as rootLoader } from '../root';
 import type { Route } from './+types/admin-data';
@@ -568,21 +571,24 @@ export default function AdminData({ loaderData }: Route.ComponentProps) {
                                 htmlFor="import-format"
                                 label="Source format"
                             >
-                                <select
-                                    className={adminNativeControlClass}
+                                <NativeSelect
+                                    data={[
+                                        {
+                                            label: 'Gongyu JSON v1.0',
+                                            value: 'gongyu_json',
+                                        },
+                                        {
+                                            label: 'Netscape / Shaarli HTML',
+                                            value: 'netscape_html',
+                                        },
+                                        {
+                                            label: 'Shaarli datastore.php',
+                                            value: 'shaarli_datastore',
+                                        },
+                                    ]}
                                     id="import-format"
                                     name="format"
-                                >
-                                    <option value="gongyu_json">
-                                        Gongyu JSON v1.0
-                                    </option>
-                                    <option value="netscape_html">
-                                        Netscape / Shaarli HTML
-                                    </option>
-                                    <option value="shaarli_datastore">
-                                        Shaarli datastore.php
-                                    </option>
-                                </select>
+                                />
                             </AdminNativeField>
                             <AdminNativeField
                                 description="Maximum file size: 10 MiB."
@@ -761,16 +767,17 @@ export default function AdminData({ loaderData }: Route.ComponentProps) {
                                     htmlFor="restore-mode"
                                     label="Restore mode"
                                 >
-                                    <select
-                                        className={adminNativeControlClass}
+                                    <NativeSelect
+                                        data={[
+                                            { label: 'Merge', value: 'merge' },
+                                            {
+                                                label: 'Replacement',
+                                                value: 'replacement',
+                                            },
+                                        ]}
                                         id="restore-mode"
                                         name="mode"
-                                    >
-                                        <option value="merge">Merge</option>
-                                        <option value="replacement">
-                                            Replacement
-                                        </option>
-                                    </select>
+                                    />
                                 </AdminNativeField>
                             </div>
                             <Input
@@ -797,12 +804,12 @@ export default function AdminData({ loaderData }: Route.ComponentProps) {
             <section className="space-y-3" aria-labelledby="runs-heading">
                 <div>
                     <h2
-                        className="text-lg font-semibold text-kumo-default"
+                        className="text-lg font-semibold text-gongyu-default"
                         id="runs-heading"
                     >
                         Recent operations
                     </h2>
-                    <p className="mt-1 text-sm text-kumo-subtle">
+                    <p className="mt-1 text-sm text-gongyu-subtle">
                         Durable Workflow progress, row outcomes, and temporary
                         downloads.
                     </p>
@@ -829,14 +836,14 @@ export default function AdminData({ loaderData }: Route.ComponentProps) {
                                     <div className="flex items-start justify-between gap-4">
                                         <div className="min-w-0">
                                             <div className="flex flex-wrap items-center gap-2">
-                                                <h3 className="font-semibold capitalize text-kumo-default">
+                                                <h3 className="font-semibold capitalize text-gongyu-default">
                                                     {run.kind.replace('_', ' ')}
                                                 </h3>
                                                 <StatusBadge
                                                     state={run.state}
                                                 />
                                             </div>
-                                            <p className="mt-1 truncate text-xs text-kumo-subtle">
+                                            <p className="mt-1 truncate text-xs text-gongyu-subtle">
                                                 {run.format ??
                                                     run.mode ??
                                                     'data'}{' '}
@@ -893,27 +900,27 @@ export default function AdminData({ loaderData }: Route.ComponentProps) {
                                     />
 
                                     <dl className="grid grid-cols-3 gap-2 text-center">
-                                        <div className="rounded-md border border-kumo-line p-2">
-                                            <dt className="text-xs text-kumo-subtle">
+                                        <div className="rounded-md border border-gongyu-line p-2">
+                                            <dt className="text-xs text-gongyu-subtle">
                                                 Imported
                                             </dt>
-                                            <dd className="mt-1 font-semibold text-kumo-default">
+                                            <dd className="mt-1 font-semibold text-gongyu-default">
                                                 {run.importedRows}
                                             </dd>
                                         </div>
-                                        <div className="rounded-md border border-kumo-line p-2">
-                                            <dt className="text-xs text-kumo-subtle">
+                                        <div className="rounded-md border border-gongyu-line p-2">
+                                            <dt className="text-xs text-gongyu-subtle">
                                                 Skipped
                                             </dt>
-                                            <dd className="mt-1 font-semibold text-kumo-default">
+                                            <dd className="mt-1 font-semibold text-gongyu-default">
                                                 {run.skippedRows}
                                             </dd>
                                         </div>
-                                        <div className="rounded-md border border-kumo-line p-2">
-                                            <dt className="text-xs text-kumo-subtle">
+                                        <div className="rounded-md border border-gongyu-line p-2">
+                                            <dt className="text-xs text-gongyu-subtle">
                                                 Errors
                                             </dt>
-                                            <dd className="mt-1 font-semibold text-kumo-default">
+                                            <dd className="mt-1 font-semibold text-gongyu-default">
                                                 {run.errorRows}
                                             </dd>
                                         </div>
@@ -921,17 +928,17 @@ export default function AdminData({ loaderData }: Route.ComponentProps) {
 
                                     {run.errorCode === null &&
                                     errors.length === 0 ? null : (
-                                        <details className="border-t border-kumo-line pt-4 text-sm">
-                                            <summary className="cursor-pointer font-medium text-kumo-danger">
+                                        <details className="border-t border-gongyu-line pt-4 text-sm">
+                                            <summary className="cursor-pointer font-medium text-gongyu-danger">
                                                 View operation errors
                                             </summary>
                                             {run.errorCode === null ? null : (
-                                                <p className="mt-3 font-mono text-xs text-kumo-danger">
+                                                <p className="mt-3 font-mono text-xs text-gongyu-danger">
                                                     {run.errorCode}
                                                 </p>
                                             )}
                                             {errors.length === 0 ? null : (
-                                                <ul className="mt-3 max-h-40 space-y-2 overflow-auto text-xs text-kumo-subtle">
+                                                <ul className="mt-3 max-h-40 space-y-2 overflow-auto text-xs text-gongyu-subtle">
                                                     {errors.map((error) => (
                                                         <li
                                                             key={`${error.rowIndex}:${error.code}`}

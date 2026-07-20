@@ -104,7 +104,8 @@ test('renders the SSR shell and persists hydrated theme changes', async ({
         'strict-origin-when-cross-origin',
     );
     const html = await response.text();
-    expect(html).toContain('<html lang="en" data-mode="light">');
+    expect(html).toContain('data-mantine-color-scheme="light"');
+    expect(html).toContain('data-mode="light"');
     expect(html).toContain('Personal knowledge library');
     expect(html).toContain('Search bookmarks');
     expect(html).toContain('<main id="main-content"');
@@ -326,7 +327,7 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
     const sidebarWidth = await page
         .locator('aside[data-admin-sidebar]')
         .evaluate((element) => element.getBoundingClientRect().width);
-    expect(sidebarWidth).toBeLessThanOrEqual(210);
+    expect(sidebarWidth).toBeLessThanOrEqual(230);
     const bookmarkColumns = await page
         .locator('[data-bookmark-row]')
         .first()

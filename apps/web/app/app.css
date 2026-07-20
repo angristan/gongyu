@@ -1,7 +1,32 @@
-@source "../../../node_modules/@cloudflare/kumo/dist/**/*.{js,jsx,ts,tsx}";
 @source "../../../packages/ui/src/**/*.{ts,tsx}";
-@import "@cloudflare/kumo/styles/tailwind";
 @import "tailwindcss";
+
+@theme inline {
+    --color-gongyu-base: var(--mantine-color-body);
+    --color-gongyu-brand: var(--mantine-primary-color-filled);
+    --color-gongyu-control: var(--mantine-color-default);
+    --color-gongyu-danger: var(--mantine-color-red-text);
+    --color-gongyu-danger-tint: var(--mantine-color-red-light);
+    --color-gongyu-default: var(--mantine-color-text);
+    --color-gongyu-elevated: var(--mantine-color-default);
+    --color-gongyu-fill: var(--mantine-color-default-border);
+    --color-gongyu-focus: var(--mantine-primary-color-filled);
+    --color-gongyu-info: var(--mantine-color-indigo-text);
+    --color-gongyu-inverse: var(--mantine-color-white);
+    --color-gongyu-line: var(--mantine-color-default-border);
+    --color-gongyu-link: var(--mantine-color-anchor);
+    --color-gongyu-recessed: light-dark(
+        var(--mantine-color-gray-0),
+        var(--mantine-color-dark-9)
+    );
+    --color-gongyu-subtle: var(--mantine-color-dimmed);
+    --color-gongyu-success: var(--mantine-color-teal-text);
+    --color-gongyu-success-tint: var(--mantine-color-teal-light);
+    --color-gongyu-tint: light-dark(
+        var(--mantine-color-gray-1),
+        var(--mantine-color-dark-6)
+    );
+}
 
 :root {
     --gongyu-content-default: 56rem;
@@ -21,12 +46,6 @@
     }
 }
 
-@media (max-width: 47.999rem) {
-    aside.gongyu-admin-sidebar[data-sidebar="sidebar"] {
-        display: none;
-    }
-}
-
 .gongyu-page-shell {
     width: 100%;
     padding-inline: var(--gongyu-page-gutter);
@@ -41,32 +60,109 @@
 }
 
 html {
-    background: var(--color-kumo-base);
+    background: var(--mantine-color-body);
 }
 
 body {
     min-width: 320px;
     margin: 0;
-    background: var(--color-kumo-base);
-    color: var(--color-kumo-default);
+    background: var(--mantine-color-body);
+    color: var(--mantine-color-text);
 }
 
 ::selection {
-    background: color-mix(in oklch, var(--color-kumo-brand) 22%, transparent);
+    background: color-mix(
+        in oklch,
+        var(--mantine-primary-color-filled) 22%,
+        transparent
+    );
 }
 
 .gongyu-public-app {
     background-image:
         radial-gradient(
             circle at 15% 0%,
-            color-mix(in oklch, var(--color-kumo-brand) 7%, transparent),
+            color-mix(
+                in oklch,
+                var(--mantine-primary-color-filled) 9%,
+                transparent
+            ),
             transparent 28rem
         ),
         radial-gradient(
             circle at 85% 18rem,
-            color-mix(in oklch, var(--color-kumo-info) 6%, transparent),
+            color-mix(
+                in oklch,
+                var(--mantine-color-cyan-filled) 6%,
+                transparent
+            ),
             transparent 24rem
         );
+}
+
+.gongyu-brand-mark {
+    background: linear-gradient(
+        145deg,
+        var(--mantine-color-indigo-5),
+        var(--mantine-color-violet-8)
+    );
+    box-shadow:
+        0 1px 2px rgb(0 0 0 / 18%),
+        0 8px 24px color-mix(in srgb, var(--mantine-color-indigo-6) 24%, transparent);
+}
+
+.gongyu-admin-app {
+    background: light-dark(
+        var(--mantine-color-gray-0),
+        var(--mantine-color-dark-8)
+    );
+}
+
+.gongyu-admin-sidebar {
+    background:
+        linear-gradient(
+            180deg,
+            color-mix(in srgb, var(--mantine-color-body) 96%, var(--mantine-color-indigo-1)),
+            var(--mantine-color-body)
+        );
+    box-shadow: 8px 0 32px rgb(0 0 0 / 3%);
+}
+
+.gongyu-admin-main {
+    background-image: radial-gradient(
+        circle at 72% -8rem,
+        color-mix(
+            in oklch,
+            var(--mantine-primary-color-filled) 5%,
+            transparent
+        ),
+        transparent 32rem
+    );
+}
+
+[data-mantine-color-scheme="dark"] .gongyu-admin-sidebar {
+    background: linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--mantine-color-dark-8) 92%, var(--mantine-color-indigo-9)),
+        var(--mantine-color-dark-9)
+    );
+    box-shadow: 8px 0 32px rgb(0 0 0 / 18%);
+}
+
+.mantine-Paper-root {
+    transition:
+        border-color 150ms ease,
+        box-shadow 150ms ease;
+}
+
+.min-h-28 .mantine-Textarea-input,
+.mantine-Textarea-root.min-h-28 .mantine-Textarea-input {
+    min-height: 7rem;
+}
+
+.min-h-32 .mantine-Textarea-input,
+.mantine-Textarea-root.min-h-32 .mantine-Textarea-input {
+    min-height: 8rem;
 }
 
 button,

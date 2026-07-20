@@ -1,10 +1,3 @@
-import { Banner } from '@cloudflare/kumo/components/banner';
-import { Button, LinkButton } from '@cloudflare/kumo/components/button';
-import { Dialog } from '@cloudflare/kumo/components/dialog';
-import { Empty } from '@cloudflare/kumo/components/empty';
-import { Input } from '@cloudflare/kumo/components/input';
-import { LayerCard } from '@cloudflare/kumo/components/layer-card';
-import { cn } from '@cloudflare/kumo/utils';
 import { BookmarkRepository } from '@gongyu/data/bookmark-repository';
 import {
     ArrowSquareOutIcon,
@@ -28,6 +21,16 @@ import {
 } from '../auth/session.server';
 import { AdminPage } from '../components/admin-page';
 import { adminNativeControlClass } from '../components/admin-panel';
+import {
+    Banner,
+    Button,
+    cn,
+    Dialog,
+    Empty,
+    Input,
+    LayerCard,
+    LinkButton,
+} from '../components/ui';
 import { cloudflareRequestContext } from '../platform-context';
 import type { loader as rootLoader } from '../root';
 import type { Route } from './+types/admin-bookmarks';
@@ -138,7 +141,7 @@ export default function AdminBookmarks({
             ) : null}
 
             <LayerCard className="overflow-hidden">
-                <div className="flex flex-col gap-2 border-b border-kumo-line p-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col gap-2 border-b border-gongyu-line p-2 sm:flex-row sm:items-center sm:justify-between">
                     <Form
                         className="flex w-full min-w-0 gap-2 sm:max-w-lg"
                         method="get"
@@ -212,20 +215,20 @@ export default function AdminBookmarks({
                     />
                 ) : (
                     <>
-                        <div className="hidden grid-cols-[minmax(0,1fr)_minmax(8rem,12rem)_7.5rem_4.5rem] gap-3 bg-kumo-tint/45 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-kumo-subtle md:grid">
+                        <div className="hidden grid-cols-[minmax(0,1fr)_minmax(8rem,12rem)_7.5rem_4.5rem] gap-3 bg-gongyu-tint/45 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-gongyu-subtle md:grid">
                             <span>Bookmark</span>
                             <span>Source</span>
                             <span>Saved</span>
                             <span className="text-right">Actions</span>
                         </div>
-                        <ol className="divide-y divide-kumo-line">
+                        <ol className="divide-y divide-gongyu-line">
                             {result.bookmarks.map((bookmark) => {
                                 const hostname = new URL(
                                     bookmark.url,
                                 ).hostname.replace(/^www\./u, '');
                                 return (
                                     <li
-                                        className="group px-3 py-2 transition-colors hover:bg-kumo-tint/35"
+                                        className="group px-3 py-2 transition-colors hover:bg-gongyu-tint/35"
                                         key={bookmark.id}
                                     >
                                         <div
@@ -237,27 +240,27 @@ export default function AdminBookmarks({
                                                 data-bookmark-column="bookmark"
                                             >
                                                 <Link
-                                                    className="block truncate text-sm font-medium text-kumo-default hover:text-kumo-link"
+                                                    className="block truncate text-sm font-medium text-gongyu-default hover:text-gongyu-link"
                                                     to={`/admin/bookmarks/${bookmark.shortUrl}/edit`}
                                                 >
                                                     {bookmark.title}
                                                 </Link>
                                                 {bookmark.description ===
                                                 null ? null : (
-                                                    <p className="mt-0.5 truncate text-xs text-kumo-subtle">
+                                                    <p className="mt-0.5 truncate text-xs text-gongyu-subtle">
                                                         {bookmark.description}
                                                     </p>
                                                 )}
                                             </div>
                                             <span
-                                                className="truncate text-xs text-kumo-subtle"
+                                                className="truncate text-xs text-gongyu-subtle"
                                                 data-bookmark-column="source"
                                                 title={hostname}
                                             >
                                                 {hostname}
                                             </span>
                                             <time
-                                                className="whitespace-nowrap text-xs tabular-nums text-kumo-subtle"
+                                                className="whitespace-nowrap text-xs tabular-nums text-gongyu-subtle"
                                                 data-bookmark-column="saved"
                                             >
                                                 {formatDate(bookmark.createdAt)}
@@ -288,12 +291,12 @@ export default function AdminBookmarks({
                                         <div className="flex items-start justify-between gap-3 md:hidden">
                                             <div className="min-w-0">
                                                 <Link
-                                                    className="line-clamp-2 text-sm font-medium text-kumo-default"
+                                                    className="line-clamp-2 text-sm font-medium text-gongyu-default"
                                                     to={`/admin/bookmarks/${bookmark.shortUrl}/edit`}
                                                 >
                                                     {bookmark.title}
                                                 </Link>
-                                                <p className="mt-1 truncate text-xs text-kumo-subtle">
+                                                <p className="mt-1 truncate text-xs text-gongyu-subtle">
                                                     {hostname} ·{' '}
                                                     {formatDate(
                                                         bookmark.createdAt,
@@ -318,9 +321,9 @@ export default function AdminBookmarks({
                 {result.pageCount > 1 ? (
                     <nav
                         aria-label="Bookmark pages"
-                        className="flex items-center justify-between border-t border-kumo-line px-3 py-2"
+                        className="flex items-center justify-between border-t border-gongyu-line px-3 py-2"
                     >
-                        <p className="text-xs text-kumo-subtle">
+                        <p className="text-xs text-gongyu-subtle">
                             Page {result.page} of {result.pageCount}
                         </p>
                         <div className="flex gap-1.5">
@@ -366,18 +369,18 @@ export default function AdminBookmarks({
             </LayerCard>
 
             <details
-                className="border-t border-kumo-line pt-2"
+                className="border-t border-gongyu-line pt-2"
                 open={actionData?.error !== undefined}
             >
-                <summary className="cursor-pointer text-sm text-kumo-danger hover:underline">
+                <summary className="cursor-pointer text-sm text-gongyu-danger hover:underline">
                     Danger zone
                 </summary>
-                <div className="mt-3 flex flex-col gap-3 rounded-lg bg-kumo-danger-tint/30 p-3 ring ring-kumo-danger/20 sm:flex-row sm:items-center sm:justify-between">
+                <div className="mt-3 flex flex-col gap-3 rounded-lg bg-gongyu-danger-tint/30 p-3 ring ring-gongyu-danger/20 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <h2 className="font-medium text-kumo-default">
+                        <h2 className="font-medium text-gongyu-default">
                             Delete the entire library
                         </h2>
-                        <p className="mt-1 text-sm text-kumo-subtle">
+                        <p className="mt-1 text-sm text-gongyu-subtle">
                             Permanently removes every bookmark and mirrored
                             thumbnail.
                         </p>
@@ -441,7 +444,7 @@ export default function AdminBookmarks({
                 <noscript>
                     <Form className="mt-5 max-w-lg space-y-3" method="post">
                         <input name="_csrf" type="hidden" value={csrfToken} />
-                        <label className="block space-y-2 text-sm font-medium text-kumo-default">
+                        <label className="block space-y-2 text-sm font-medium text-gongyu-default">
                             <span>Type DELETE ALL BOOKMARKS to confirm</span>
                             <input
                                 className={adminNativeControlClass}

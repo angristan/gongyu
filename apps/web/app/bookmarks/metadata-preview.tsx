@@ -1,7 +1,7 @@
-import { Button } from '@cloudflare/kumo/components/button';
 import { SparkleIcon } from '@phosphor-icons/react';
 import { Schema } from 'effect';
 import { useState } from 'react';
+import { Button } from '../components/ui';
 
 class MetadataPreviewResponse extends Schema.Class<MetadataPreviewResponse>(
     'MetadataPreviewResponse',
@@ -79,7 +79,7 @@ export function MetadataPreview(props: {
             >
                 Fetch metadata
             </Button>
-            <p aria-live="polite" className="text-xs text-kumo-subtle">
+            <p aria-live="polite" className="text-xs text-gongyu-subtle">
                 {message === ''
                     ? 'Optionally suggest a title and description.'
                     : message}
