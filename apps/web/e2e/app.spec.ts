@@ -8,7 +8,7 @@ const execute = promisify(execFile);
 function d1Arguments(command: string): string[] {
     const target =
         process.env.STAGING_BASE_URL === undefined
-            ? ['gongyu-phase0-local', '--local']
+            ? ['gongyu-local', '--local']
             : ['DB', '--env', 'staging', '--remote'];
     return [
         'wrangler',

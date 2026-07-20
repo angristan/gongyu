@@ -27,7 +27,7 @@ export default defineConfig({
     webServer:
         stagingBaseUrl === undefined
             ? {
-                  command: `bunx wrangler d1 migrations apply gongyu-phase0-local --local && bunx wrangler d1 execute gongyu-phase0-local --local --command="DELETE FROM sessions; DELETE FROM webauthn_challenges; DELETE FROM passkeys; DELETE FROM jobs; DELETE FROM outbox; DELETE FROM bookmarks" && bun run build && bun -e "const p='build/server/wrangler.json'; const config=await Bun.file(p).json(); config.vars.RP_ORIGIN='${localBaseUrl}'; await Bun.write(p, JSON.stringify(config))" && bunx vite preview --host localhost --port ${localPort}`,
+                  command: `bunx wrangler d1 migrations apply gongyu-local --local && bunx wrangler d1 execute gongyu-local --local --command="DELETE FROM sessions; DELETE FROM webauthn_challenges; DELETE FROM passkeys; DELETE FROM jobs; DELETE FROM outbox; DELETE FROM bookmarks" && bun run build && bun -e "const p='build/server/wrangler.json'; const config=await Bun.file(p).json(); config.vars.RP_ORIGIN='${localBaseUrl}'; await Bun.write(p, JSON.stringify(config))" && bunx vite preview --host localhost --port ${localPort}`,
                   reuseExistingServer: false,
                   timeout: 120_000,
                   url: localBaseUrl,
