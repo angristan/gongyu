@@ -30,19 +30,14 @@ import {
 } from '../auth/session.server';
 import { MetadataPreview } from '../bookmarks/metadata-preview';
 import { AdminPage } from '../components/admin-page';
+import {
+    adminPanelBodyClass,
+    adminPanelFooterClass,
+} from '../components/admin-panel';
 import { failure, success } from '../effect/result';
 import { cloudflareRequestContext } from '../platform-context';
 import type { loader as rootLoader } from '../root';
 import type { Route } from './+types/bookmarklet';
-
-const bookmarkletFields = [
-    { label: 'URL', name: 'url', type: 'url' },
-    { label: 'Title', name: 'title', type: 'text' },
-] satisfies ReadonlyArray<{
-    readonly label: string;
-    readonly name: 'title' | 'url';
-    readonly type: 'text' | 'url';
-}>;
 
 export function meta(): Route.MetaDescriptors {
     return [{ title: 'Bookmarklet · Gongyu' }];
@@ -203,7 +198,7 @@ export default function Bookmarklet({
             >
                 <div className="max-w-3xl">
                     <LayerCard>
-                        <section className="space-y-6 p-5 sm:p-7">
+                        <section className="space-y-4 p-4">
                             <div className="flex items-start gap-4">
                                 <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-kumo-tint text-kumo-link">
                                     <BookmarkSimpleIcon
@@ -222,7 +217,7 @@ export default function Bookmarklet({
                                     </p>
                                 </div>
                             </div>
-                            <div className="rounded-2xl border border-dashed border-kumo-brand/50 bg-kumo-tint/50 p-8 text-center">
+                            <div className="rounded-lg border border-dashed border-kumo-line p-5 text-center">
                                 <a
                                     className="inline-flex h-11 items-center justify-center rounded-xl bg-kumo-brand px-5 font-semibold text-kumo-inverse shadow-sm transition-transform hover:-translate-y-0.5"
                                     href="#bookmarklet-code"
@@ -264,7 +259,7 @@ export default function Bookmarklet({
                 width="default"
             >
                 <LayerCard>
-                    <div className="space-y-5 p-6 sm:p-7">
+                    <div className="space-y-4 p-4">
                         <div className="flex items-start gap-4">
                             <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-kumo-tint text-kumo-link">
                                 <BookmarkSimpleIcon
@@ -281,7 +276,7 @@ export default function Bookmarklet({
                                 </p>
                             </div>
                         </div>
-                        <div className="flex flex-wrap gap-2 border-t border-kumo-line pt-5">
+                        <div className="flex flex-wrap gap-2 border-t border-kumo-line pt-3">
                             <LinkButton
                                 href={`/admin/bookmarks/${loaderData.existing.shortUrl}/edit`}
                                 variant="primary"
@@ -315,7 +310,7 @@ export default function Bookmarklet({
         >
             <LayerCard className="max-w-2xl">
                 {saved ? (
-                    <div className="space-y-5 p-7 text-center">
+                    <div className="space-y-4 p-5 text-center">
                         <CheckCircleIcon
                             aria-hidden="true"
                             className="mx-auto text-kumo-success"
@@ -334,67 +329,75 @@ export default function Bookmarklet({
                         </Button>
                     </div>
                 ) : (
-                    <Form className="space-y-4 p-6" method="post">
-                        <input name="_csrf" type="hidden" value={csrfToken} />
-                        <input name="source" type="hidden" value={source} />
-                        {bookmarkletFields.map((field) => {
-                            const fieldError =
-                                field.name === 'url' ? urlError : titleError;
-                            return (
-                                <Input
-                                    error={fieldError}
-                                    key={field.name}
-                                    label={field.label}
-                                    maxLength={
-                                        field.name === 'url' ? 2048 : 500
-                                    }
-                                    name={field.name}
-                                    onChange={(event) => {
-                                        if (field.name === 'url') {
-                                            setUrl(event.currentTarget.value);
-                                        } else {
-                                            setTitle(event.currentTarget.value);
-                                        }
-                                    }}
-                                    required
-                                    type={field.type}
-                                    value={field.name === 'url' ? url : title}
-                                />
-                            );
-                        })}
-                        <MetadataPreview
-                            csrfToken={csrfToken}
-                            onCandidates={(candidates) => {
-                                if (title === '' && candidates.title !== null) {
-                                    setTitle(candidates.title);
-                                }
-                                if (
-                                    description === '' &&
-                                    candidates.description !== null
-                                ) {
-                                    setDescription(candidates.description);
-                                }
-                            }}
-                            url={url}
-                        />
-                        <InputArea
-                            className="min-h-32"
-                            label="Description"
-                            name="description"
-                            onChange={(event) =>
-                                setDescription(event.currentTarget.value)
-                            }
-                            value={description}
-                        />
-                        {loaderData.providers.length === 0 ? null : (
-                            <Checkbox
-                                checked={shareSocial}
-                                label={`Share through ${loaderData.providers.join(', ')}`}
-                                name="share_social"
-                                onCheckedChange={setShareSocial}
+                    <Form method="post">
+                        <div className={adminPanelBodyClass}>
+                            <input
+                                name="_csrf"
+                                type="hidden"
+                                value={csrfToken}
                             />
-                        )}
-                        <div className="flex flex-wrap gap-3">
+                            <input name="source" type="hidden" value={source} />
+                            <Input
+                                description="Use the exact URL you want Gongyu to preserve."
+                                error={urlError}
+                                label="URL"
+                                maxLength={2048}
+                                name="url"
+                                onChange={(event) =>
+                                    setUrl(event.currentTarget.value)
+                                }
+                                required
+                                type="url"
+                                value={url}
+                            />
+                            <MetadataPreview
+                                csrfToken={csrfToken}
+                                onCandidates={(candidates) => {
+                                    if (
+                                        title === '' &&
+                                        candidates.title !== null
+                                    ) {
+                                        setTitle(candidates.title);
+                                    }
+                                    if (
+                                        description === '' &&
+                                        candidates.description !== null
+                                    ) {
+                                        setDescription(candidates.description);
+                                    }
+                                }}
+                                url={url}
+                            />
+                            <Input
+                                error={titleError}
+                                label="Title"
+                                maxLength={500}
+                                name="title"
+                                onChange={(event) =>
+                                    setTitle(event.currentTarget.value)
+                                }
+                                required
+                                value={title}
+                            />
+                            <InputArea
+                                className="min-h-28"
+                                label="Description"
+                                name="description"
+                                onChange={(event) =>
+                                    setDescription(event.currentTarget.value)
+                                }
+                                value={description}
+                            />
+                            {loaderData.providers.length === 0 ? null : (
+                                <Checkbox
+                                    checked={shareSocial}
+                                    label={`Share through ${loaderData.providers.join(', ')}`}
+                                    name="share_social"
+                                    onCheckedChange={setShareSocial}
+                                />
+                            )}
+                        </div>
+                        <div className={adminPanelFooterClass}>
                             <Button
                                 icon={FloppyDiskIcon}
                                 loading={isSubmitting}

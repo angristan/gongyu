@@ -115,12 +115,12 @@ export default function AdminSecurity() {
             title="Security"
             width="default"
         >
-            <div className="space-y-5">
+            <div className="space-y-3">
                 <LayerCard>
-                    <section className="p-5 sm:p-7">
-                        <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-                            <div className="flex items-start gap-4">
-                                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-kumo-success-tint text-kumo-success">
+                    <section className="p-4">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                            <div className="flex items-start gap-3">
+                                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-kumo-line text-kumo-success">
                                     <FingerprintSimpleIcon
                                         aria-hidden="true"
                                         size={26}
@@ -129,7 +129,7 @@ export default function AdminSecurity() {
                                 </span>
                                 <div>
                                     <div className="flex flex-wrap items-center gap-2">
-                                        <h2 className="text-lg font-semibold text-kumo-default">
+                                        <h2 className="font-semibold text-kumo-default">
                                             Administrator passkey
                                         </h2>
                                         <Badge
@@ -139,7 +139,7 @@ export default function AdminSecurity() {
                                             Active
                                         </Badge>
                                     </div>
-                                    <p className="mt-2 max-w-xl text-sm leading-6 text-kumo-subtle">
+                                    <p className="mt-1 max-w-xl text-sm leading-5 text-kumo-subtle">
                                         Gongyu accepts exactly one passkey. It
                                         can use your device lock, security key,
                                         or synchronized credential.
@@ -151,6 +151,7 @@ export default function AdminSecurity() {
                                     render={
                                         <Button
                                             icon={KeyIcon}
+                                            size="sm"
                                             variant="secondary"
                                         />
                                     }
@@ -181,15 +182,15 @@ export default function AdminSecurity() {
                                             loading={processing}
                                             onClick={replacePasskey}
                                             type="button"
-                                            variant="primary"
+                                            variant="destructive"
                                         >
-                                            Continue
+                                            Replace now
                                         </Button>
                                     </div>
                                 </Dialog>
                             </Dialog.Root>
                         </div>
-                        <div className="mt-6 rounded-xl border border-kumo-line bg-kumo-tint/40 p-4">
+                        <div className="mt-4 rounded-lg border border-kumo-line px-3 py-2">
                             <p
                                 aria-live="polite"
                                 className="text-sm text-kumo-default"
@@ -203,28 +204,31 @@ export default function AdminSecurity() {
                     description="Replacement revokes existing sessions and the previous passkey together."
                     icon={<WarningIcon aria-hidden="true" size={20} />}
                     title="Before replacing your passkey"
-                    variant="alert"
+                    variant="secondary"
                 />
-                <section className="grid gap-6 border-t border-kumo-line pt-5 text-sm sm:grid-cols-2">
-                    <div>
-                        <h2 className="font-medium text-kumo-default">
-                            Session protection
-                        </h2>
-                        <p className="mt-1.5 leading-6 text-kumo-subtle">
-                            Sessions expire after seven idle days and have a
-                            fixed 30-day maximum lifetime.
-                        </p>
-                    </div>
-                    <div>
-                        <h2 className="font-medium text-kumo-default">
-                            Lost your passkey?
-                        </h2>
-                        <p className="mt-1.5 leading-6 text-kumo-subtle">
-                            Recovery requires deployment access, the setup
-                            token, and the exact operator confirmation phrase.
-                        </p>
-                    </div>
-                </section>
+                <LayerCard>
+                    <section className="grid gap-4 p-4 text-sm sm:grid-cols-2">
+                        <div>
+                            <h2 className="font-medium text-kumo-default">
+                                Session protection
+                            </h2>
+                            <p className="mt-1 leading-5 text-kumo-subtle">
+                                Sessions expire after seven idle days and have a
+                                fixed 30-day maximum lifetime.
+                            </p>
+                        </div>
+                        <div>
+                            <h2 className="font-medium text-kumo-default">
+                                Lost your passkey?
+                            </h2>
+                            <p className="mt-1 leading-5 text-kumo-subtle">
+                                Recovery requires deployment access, the setup
+                                token, and the exact operator confirmation
+                                phrase.
+                            </p>
+                        </div>
+                    </section>
+                </LayerCard>
             </div>
             <noscript>
                 <Banner

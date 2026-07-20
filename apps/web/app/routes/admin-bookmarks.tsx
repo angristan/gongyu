@@ -3,6 +3,7 @@ import { Button, LinkButton } from '@cloudflare/kumo/components/button';
 import { Dialog } from '@cloudflare/kumo/components/dialog';
 import { Empty } from '@cloudflare/kumo/components/empty';
 import { Input } from '@cloudflare/kumo/components/input';
+import { LayerCard } from '@cloudflare/kumo/components/layer-card';
 import { cn } from '@cloudflare/kumo/utils';
 import { BookmarkRepository } from '@gongyu/data/bookmark-repository';
 import {
@@ -26,6 +27,7 @@ import {
     requireAuthentication,
 } from '../auth/session.server';
 import { AdminPage } from '../components/admin-page';
+import { adminNativeControlClass } from '../components/admin-panel';
 import { cloudflareRequestContext } from '../platform-context';
 import type { loader as rootLoader } from '../root';
 import type { Route } from './+types/admin-bookmarks';
@@ -135,7 +137,7 @@ export default function AdminBookmarks({
                 />
             ) : null}
 
-            <section className="overflow-hidden rounded-xl border border-kumo-line bg-kumo-base shadow-sm">
+            <LayerCard className="overflow-hidden">
                 <div className="flex flex-col gap-2 border-b border-kumo-line p-2 sm:flex-row sm:items-center sm:justify-between">
                     <Form
                         className="flex w-full min-w-0 gap-2 sm:max-w-lg"
@@ -261,7 +263,7 @@ export default function AdminBookmarks({
                                                 {formatDate(bookmark.createdAt)}
                                             </time>
                                             <div
-                                                className="flex justify-end gap-0.5 opacity-70 transition-opacity group-hover:opacity-100"
+                                                className="flex justify-end gap-0.5"
                                                 data-bookmark-column="actions"
                                             >
                                                 <LinkButton
@@ -361,16 +363,16 @@ export default function AdminBookmarks({
                         </div>
                     </nav>
                 ) : null}
-            </section>
+            </LayerCard>
 
             <details
                 className="border-t border-kumo-line pt-2"
                 open={actionData?.error !== undefined}
             >
-                <summary className="cursor-pointer text-sm text-kumo-subtle hover:text-kumo-default">
+                <summary className="cursor-pointer text-sm text-kumo-danger hover:underline">
                     Danger zone
                 </summary>
-                <div className="mt-3 flex flex-col gap-3 rounded-xl border border-kumo-danger/20 p-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="mt-3 flex flex-col gap-3 rounded-lg bg-kumo-danger-tint/30 p-3 ring ring-kumo-danger/20 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h2 className="font-medium text-kumo-default">
                             Delete the entire library
@@ -442,7 +444,7 @@ export default function AdminBookmarks({
                         <label className="block space-y-2 text-sm font-medium text-kumo-default">
                             <span>Type DELETE ALL BOOKMARKS to confirm</span>
                             <input
-                                className="w-full rounded-lg border border-kumo-line bg-kumo-base px-3 py-2"
+                                className={adminNativeControlClass}
                                 name="confirmation"
                             />
                         </label>
