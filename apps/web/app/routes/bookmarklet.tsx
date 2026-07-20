@@ -1,7 +1,3 @@
-import { Button, LinkButton } from '@cloudflare/kumo/components/button';
-import { Checkbox } from '@cloudflare/kumo/components/checkbox';
-import { Input, InputArea } from '@cloudflare/kumo/components/input';
-import { LayerCard } from '@cloudflare/kumo/components/layer-card';
 import { BookmarkRepository } from '@gongyu/data/bookmark-repository';
 import { SettingsRepository } from '@gongyu/data/settings-repository';
 import {
@@ -34,6 +30,14 @@ import {
     adminPanelBodyClass,
     adminPanelFooterClass,
 } from '../components/admin-panel';
+import {
+    Button,
+    Checkbox,
+    Input,
+    InputArea,
+    LayerCard,
+    LinkButton,
+} from '../components/ui';
 import { failure, success } from '../effect/result';
 import { cloudflareRequestContext } from '../platform-context';
 import type { loader as rootLoader } from '../root';
@@ -200,7 +204,7 @@ export default function Bookmarklet({
                     <LayerCard>
                         <section className="space-y-4 p-4">
                             <div className="flex items-start gap-4">
-                                <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-kumo-tint text-kumo-link">
+                                <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-gongyu-tint text-gongyu-link">
                                     <BookmarkSimpleIcon
                                         aria-hidden="true"
                                         size={26}
@@ -208,30 +212,30 @@ export default function Bookmarklet({
                                     />
                                 </span>
                                 <div>
-                                    <h2 className="text-lg font-semibold text-kumo-default">
+                                    <h2 className="text-lg font-semibold text-gongyu-default">
                                         Add it to your bookmarks bar
                                     </h2>
-                                    <p className="mt-1 text-sm leading-6 text-kumo-subtle">
+                                    <p className="mt-1 text-sm leading-6 text-gongyu-subtle">
                                         Drag the button below into the browser
                                         toolbar, then click it from any page.
                                     </p>
                                 </div>
                             </div>
-                            <div className="rounded-lg border border-dashed border-kumo-line p-5 text-center">
+                            <div className="rounded-lg border border-dashed border-gongyu-line p-5 text-center">
                                 <a
-                                    className="inline-flex h-11 items-center justify-center rounded-xl bg-kumo-brand px-5 font-semibold text-kumo-inverse shadow-sm transition-transform hover:-translate-y-0.5"
+                                    className="inline-flex h-11 items-center justify-center rounded-xl bg-gongyu-brand px-5 font-semibold text-gongyu-inverse shadow-sm transition-transform hover:-translate-y-0.5"
                                     href="#bookmarklet-code"
                                     ref={installLink}
                                 >
                                     Save to Gongyu
                                 </a>
-                                <p className="mt-3 text-xs text-kumo-subtle">
+                                <p className="mt-3 text-xs text-gongyu-subtle">
                                     Drag this button — do not click it on this
                                     page.
                                 </p>
                             </div>
-                            <details className="border-t border-kumo-line pt-4">
-                                <summary className="cursor-pointer text-sm text-kumo-link">
+                            <details className="border-t border-gongyu-line pt-4">
+                                <summary className="cursor-pointer text-sm text-gongyu-link">
                                     Manual installation code
                                 </summary>
                                 <InputArea
@@ -261,22 +265,22 @@ export default function Bookmarklet({
                 <LayerCard>
                     <div className="space-y-4 p-4">
                         <div className="flex items-start gap-4">
-                            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-kumo-tint text-kumo-link">
+                            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-gongyu-tint text-gongyu-link">
                                 <BookmarkSimpleIcon
                                     aria-hidden="true"
                                     size={23}
                                 />
                             </span>
                             <div className="min-w-0">
-                                <p className="font-semibold text-kumo-default">
+                                <p className="font-semibold text-gongyu-default">
                                     {loaderData.existing.title}
                                 </p>
-                                <p className="mt-1 break-all text-sm text-kumo-subtle">
+                                <p className="mt-1 break-all text-sm text-gongyu-subtle">
                                     {loaderData.existing.url}
                                 </p>
                             </div>
                         </div>
-                        <div className="flex flex-wrap gap-2 border-t border-kumo-line pt-3">
+                        <div className="flex flex-wrap gap-2 border-t border-gongyu-line pt-3">
                             <LinkButton
                                 href={`/admin/bookmarks/${loaderData.existing.shortUrl}/edit`}
                                 variant="primary"
@@ -313,11 +317,11 @@ export default function Bookmarklet({
                     <div className="space-y-4 p-5 text-center">
                         <CheckCircleIcon
                             aria-hidden="true"
-                            className="mx-auto text-kumo-success"
+                            className="mx-auto text-gongyu-success"
                             size={48}
                             weight="duotone"
                         />
-                        <p aria-live="polite" className="text-kumo-default">
+                        <p aria-live="polite" className="text-gongyu-default">
                             Saved successfully. This popup will close shortly.
                         </p>
                         <Button

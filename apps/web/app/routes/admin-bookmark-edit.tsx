@@ -1,8 +1,3 @@
-import { Badge } from '@cloudflare/kumo/components/badge';
-import { Button, LinkButton } from '@cloudflare/kumo/components/button';
-import { Dialog } from '@cloudflare/kumo/components/dialog';
-import { Input, InputArea } from '@cloudflare/kumo/components/input';
-import { LayerCard } from '@cloudflare/kumo/components/layer-card';
 import { BookmarkRepository } from '@gongyu/data/bookmark-repository';
 import { MetadataRepository } from '@gongyu/data/metadata-repository';
 import {
@@ -41,6 +36,15 @@ import {
     adminPanelBodyClass,
     adminPanelFooterClass,
 } from '../components/admin-panel';
+import {
+    Badge,
+    Button,
+    Dialog,
+    Input,
+    InputArea,
+    LayerCard,
+    LinkButton,
+} from '../components/ui';
 import { failure, success } from '../effect/result';
 import { cloudflareRequestContext } from '../platform-context';
 import type { loader as rootLoader } from '../root';
@@ -251,8 +255,8 @@ export default function AdminBookmarkEdit({
                                 url={url}
                             />
                             {candidates === null ? null : (
-                                <div className="rounded-lg border border-kumo-line p-3">
-                                    <div className="flex items-center gap-2 text-sm font-medium text-kumo-default">
+                                <div className="rounded-lg border border-gongyu-line p-3">
+                                    <div className="flex items-center gap-2 text-sm font-medium text-gongyu-default">
                                         <SparkleIcon
                                             aria-hidden="true"
                                             size={17}
@@ -332,8 +336,8 @@ export default function AdminBookmarkEdit({
                 <aside className="space-y-3">
                     <LayerCard className="overflow-hidden">
                         {loaderData.bookmark.thumbnailSha256 === null ? (
-                            <div className="flex aspect-[16/9] items-center justify-center bg-kumo-tint">
-                                <span className="text-sm text-kumo-subtle">
+                            <div className="flex aspect-[16/9] items-center justify-center bg-gongyu-tint">
+                                <span className="text-sm text-gongyu-subtle">
                                     No mirrored preview
                                 </span>
                             </div>
@@ -346,7 +350,7 @@ export default function AdminBookmarkEdit({
                         )}
                         <dl className="space-y-3 p-4 text-sm">
                             <div>
-                                <dt className="text-kumo-subtle">Source</dt>
+                                <dt className="text-gongyu-subtle">Source</dt>
                                 <dd className="mt-1">
                                     <Badge variant="secondary">
                                         {hostname}
@@ -354,16 +358,16 @@ export default function AdminBookmarkEdit({
                                 </dd>
                             </div>
                             <div>
-                                <dt className="text-kumo-subtle">Saved</dt>
-                                <dd className="mt-1 font-medium text-kumo-default">
+                                <dt className="text-gongyu-subtle">Saved</dt>
+                                <dd className="mt-1 font-medium text-gongyu-default">
                                     {savedDate}
                                 </dd>
                             </div>
                             <div>
-                                <dt className="text-kumo-subtle">
+                                <dt className="text-gongyu-subtle">
                                     Public short URL
                                 </dt>
-                                <dd className="mt-1 font-mono text-xs text-kumo-default">
+                                <dd className="mt-1 font-mono text-xs text-gongyu-default">
                                     /b/{loaderData.bookmark.shortUrl}
                                 </dd>
                             </div>
@@ -371,14 +375,14 @@ export default function AdminBookmarkEdit({
                     </LayerCard>
 
                     <details
-                        className="border-t border-kumo-line pt-2"
+                        className="border-t border-gongyu-line pt-2"
                         open={confirmationError !== undefined}
                     >
-                        <summary className="cursor-pointer text-sm text-kumo-danger hover:underline">
+                        <summary className="cursor-pointer text-sm text-gongyu-danger hover:underline">
                             Delete bookmark
                         </summary>
-                        <div className="mt-3 rounded-lg bg-kumo-danger-tint/30 p-3 ring ring-kumo-danger/20">
-                            <p className="text-sm leading-6 text-kumo-subtle">
+                        <div className="mt-3 rounded-lg bg-gongyu-danger-tint/30 p-3 ring ring-gongyu-danger/20">
+                            <p className="text-sm leading-6 text-gongyu-subtle">
                                 Permanently removes this bookmark and its
                                 mirrored preview.
                             </p>
@@ -456,7 +460,7 @@ export default function AdminBookmarkEdit({
                                         type="hidden"
                                         value="delete"
                                     />
-                                    <label className="block space-y-2 text-sm text-kumo-default">
+                                    <label className="block space-y-2 text-sm text-gongyu-default">
                                         <span>Type DELETE to confirm</span>
                                         <input
                                             className={adminNativeControlClass}

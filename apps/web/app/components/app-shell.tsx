@@ -1,5 +1,3 @@
-import { LinkButton } from '@cloudflare/kumo/components/button';
-import { cn } from '@cloudflare/kumo/utils';
 import {
     ArrowSquareOutIcon,
     BookmarkSimpleIcon,
@@ -20,6 +18,7 @@ import {
 import type { ReactNode } from 'react';
 import { Form, Link, useLocation } from 'react-router';
 import type { ThemeMode } from '../theme.server';
+import { Button, cn, LinkButton } from './ui';
 
 interface AppShellProps {
     readonly authenticated: boolean;
@@ -110,10 +109,10 @@ function Brand({
     return (
         <Link
             aria-label="Gongyu home"
-            className="group flex min-w-0 items-center gap-2.5 text-kumo-default no-underline"
+            className="group flex min-w-0 items-center gap-2.5 text-gongyu-default no-underline"
             to={href}
         >
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-kumo-brand text-sm font-bold text-kumo-inverse shadow-sm shadow-kumo-brand/15">
+            <span className="gongyu-brand-mark flex size-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-white">
                 G
             </span>
             {compact ? null : (
@@ -121,7 +120,7 @@ function Brand({
                     <span className="block truncate text-sm font-semibold tracking-[-0.01em]">
                         Gongyu
                     </span>
-                    <span className="mt-0.5 block truncate text-[11px] text-kumo-subtle">
+                    <span className="mt-0.5 block truncate text-[11px] text-gongyu-subtle">
                         Personal bookmarks
                     </span>
                 </span>
@@ -143,13 +142,13 @@ function ThemeForm({
         <Form action="/theme" method="post">
             <input name="mode" type="hidden" value={nextMode} />
             <input name="returnTo" type="hidden" value={returnTo} />
-            <button
+            <Button
                 aria-label={`Use ${nextMode} mode`}
-                className="inline-flex size-8 items-center justify-center rounded-lg text-kumo-subtle transition-colors hover:bg-kumo-tint hover:text-kumo-default focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-kumo-focus"
+                icon={Icon}
+                shape="square"
                 type="submit"
-            >
-                <Icon aria-hidden="true" size={17} />
-            </button>
+                variant="ghost"
+            />
         </Form>
     );
 }
@@ -162,8 +161,8 @@ function PublicShell({
     const location = useLocation();
     const returnTo = `${location.pathname}${location.search}`;
     return (
-        <div className="gongyu-public-app min-h-screen bg-kumo-base">
-            <header className="sticky top-0 z-40 border-b border-kumo-line bg-kumo-base/95 backdrop-blur">
+        <div className="gongyu-public-app min-h-screen bg-gongyu-base">
+            <header className="sticky top-0 z-40 border-b border-gongyu-line bg-gongyu-base/95 backdrop-blur">
                 <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
                     <Brand />
                     <nav
@@ -201,14 +200,14 @@ function PublicShell({
                 </div>
             </header>
             {children}
-            <footer className="border-t border-kumo-line px-4 py-8 text-sm text-kumo-subtle sm:px-6 lg:px-8">
+            <footer className="border-t border-gongyu-line px-4 py-8 text-sm text-gongyu-subtle sm:px-6 lg:px-8">
                 <div className="mx-auto flex max-w-7xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <p>Gongyu · a calm place for links worth keeping.</p>
                     <div className="flex items-center gap-4">
-                        <Link className="text-kumo-link" to="/search">
+                        <Link className="text-gongyu-link" to="/search">
                             Search
                         </Link>
-                        <a className="text-kumo-link" href="/feed">
+                        <a className="text-gongyu-link" href="/feed">
                             Atom feed
                         </a>
                     </div>
@@ -229,7 +228,7 @@ function NavigationSection({
 }) {
     return (
         <section>
-            <h2 className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-kumo-subtle">
+            <h2 className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-gongyu-subtle">
                 {label}
             </h2>
             <ul>
@@ -243,8 +242,8 @@ function NavigationSection({
                                 className={cn(
                                     'flex items-center gap-2 rounded-md px-2 py-1.5 text-[13px] font-medium transition-colors',
                                     active
-                                        ? 'bg-kumo-brand/10 text-kumo-link'
-                                        : 'text-kumo-subtle hover:bg-kumo-tint hover:text-kumo-default',
+                                        ? 'bg-gongyu-brand/10 text-gongyu-link'
+                                        : 'text-gongyu-subtle hover:bg-gongyu-tint hover:text-gongyu-default',
                                 )}
                                 to={item.href}
                             >
@@ -290,13 +289,13 @@ function SessionActions({
             <ThemeForm returnTo={returnTo} themeMode={themeMode} />
             <Form action="/logout" method="post">
                 <input name="_csrf" type="hidden" value={csrfToken ?? ''} />
-                <button
+                <Button
                     aria-label="Sign out"
-                    className="inline-flex size-8 items-center justify-center rounded-lg text-kumo-subtle transition-colors hover:bg-kumo-tint hover:text-kumo-default focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-kumo-focus"
+                    icon={SignOutIcon}
+                    shape="square"
                     type="submit"
-                >
-                    <SignOutIcon aria-hidden="true" size={17} />
-                </button>
+                    variant="ghost"
+                />
             </Form>
         </div>
     );
@@ -314,21 +313,21 @@ function AdminShell({
     )?.label;
 
     return (
-        <div className="min-h-svh bg-kumo-base lg:flex">
+        <div className="gongyu-admin-app min-h-svh lg:flex">
             <aside
-                className="sticky top-0 hidden h-svh w-48 shrink-0 flex-col border-r border-kumo-line bg-kumo-recessed lg:flex"
+                className="gongyu-admin-sidebar sticky top-0 hidden h-svh w-56 shrink-0 flex-col border-r border-gongyu-line lg:flex"
                 data-admin-sidebar=""
             >
-                <div className="flex h-14 items-center border-b border-kumo-line px-3">
+                <div className="flex h-14 items-center border-b border-gongyu-line px-3">
                     <Brand href="/admin/bookmarks" />
                 </div>
                 <div className="min-h-0 flex-1 overflow-y-auto px-2 py-3">
                     <AdminNavigation pathname={location.pathname} />
                 </div>
-                <div className="border-t border-kumo-line p-2">
+                <div className="border-t border-gongyu-line p-2">
                     <div className="flex items-center justify-between gap-1">
                         <Link
-                            className="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs text-kumo-subtle hover:bg-kumo-tint hover:text-kumo-default"
+                            className="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs text-gongyu-subtle hover:bg-gongyu-tint hover:text-gongyu-default"
                             to="/"
                         >
                             <ArrowSquareOutIcon aria-hidden="true" size={16} />
@@ -343,19 +342,19 @@ function AdminShell({
                 </div>
             </aside>
 
-            <div className="min-w-0 flex-1">
-                <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-kumo-line bg-kumo-base/95 px-4 backdrop-blur lg:hidden">
+            <div className="gongyu-admin-main min-w-0 flex-1">
+                <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-gongyu-line bg-gongyu-base/95 px-4 backdrop-blur lg:hidden">
                     <div className="flex min-w-0 items-center gap-3">
                         <details className="group relative">
-                            <summary className="flex size-8 cursor-pointer list-none items-center justify-center rounded-lg text-kumo-subtle hover:bg-kumo-tint hover:text-kumo-default focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-kumo-focus">
+                            <summary className="flex size-8 cursor-pointer list-none items-center justify-center rounded-lg text-gongyu-subtle hover:bg-gongyu-tint hover:text-gongyu-default focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gongyu-focus">
                                 <ListIcon aria-hidden="true" size={19} />
                                 <span className="sr-only">Menu</span>
                             </summary>
-                            <div className="absolute left-0 top-10 z-50 w-64 rounded-lg border border-kumo-line bg-kumo-base p-3 shadow-md">
+                            <div className="absolute left-0 top-10 z-50 w-64 rounded-lg border border-gongyu-line bg-gongyu-base p-3 shadow-md">
                                 <AdminNavigation pathname={location.pathname} />
-                                <div className="mt-4 flex items-center justify-between border-t border-kumo-line pt-3">
+                                <div className="mt-4 flex items-center justify-between border-t border-gongyu-line pt-3">
                                     <Link
-                                        className="flex items-center gap-2 text-xs text-kumo-subtle"
+                                        className="flex items-center gap-2 text-xs text-gongyu-subtle"
                                         to="/"
                                     >
                                         <ArrowSquareOutIcon
@@ -373,7 +372,7 @@ function AdminShell({
                             </div>
                         </details>
                         <Brand compact href="/admin/bookmarks" />
-                        <span className="truncate text-sm font-medium text-kumo-default">
+                        <span className="truncate text-sm font-medium text-gongyu-default">
                             {currentPage ?? 'Library'}
                         </span>
                     </div>

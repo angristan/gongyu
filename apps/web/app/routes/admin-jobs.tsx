@@ -1,9 +1,3 @@
-import { Banner } from '@cloudflare/kumo/components/banner';
-import { Button } from '@cloudflare/kumo/components/button';
-import { Dialog } from '@cloudflare/kumo/components/dialog';
-import { Empty } from '@cloudflare/kumo/components/empty';
-import { LayerCard } from '@cloudflare/kumo/components/layer-card';
-import { cn } from '@cloudflare/kumo/utils';
 import { WorkRepository } from '@gongyu/data/work-repository';
 import {
     ArrowClockwiseIcon,
@@ -26,6 +20,7 @@ import {
 } from '../auth/session.server';
 import { AdminPage } from '../components/admin-page';
 import { StatusBadge } from '../components/status-badge';
+import { Banner, Button, cn, Dialog, Empty, LayerCard } from '../components/ui';
 import { cloudflareRequestContext } from '../platform-context';
 import type { loader as rootLoader } from '../root';
 import type { Route } from './+types/admin-jobs';
@@ -220,8 +215,8 @@ function RecoveryActions({
                     </Dialog>
                 </Dialog.Root>
                 <noscript>
-                    <div className="space-y-3 rounded-lg border border-kumo-line p-3">
-                        <p className="text-sm leading-6 text-kumo-default">
+                    <div className="space-y-3 rounded-lg border border-gongyu-line p-3">
+                        <p className="text-sm leading-6 text-gongyu-default">
                             Twitter may have accepted this post. Choose whether
                             to mark it delivered or retry despite duplicate
                             risk.
@@ -290,7 +285,7 @@ export default function AdminJobs({
             <LayerCard className="overflow-hidden">
                 <nav
                     aria-label="Background work filters"
-                    className="flex gap-1 overflow-x-auto border-b border-kumo-line"
+                    className="flex gap-1 overflow-x-auto border-b border-gongyu-line"
                 >
                     {[
                         ['All', loaderData.summary.total, 'all'],
@@ -313,8 +308,8 @@ export default function AdminJobs({
                             className={cn(
                                 'flex shrink-0 items-center gap-2 border-b-2 px-3 py-2.5 text-sm',
                                 loaderData.filter === value
-                                    ? 'border-kumo-brand font-medium text-kumo-default'
-                                    : 'border-transparent text-kumo-subtle hover:text-kumo-default',
+                                    ? 'border-gongyu-brand font-medium text-gongyu-default'
+                                    : 'border-transparent text-gongyu-subtle hover:text-gongyu-default',
                             )}
                             key={value}
                             to={
@@ -324,7 +319,7 @@ export default function AdminJobs({
                             }
                         >
                             {label}
-                            <span className="rounded-full bg-kumo-tint px-1.5 py-0.5 text-xs tabular-nums">
+                            <span className="rounded-full bg-gongyu-tint px-1.5 py-0.5 text-xs tabular-nums">
                                 {count}
                             </span>
                         </Link>
@@ -345,40 +340,40 @@ export default function AdminJobs({
                     />
                 ) : (
                     <>
-                        <div className="hidden grid-cols-[minmax(0,1fr)_7rem_4rem_9rem_8rem] gap-3 bg-kumo-tint/45 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-kumo-subtle md:grid">
+                        <div className="hidden grid-cols-[minmax(0,1fr)_7rem_4rem_9rem_8rem] gap-3 bg-gongyu-tint/45 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-gongyu-subtle md:grid">
                             <span>Job</span>
                             <span>Status</span>
                             <span>Tries</span>
                             <span>Updated</span>
                             <span className="text-right">Recovery</span>
                         </div>
-                        <ol className="hidden divide-y divide-kumo-line md:block">
+                        <ol className="hidden divide-y divide-gongyu-line md:block">
                             {loaderData.jobs.map((job) => (
                                 <li
                                     className="grid grid-cols-[minmax(0,1fr)_7rem_4rem_9rem_8rem] items-center gap-3 px-3 py-2"
                                     key={job.id}
                                 >
                                     <div className="min-w-0">
-                                        <p className="truncate text-sm font-medium text-kumo-default">
+                                        <p className="truncate text-sm font-medium text-gongyu-default">
                                             {job.kind.replace(':', ' · ')}
                                         </p>
                                         <Link
-                                            className="text-xs text-kumo-link"
+                                            className="text-xs text-gongyu-link"
                                             to={`/b/${job.bookmarkShortUrl}`}
                                         >
                                             {job.bookmarkShortUrl}
                                         </Link>
                                         {job.lastErrorCode === null ? null : (
-                                            <p className="mt-0.5 truncate font-mono text-xs text-kumo-danger">
+                                            <p className="mt-0.5 truncate font-mono text-xs text-gongyu-danger">
                                                 {job.lastErrorCode}
                                             </p>
                                         )}
                                     </div>
                                     <StatusBadge state={job.state} />
-                                    <span className="text-sm tabular-nums text-kumo-subtle">
+                                    <span className="text-sm tabular-nums text-gongyu-subtle">
                                         {job.attempts}
                                     </span>
-                                    <time className="whitespace-nowrap text-xs text-kumo-subtle">
+                                    <time className="whitespace-nowrap text-xs text-gongyu-subtle">
                                         {formatDate(job.updatedAt)}
                                     </time>
                                     <div className="flex justify-end">
@@ -392,7 +387,7 @@ export default function AdminJobs({
                                                 processing={processing}
                                             />
                                         ) : (
-                                            <span className="text-xs text-kumo-subtle">
+                                            <span className="text-xs text-gongyu-subtle">
                                                 —
                                             </span>
                                         )}
@@ -400,15 +395,15 @@ export default function AdminJobs({
                                 </li>
                             ))}
                         </ol>
-                        <ol className="divide-y divide-kumo-line md:hidden">
+                        <ol className="divide-y divide-gongyu-line md:hidden">
                             {loaderData.jobs.map((job) => (
                                 <li className="space-y-3 p-3" key={job.id}>
                                     <div className="flex items-start justify-between gap-3">
                                         <div>
-                                            <p className="font-medium text-kumo-default">
+                                            <p className="font-medium text-gongyu-default">
                                                 {job.kind.replace(':', ' · ')}
                                             </p>
-                                            <p className="mt-1 text-xs text-kumo-subtle">
+                                            <p className="mt-1 text-xs text-gongyu-subtle">
                                                 {formatDate(job.updatedAt)} ·
                                                 attempt {job.attempts}
                                             </p>
@@ -416,7 +411,7 @@ export default function AdminJobs({
                                         <StatusBadge state={job.state} />
                                     </div>
                                     {job.lastErrorCode === null ? null : (
-                                        <p className="font-mono text-xs text-kumo-danger">
+                                        <p className="font-mono text-xs text-gongyu-danger">
                                             {job.lastErrorCode}
                                         </p>
                                     )}

@@ -1,4 +1,4 @@
-import { Badge, type BadgeVariant } from '@cloudflare/kumo/components/badge';
+import { Badge, type BadgeVariant } from './ui';
 
 const variants: Readonly<Record<string, BadgeVariant>> = {
     active: 'success',

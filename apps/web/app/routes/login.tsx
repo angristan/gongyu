@@ -1,6 +1,3 @@
-import { Banner } from '@cloudflare/kumo/components/banner';
-import { Button, LinkButton } from '@cloudflare/kumo/components/button';
-import { LayerCard } from '@cloudflare/kumo/components/layer-card';
 import {
     AuthenticationOptionsEnvelope,
     AuthenticationVerificationRequest,
@@ -16,6 +13,7 @@ import { Schema } from 'effect';
 import { useState } from 'react';
 import { redirect } from 'react-router';
 import { safeReturnTo } from '../auth/bootstrap.server';
+import { Banner, Button, LayerCard, LinkButton } from '../components/ui';
 import { cloudflareRequestContext } from '../platform-context';
 import type { Route } from './+types/login';
 
@@ -102,7 +100,7 @@ export default function Login({ loaderData }: Route.ComponentProps) {
             <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(17rem,0.8fr)]">
                 <LayerCard>
                     <div className="space-y-6 p-6 sm:p-8">
-                        <span className="flex size-14 items-center justify-center rounded-2xl bg-kumo-tint text-kumo-link">
+                        <span className="flex size-14 items-center justify-center rounded-2xl bg-gongyu-tint text-gongyu-link">
                             <FingerprintSimpleIcon
                                 aria-hidden="true"
                                 size={32}
@@ -110,10 +108,10 @@ export default function Login({ loaderData }: Route.ComponentProps) {
                             />
                         </span>
                         <div>
-                            <h2 className="text-xl font-semibold text-kumo-default">
+                            <h2 className="text-xl font-semibold text-gongyu-default">
                                 Sign in with your passkey
                             </h2>
-                            <p className="mt-2 text-sm leading-6 text-kumo-subtle">
+                            <p className="mt-2 text-sm leading-6 text-gongyu-subtle">
                                 Your browser will ask for the device lock,
                                 biometric, or security key associated with this
                                 Gongyu deployment.
@@ -132,7 +130,7 @@ export default function Login({ loaderData }: Route.ComponentProps) {
                         </Button>
                         <p
                             aria-live="polite"
-                            className="rounded-xl bg-kumo-tint/60 p-3 text-sm text-kumo-default"
+                            className="rounded-xl bg-gongyu-tint/60 p-3 text-sm text-gongyu-default"
                         >
                             {message}
                         </p>
@@ -143,14 +141,14 @@ export default function Login({ loaderData }: Route.ComponentProps) {
                         <div className="space-y-4 p-6">
                             <ShieldCheckIcon
                                 aria-hidden="true"
-                                className="text-kumo-success"
+                                className="text-gongyu-success"
                                 size={28}
                                 weight="duotone"
                             />
-                            <h2 className="font-semibold text-kumo-default">
+                            <h2 className="font-semibold text-gongyu-default">
                                 Passwordless by design
                             </h2>
-                            <ul className="space-y-3 text-sm leading-6 text-kumo-subtle">
+                            <ul className="space-y-3 text-sm leading-6 text-gongyu-subtle">
                                 <li>
                                     Credential verification stays on your
                                     device.

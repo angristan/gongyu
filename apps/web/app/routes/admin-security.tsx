@@ -1,8 +1,3 @@
-import { Badge } from '@cloudflare/kumo/components/badge';
-import { Banner } from '@cloudflare/kumo/components/banner';
-import { Button } from '@cloudflare/kumo/components/button';
-import { Dialog } from '@cloudflare/kumo/components/dialog';
-import { LayerCard } from '@cloudflare/kumo/components/layer-card';
 import {
     RegistrationOptionsEnvelope,
     RegistrationVerificationRequest,
@@ -17,6 +12,7 @@ import { Schema } from 'effect';
 import { useState } from 'react';
 import { redirect, useRouteLoaderData } from 'react-router';
 import { AdminPage } from '../components/admin-page';
+import { Badge, Banner, Button, Dialog, LayerCard } from '../components/ui';
 import { cloudflareRequestContext } from '../platform-context';
 import type { loader as rootLoader } from '../root';
 import type { Route } from './+types/admin-security';
@@ -120,7 +116,7 @@ export default function AdminSecurity() {
                     <section className="p-4">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                             <div className="flex items-start gap-3">
-                                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-kumo-line text-kumo-success">
+                                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-gongyu-line text-gongyu-success">
                                     <FingerprintSimpleIcon
                                         aria-hidden="true"
                                         size={26}
@@ -129,7 +125,7 @@ export default function AdminSecurity() {
                                 </span>
                                 <div>
                                     <div className="flex flex-wrap items-center gap-2">
-                                        <h2 className="font-semibold text-kumo-default">
+                                        <h2 className="font-semibold text-gongyu-default">
                                             Administrator passkey
                                         </h2>
                                         <Badge
@@ -139,7 +135,7 @@ export default function AdminSecurity() {
                                             Active
                                         </Badge>
                                     </div>
-                                    <p className="mt-1 max-w-xl text-sm leading-5 text-kumo-subtle">
+                                    <p className="mt-1 max-w-xl text-sm leading-5 text-gongyu-subtle">
                                         Gongyu accepts exactly one passkey. It
                                         can use your device lock, security key,
                                         or synchronized credential.
@@ -190,10 +186,10 @@ export default function AdminSecurity() {
                                 </Dialog>
                             </Dialog.Root>
                         </div>
-                        <div className="mt-4 rounded-lg border border-kumo-line px-3 py-2">
+                        <div className="mt-4 rounded-lg border border-gongyu-line px-3 py-2">
                             <p
                                 aria-live="polite"
-                                className="text-sm text-kumo-default"
+                                className="text-sm text-gongyu-default"
                             >
                                 {message}
                             </p>
@@ -209,19 +205,19 @@ export default function AdminSecurity() {
                 <LayerCard>
                     <section className="grid gap-4 p-4 text-sm sm:grid-cols-2">
                         <div>
-                            <h2 className="font-medium text-kumo-default">
+                            <h2 className="font-medium text-gongyu-default">
                                 Session protection
                             </h2>
-                            <p className="mt-1 leading-5 text-kumo-subtle">
+                            <p className="mt-1 leading-5 text-gongyu-subtle">
                                 Sessions expire after seven idle days and have a
                                 fixed 30-day maximum lifetime.
                             </p>
                         </div>
                         <div>
-                            <h2 className="font-medium text-kumo-default">
+                            <h2 className="font-medium text-gongyu-default">
                                 Lost your passkey?
                             </h2>
-                            <p className="mt-1 leading-5 text-kumo-subtle">
+                            <p className="mt-1 leading-5 text-gongyu-subtle">
                                 Recovery requires deployment access, the setup
                                 token, and the exact operator confirmation
                                 phrase.

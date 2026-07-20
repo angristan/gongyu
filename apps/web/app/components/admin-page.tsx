@@ -1,6 +1,5 @@
-import { Breadcrumbs } from '@cloudflare/kumo/components/breadcrumbs';
-import { cn } from '@cloudflare/kumo/utils';
 import type { ReactNode } from 'react';
+import { Breadcrumbs, cn } from './ui';
 
 interface AdminPageProps {
     readonly actions?: ReactNode;
@@ -30,7 +29,7 @@ export function AdminPage({
             id="main-content"
             tabIndex={-1}
         >
-            <header className="border-b border-kumo-line pb-3">
+            <header className="border-b border-gongyu-line pb-3">
                 {sectionHref === undefined ? null : (
                     <Breadcrumbs className="mb-2" size="sm">
                         <Breadcrumbs.Link href={sectionHref}>
@@ -42,10 +41,10 @@ export function AdminPage({
                 )}
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
-                        <h1 className="text-xl font-semibold tracking-[-0.02em] text-kumo-default">
+                        <h1 className="text-xl font-semibold tracking-[-0.02em] text-gongyu-default">
                             {title}
                         </h1>
-                        <p className="mt-0.5 max-w-2xl text-sm leading-5 text-kumo-subtle">
+                        <p className="mt-0.5 max-w-2xl text-sm leading-5 text-gongyu-subtle">
                             {description}
                         </p>
                     </div>

@@ -1,14 +1,18 @@
-import { type LinkComponentProps, LinkProvider } from '@cloudflare/kumo/utils';
+import '@mantine/core/styles.css';
 import { DataRunRepository } from '@gongyu/data/data-run-repository';
 import { PageShell } from '@gongyu/ui/page-shell';
+import {
+    ColorSchemeScript,
+    MantineProvider,
+    mantineHtmlProps,
+} from '@mantine/core';
 import { Effect } from 'effect';
-import { forwardRef, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import {
     isRouteErrorResponse,
     Links,
     Meta,
     Outlet,
-    Link as RouterLink,
     Scripts,
     ScrollRestoration,
     useRouteLoaderData,
@@ -16,24 +20,9 @@ import {
 import type { Route } from './+types/root';
 import { AppShell } from './components/app-shell';
 import { cloudflareRequestContext } from './platform-context';
+import { gongyuTheme } from './theme';
 import { readThemeMode } from './theme.server';
 import './app.css';
-
-const AppLink = forwardRef<HTMLAnchorElement, LinkComponentProps>(
-    ({ href, to, target, ...props }, ref) => {
-        const destination = href ?? to ?? '';
-        const requiresDocumentNavigation =
-            (target !== undefined && target !== '_self') ||
-            /^(?:[a-z][a-z\d+.-]*:|\/\/|#)/i.test(destination);
-
-        return requiresDocumentNavigation ? (
-            <a ref={ref} href={destination} target={target} {...props} />
-        ) : (
-            <RouterLink ref={ref} to={destination} target={target} {...props} />
-        );
-    },
-);
-AppLink.displayName = 'AppLink';
 
 export async function loader({ context, request }: Route.LoaderArgs) {
     const { authentication, effect } = context.get(cloudflareRequestContext);
@@ -58,7 +47,7 @@ export function Layout({ children }: { readonly children: ReactNode }) {
     const themeMode = rootData?.themeMode ?? 'light';
 
     return (
-        <html lang="en" data-mode={themeMode}>
+        <html {...mantineHtmlProps} data-mode={themeMode} lang="en">
             <head>
                 <meta charSet="utf-8" />
                 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
@@ -66,23 +55,29 @@ export function Layout({ children }: { readonly children: ReactNode }) {
                     name="viewport"
                     content="width=device-width, initial-scale=1"
                 />
+                <ColorSchemeScript forceColorScheme={themeMode} />
                 <Meta />
                 <Links />
             </head>
             <body>
                 <a
-                    className="fixed left-3 top-3 z-50 -translate-y-20 rounded-md bg-kumo-base px-3 py-2 text-kumo-link shadow focus:translate-y-0"
+                    className="fixed left-3 top-3 z-50 -translate-y-20 rounded-md bg-gongyu-base px-3 py-2 text-gongyu-link shadow focus:translate-y-0"
                     href="#main-content"
                 >
                     Skip to main content
                 </a>
                 {rootData?.appState.readOnly === 1 ? (
-                    <output className="block w-full border-b border-kumo-line bg-kumo-base px-4 py-3 text-center text-sm font-medium text-kumo-default">
+                    <output className="block w-full border-b border-gongyu-line bg-gongyu-base px-4 py-3 text-center text-sm font-medium text-gongyu-default">
                         Gongyu is temporarily read-only while a backup or
                         restore is in progress.
                     </output>
                 ) : null}
-                <LinkProvider component={AppLink}>{children}</LinkProvider>
+                <MantineProvider
+                    forceColorScheme={themeMode}
+                    theme={gongyuTheme}
+                >
+                    {children}
+                </MantineProvider>
                 <ScrollRestoration />
                 <Scripts />
             </body>

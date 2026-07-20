@@ -1,9 +1,3 @@
-import { Badge } from '@cloudflare/kumo/components/badge';
-import { Button, LinkButton } from '@cloudflare/kumo/components/button';
-import { Empty } from '@cloudflare/kumo/components/empty';
-import { Input } from '@cloudflare/kumo/components/input';
-import { LayerCard } from '@cloudflare/kumo/components/layer-card';
-import { cn } from '@cloudflare/kumo/utils';
 import { PageShell } from '@gongyu/ui/page-shell';
 import {
     ArrowRightIcon,
@@ -14,6 +8,15 @@ import {
     XIcon,
 } from '@phosphor-icons/react';
 import { Form, Link } from 'react-router';
+import {
+    Badge,
+    Button,
+    cn,
+    Empty,
+    Input,
+    LayerCard,
+    LinkButton,
+} from '../components/ui';
 
 interface PublicBookmark {
     readonly createdAt: number;
@@ -60,14 +63,14 @@ function BookmarkCard({ bookmark }: { readonly bookmark: PublicBookmark }) {
             <article className="flex h-full flex-col">
                 <Link
                     aria-label={`View details for ${bookmark.title}`}
-                    className="relative block aspect-[16/9] overflow-hidden bg-kumo-tint"
+                    className="relative block aspect-[16/9] overflow-hidden bg-gongyu-tint"
                     to={`/b/${bookmark.shortUrl}`}
                 >
                     {bookmark.thumbnailSha256 === null ? (
                         <span className="flex size-full items-center justify-center">
                             <BookmarkSimpleIcon
                                 aria-hidden="true"
-                                className="text-kumo-subtle/50 transition-transform duration-300 group-hover:scale-110"
+                                className="text-gongyu-subtle/50 transition-transform duration-300 group-hover:scale-110"
                                 size={40}
                                 weight="duotone"
                             />
@@ -86,7 +89,7 @@ function BookmarkCard({ bookmark }: { readonly bookmark: PublicBookmark }) {
                         <div className="flex items-center justify-between gap-3">
                             <Badge variant="secondary">{hostname}</Badge>
                             <time
-                                className="shrink-0 text-xs text-kumo-subtle"
+                                className="shrink-0 text-xs text-gongyu-subtle"
                                 dateTime={new Date(
                                     bookmark.createdAt / 1_000,
                                 ).toISOString()}
@@ -95,9 +98,9 @@ function BookmarkCard({ bookmark }: { readonly bookmark: PublicBookmark }) {
                             </time>
                         </div>
                         <div className="space-y-2">
-                            <h2 className="text-lg font-semibold leading-snug tracking-[-0.015em] text-kumo-default">
+                            <h2 className="text-lg font-semibold leading-snug tracking-[-0.015em] text-gongyu-default">
                                 <a
-                                    className="decoration-kumo-line underline-offset-4 hover:text-kumo-link hover:underline"
+                                    className="decoration-gongyu-line underline-offset-4 hover:text-gongyu-link hover:underline"
                                     href={bookmark.url}
                                     rel="noreferrer"
                                     target="_blank"
@@ -106,14 +109,14 @@ function BookmarkCard({ bookmark }: { readonly bookmark: PublicBookmark }) {
                                 </a>
                             </h2>
                             {bookmark.description === null ? null : (
-                                <p className="line-clamp-3 whitespace-pre-wrap text-sm leading-6 text-kumo-subtle">
+                                <p className="line-clamp-3 whitespace-pre-wrap text-sm leading-6 text-gongyu-subtle">
                                     {bookmark.description}
                                 </p>
                             )}
                         </div>
                     </div>
                     <Link
-                        className="mt-auto inline-flex items-center gap-1.5 text-sm font-medium text-kumo-link"
+                        className="mt-auto inline-flex items-center gap-1.5 text-sm font-medium text-gongyu-link"
                         to={`/b/${bookmark.shortUrl}`}
                     >
                         Notes and details
@@ -142,10 +145,10 @@ function BookmarkPagination({
     return (
         <nav
             aria-label="Bookmark pages"
-            className="flex flex-col gap-3 border-t border-kumo-line pt-6 sm:flex-row sm:items-center sm:justify-between"
+            className="flex flex-col gap-3 border-t border-gongyu-line pt-6 sm:flex-row sm:items-center sm:justify-between"
         >
-            <p className="text-sm text-kumo-subtle">
-                Page <strong className="text-kumo-default">{page}</strong> of{' '}
+            <p className="text-sm text-gongyu-subtle">
+                Page <strong className="text-gongyu-default">{page}</strong> of{' '}
                 {pageCount} · {total} bookmarks
             </p>
             <div className="flex items-center gap-2">
@@ -216,7 +219,7 @@ export function PublicBookmarkPage({
                 hasQuery ? (
                     <>
                         Results for{' '}
-                        <span className="text-kumo-link">“{query}”</span>
+                        <span className="text-gongyu-link">“{query}”</span>
                     </>
                 ) : (
                     'Links worth returning to.'
@@ -226,25 +229,21 @@ export function PublicBookmarkPage({
         >
             <section
                 aria-label="Search bookmarks"
-                className="rounded-2xl border border-kumo-line bg-kumo-tint/50 p-3 shadow-sm sm:p-4"
+                className="rounded-2xl border border-gongyu-line bg-gongyu-tint/50 p-3 shadow-sm sm:p-4"
             >
                 <Form action="/search" className="flex gap-2" method="get">
-                    <div className="relative min-w-0 flex-1">
-                        <MagnifyingGlassIcon
-                            aria-hidden="true"
-                            className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-kumo-subtle"
-                            size={18}
-                        />
-                        <Input
-                            aria-label="Search bookmarks"
-                            className="w-full pl-10"
-                            defaultValue={query}
-                            name="q"
-                            placeholder="Search titles, notes, or URLs…"
-                            size="lg"
-                            type="search"
-                        />
-                    </div>
+                    <Input
+                        aria-label="Search bookmarks"
+                        className="min-w-0 flex-1"
+                        defaultValue={query}
+                        leftSection={
+                            <MagnifyingGlassIcon aria-hidden="true" size={18} />
+                        }
+                        name="q"
+                        placeholder="Search titles, notes, or URLs…"
+                        size="lg"
+                        type="search"
+                    />
                     <Button size="lg" type="submit" variant="primary">
                         <span className="hidden sm:inline">Search</span>
                         <MagnifyingGlassIcon

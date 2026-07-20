@@ -1,8 +1,3 @@
-import { Badge } from '@cloudflare/kumo/components/badge';
-import { Banner } from '@cloudflare/kumo/components/banner';
-import { Button } from '@cloudflare/kumo/components/button';
-import { Input } from '@cloudflare/kumo/components/input';
-import { LayerCard } from '@cloudflare/kumo/components/layer-card';
 import { SettingsRepository } from '@gongyu/data/settings-repository';
 import { Settings } from '@gongyu/domain/settings';
 import {
@@ -25,6 +20,7 @@ import {
 } from '../auth/session.server';
 import { AdminPage } from '../components/admin-page';
 import { adminPanelFooterClass } from '../components/admin-panel';
+import { Badge, Banner, Button, Input, LayerCard } from '../components/ui';
 import { cloudflareRequestContext } from '../platform-context';
 import type { loader as rootLoader } from '../root';
 import type { Route } from './+types/admin-settings';
@@ -205,7 +201,7 @@ export default function AdminSettings({
             <Form className="max-w-5xl" method="post">
                 <input name="_csrf" type="hidden" value={csrfToken} />
                 <LayerCard className="overflow-hidden">
-                    <div className="divide-y divide-kumo-line">
+                    <div className="divide-y divide-gongyu-line">
                         {providerGroups.map((provider) => {
                             const configured = provider.fields.every(
                                 (field) =>
@@ -218,14 +214,14 @@ export default function AdminSettings({
                                         <div className="flex items-center gap-2.5">
                                             <Icon
                                                 aria-hidden="true"
-                                                className="text-kumo-subtle"
+                                                className="text-gongyu-subtle"
                                                 size={18}
                                             />
                                             <div>
-                                                <h2 className="font-semibold text-kumo-default">
+                                                <h2 className="font-semibold text-gongyu-default">
                                                     {provider.name}
                                                 </h2>
-                                                <p className="mt-0.5 text-sm text-kumo-subtle">
+                                                <p className="mt-0.5 text-sm text-gongyu-subtle">
                                                     {provider.description}
                                                 </p>
                                             </div>
@@ -271,10 +267,10 @@ export default function AdminSettings({
                         })}
                         <section className="p-4">
                             <div className="mb-3">
-                                <h2 className="font-semibold text-kumo-default">
+                                <h2 className="font-semibold text-gongyu-default">
                                     Public feed
                                 </h2>
-                                <p className="mt-0.5 text-sm text-kumo-subtle">
+                                <p className="mt-0.5 text-sm text-gongyu-subtle">
                                     Number of recent bookmarks in the Atom feed.
                                 </p>
                             </div>

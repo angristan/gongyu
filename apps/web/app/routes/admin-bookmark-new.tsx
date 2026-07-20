@@ -1,7 +1,3 @@
-import { Button } from '@cloudflare/kumo/components/button';
-import { Checkbox } from '@cloudflare/kumo/components/checkbox';
-import { Input, InputArea } from '@cloudflare/kumo/components/input';
-import { LayerCard } from '@cloudflare/kumo/components/layer-card';
 import { BookmarkRepository } from '@gongyu/data/bookmark-repository';
 import { SettingsRepository } from '@gongyu/data/settings-repository';
 import {
@@ -30,6 +26,13 @@ import {
     adminPanelBodyClass,
     adminPanelFooterClass,
 } from '../components/admin-panel';
+import {
+    Button,
+    Checkbox,
+    Input,
+    InputArea,
+    LayerCard,
+} from '../components/ui';
 import { failure, success } from '../effect/result';
 import { cloudflareRequestContext } from '../platform-context';
 import type { loader as rootLoader } from '../root';
@@ -232,7 +235,7 @@ export default function AdminBookmarkNew({
                             >
                                 Save bookmark
                             </Button>
-                            <p className="text-xs text-kumo-subtle">
+                            <p className="text-xs text-gongyu-subtle">
                                 Metadata and thumbnails continue in the
                                 background.
                             </p>

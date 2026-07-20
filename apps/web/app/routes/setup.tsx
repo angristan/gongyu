@@ -1,7 +1,3 @@
-import { Banner } from '@cloudflare/kumo/components/banner';
-import { Button } from '@cloudflare/kumo/components/button';
-import { Input } from '@cloudflare/kumo/components/input';
-import { LayerCard } from '@cloudflare/kumo/components/layer-card';
 import {
     RegistrationOptionsEnvelope,
     RegistrationVerificationRequest,
@@ -17,6 +13,7 @@ import { startRegistration } from '@simplewebauthn/browser';
 import { Schema } from 'effect';
 import { useState } from 'react';
 import { redirect } from 'react-router';
+import { Banner, Button, Input, LayerCard } from '../components/ui';
 import { cloudflareRequestContext } from '../platform-context';
 import type { Route } from './+types/setup';
 
@@ -107,7 +104,7 @@ export default function Setup() {
             <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(17rem,0.8fr)]">
                 <LayerCard>
                     <div className="space-y-6 p-6 sm:p-8">
-                        <span className="flex size-14 items-center justify-center rounded-2xl bg-kumo-tint text-kumo-link">
+                        <span className="flex size-14 items-center justify-center rounded-2xl bg-gongyu-tint text-gongyu-link">
                             <KeyIcon
                                 aria-hidden="true"
                                 size={30}
@@ -115,10 +112,10 @@ export default function Setup() {
                             />
                         </span>
                         <div>
-                            <h2 className="text-xl font-semibold text-kumo-default">
+                            <h2 className="text-xl font-semibold text-gongyu-default">
                                 Verify deployment access
                             </h2>
-                            <p className="mt-2 text-sm leading-6 text-kumo-subtle">
+                            <p className="mt-2 text-sm leading-6 text-gongyu-subtle">
                                 Find SETUP_TOKEN in the Worker secret
                                 configuration. It is never stored in the browser
                                 or database.
@@ -146,7 +143,7 @@ export default function Setup() {
                         </Button>
                         <p
                             aria-live="polite"
-                            className="rounded-xl bg-kumo-tint/60 p-3 text-sm text-kumo-default"
+                            className="rounded-xl bg-gongyu-tint/60 p-3 text-sm text-gongyu-default"
                         >
                             {message}
                         </p>
@@ -160,7 +157,7 @@ export default function Setup() {
                         variant="secondary"
                     />
                     <LayerCard>
-                        <ol className="space-y-4 p-5 text-sm text-kumo-subtle">
+                        <ol className="space-y-4 p-5 text-sm text-gongyu-subtle">
                             <li>1. Enter the deployment token.</li>
                             <li>2. Choose a device or security key.</li>
                             <li>3. Confirm the passkey ceremony.</li>
