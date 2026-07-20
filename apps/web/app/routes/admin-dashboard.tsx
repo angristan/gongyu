@@ -204,7 +204,7 @@ export default function AdminDashboard({ loaderData }: Route.ComponentProps) {
                 </dl>
             </LayerCard>
 
-            <div className="grid min-w-0 items-start gap-3 lg:grid-cols-[minmax(0,1.7fr)_minmax(16rem,0.7fr)]">
+            <div className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1.7fr)_minmax(16rem,0.7fr)]">
                 <LayerCard className="min-w-0">
                     <section className="min-w-0 p-4">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -306,10 +306,10 @@ export default function AdminDashboard({ loaderData }: Route.ComponentProps) {
                                 title="No sources yet"
                             />
                         ) : (
-                            <ol className="mt-4 grid gap-x-5 gap-y-3 2xl:grid-cols-2">
+                            <ol className="mt-4 space-y-3">
                                 {stats.bookmarksByDomain.map((entry) => (
                                     <li
-                                        className="min-w-0 space-y-1.5"
+                                        className="space-y-1.5"
                                         key={entry.domain}
                                     >
                                         <div className="flex justify-between gap-3 text-sm">
