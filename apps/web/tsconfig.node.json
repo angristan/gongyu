@@ -5,7 +5,8 @@
     "playwright.config.ts",
     "react-router.config.ts",
     "vite.config.ts",
-    "vitest.config.ts"
+    "vitest.config.ts",
+    "vitest.*.config.ts"
   ],
   "compilerOptions": {
     "composite": true,

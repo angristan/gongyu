@@ -77,6 +77,8 @@ bun run check
 bun run --cwd apps/web test:e2e
 ```
 
+Use `bun run test:unit` for fast runtime-neutral tests, `bun run test:workerd` for binding-dependent tests, and `bun run test:watch` while iterating. `bun run test` runs both projects.
+
 `bun run check` typechecks both Workers, builds the web application, and performs Wrangler dry-run deployments.
 
 ## Deployment
