@@ -175,9 +175,8 @@ export default function AdminDashboard({ loaderData }: Route.ComponentProps) {
                     New bookmark
                 </LinkButton>
             }
-            description="A compact view of your library and recent activity."
+            description="Library totals and recent activity."
             title="Overview"
-            width="wide"
         >
             <LayerCard className="overflow-hidden">
                 <dl className="grid divide-y divide-gongyu-line sm:grid-cols-3 sm:divide-x sm:divide-y-0">
@@ -245,49 +244,55 @@ export default function AdminDashboard({ loaderData }: Route.ComponentProps) {
                         {stats.bookmarksOverTime.length === 0 ? (
                             <Empty
                                 className="mt-5"
-                                description="Activity appears after links are added."
+                                description="Activity appears after bookmarks are added."
                                 size="sm"
-                                title="No activity yet"
+                                title="No bookmark activity"
                             />
                         ) : (
-                            <ActivityChart
-                                granularity={stats.trendGranularity}
-                                points={stats.bookmarksOverTime}
-                            />
-                        )}
-                        <details className="mt-4 border-t border-gongyu-line pt-3 text-sm">
-                            <summary className="cursor-pointer text-gongyu-link">
-                                View{' '}
-                                {granularityLabels[
-                                    stats.trendGranularity
-                                ].toLowerCase()}{' '}
-                                totals
-                            </summary>
-                            <div className="mt-3 max-h-64 overflow-auto">
-                                <table className="w-full text-left">
-                                    <thead className="sticky top-0 bg-gongyu-base">
-                                        <tr>
-                                            <th className="py-2 pr-4">Date</th>
-                                            <th className="py-2">Bookmarks</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {stats.bookmarksOverTime.map(
-                                            (point) => (
-                                                <tr key={point.date}>
-                                                    <td className="border-t border-gongyu-line py-2 pr-4 text-gongyu-subtle">
-                                                        {point.date}
-                                                    </td>
-                                                    <td className="border-t border-gongyu-line py-2 text-gongyu-default">
-                                                        {point.count}
-                                                    </td>
+                            <>
+                                <ActivityChart
+                                    granularity={stats.trendGranularity}
+                                    points={stats.bookmarksOverTime}
+                                />
+                                <details className="mt-4 border-t border-gongyu-line pt-3 text-sm">
+                                    <summary className="cursor-pointer text-gongyu-link">
+                                        View{' '}
+                                        {granularityLabels[
+                                            stats.trendGranularity
+                                        ].toLowerCase()}{' '}
+                                        totals
+                                    </summary>
+                                    <div className="mt-3 max-h-64 overflow-auto">
+                                        <table className="w-full text-left">
+                                            <thead className="sticky top-0 bg-gongyu-base">
+                                                <tr>
+                                                    <th className="py-2 pr-4">
+                                                        Date
+                                                    </th>
+                                                    <th className="py-2">
+                                                        Bookmarks
+                                                    </th>
                                                 </tr>
-                                            ),
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </details>
+                                            </thead>
+                                            <tbody>
+                                                {stats.bookmarksOverTime.map(
+                                                    (point) => (
+                                                        <tr key={point.date}>
+                                                            <td className="border-t border-gongyu-line py-2 pr-4 text-gongyu-subtle">
+                                                                {point.date}
+                                                            </td>
+                                                            <td className="border-t border-gongyu-line py-2 text-gongyu-default">
+                                                                {point.count}
+                                                            </td>
+                                                        </tr>
+                                                    ),
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </details>
+                            </>
+                        )}
                     </section>
                 </LayerCard>
 

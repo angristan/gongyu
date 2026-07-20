@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Breadcrumbs, cn } from './ui';
+import { Breadcrumbs } from './ui';
 
 interface AdminPageProps {
     readonly actions?: ReactNode;
@@ -8,7 +8,6 @@ interface AdminPageProps {
     readonly section?: string;
     readonly sectionHref?: string;
     readonly title: ReactNode;
-    readonly width?: 'default' | 'wide';
 }
 
 export function AdminPage({
@@ -18,14 +17,10 @@ export function AdminPage({
     section,
     sectionHref,
     title,
-    width = 'default',
 }: AdminPageProps) {
     return (
         <main
-            className={cn(
-                'mx-auto flex w-full flex-col gap-3 px-3 py-3 sm:px-5 sm:py-4 lg:px-6',
-                width === 'wide' ? 'max-w-none' : 'max-w-5xl',
-            )}
+            className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-3 py-3 sm:px-5 sm:py-4 lg:px-6"
             id="main-content"
             tabIndex={-1}
         >
@@ -35,7 +30,6 @@ export function AdminPage({
                         <Breadcrumbs.Link href={sectionHref}>
                             {section ?? 'Back'}
                         </Breadcrumbs.Link>
-                        <Breadcrumbs.Separator />
                         <Breadcrumbs.Current>{title}</Breadcrumbs.Current>
                     </Breadcrumbs>
                 )}

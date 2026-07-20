@@ -32,6 +32,7 @@ import {
     cn,
     Dialog,
     Empty,
+    HydratedOnly,
     Input,
     LayerCard,
     LinkButton,
@@ -347,9 +348,7 @@ export default function AdminBookmarks({
                 </LinkButton>
             }
             description={`${result.total.toLocaleString('en-US')} ${result.total === 1 ? 'bookmark' : 'bookmarks'} in your personal library.`}
-            section="Bookmarks"
             title="Bookmarks"
-            width="wide"
         >
             {loaderData.deletedAll ? (
                 <Banner
@@ -518,61 +517,65 @@ export default function AdminBookmarks({
                             thumbnail.
                         </p>
                     </div>
-                    <Dialog.Root
-                        defaultOpen={actionData?.error !== undefined}
-                        role="alertdialog"
-                    >
-                        <Dialog.Trigger
-                            render={
-                                <Button
-                                    icon={TrashIcon}
-                                    size="sm"
-                                    variant="secondary-destructive"
-                                />
-                            }
+                    <HydratedOnly>
+                        <Dialog.Root
+                            defaultOpen={actionData?.error !== undefined}
+                            role="alertdialog"
                         >
-                            Delete all bookmarks
-                        </Dialog.Trigger>
-                        <Dialog className="space-y-5 p-6" size="lg">
-                            <div className="space-y-2">
-                                <Dialog.Title>
-                                    Delete every bookmark?
-                                </Dialog.Title>
-                                <Dialog.Description>
-                                    This cannot be undone. Type DELETE ALL
-                                    BOOKMARKS to confirm.
-                                </Dialog.Description>
-                            </div>
-                            <Form className="space-y-4" method="post">
-                                <input
-                                    name="_csrf"
-                                    type="hidden"
-                                    value={csrfToken}
-                                />
-                                <Input
-                                    autoComplete="off"
-                                    error={actionData?.error}
-                                    label="Confirmation phrase"
-                                    name="confirmation"
-                                    placeholder="DELETE ALL BOOKMARKS"
-                                />
-                                <div className="flex justify-end gap-2">
-                                    <Dialog.Close
-                                        render={<Button variant="secondary" />}
-                                    >
-                                        Cancel
-                                    </Dialog.Close>
+                            <Dialog.Trigger
+                                render={
                                     <Button
-                                        loading={isSubmitting}
-                                        type="submit"
-                                        variant="destructive"
-                                    >
-                                        Delete everything
-                                    </Button>
+                                        icon={TrashIcon}
+                                        size="sm"
+                                        variant="secondary-destructive"
+                                    />
+                                }
+                            >
+                                Delete all bookmarks
+                            </Dialog.Trigger>
+                            <Dialog className="space-y-5 p-6" size="lg">
+                                <div className="space-y-2">
+                                    <Dialog.Title>
+                                        Delete every bookmark?
+                                    </Dialog.Title>
+                                    <Dialog.Description>
+                                        This cannot be undone. Type DELETE ALL
+                                        BOOKMARKS to confirm.
+                                    </Dialog.Description>
                                 </div>
-                            </Form>
-                        </Dialog>
-                    </Dialog.Root>
+                                <Form className="space-y-4" method="post">
+                                    <input
+                                        name="_csrf"
+                                        type="hidden"
+                                        value={csrfToken}
+                                    />
+                                    <Input
+                                        autoComplete="off"
+                                        error={actionData?.error}
+                                        label="Confirmation phrase"
+                                        name="confirmation"
+                                        placeholder="DELETE ALL BOOKMARKS"
+                                    />
+                                    <div className="flex justify-end gap-2">
+                                        <Dialog.Close
+                                            render={
+                                                <Button variant="secondary" />
+                                            }
+                                        >
+                                            Cancel
+                                        </Dialog.Close>
+                                        <Button
+                                            loading={isSubmitting}
+                                            type="submit"
+                                            variant="destructive"
+                                        >
+                                            Delete everything
+                                        </Button>
+                                    </div>
+                                </Form>
+                            </Dialog>
+                        </Dialog.Root>
+                    </HydratedOnly>
                 </div>
                 <noscript>
                     <Form className="mt-5 max-w-lg space-y-3" method="post">

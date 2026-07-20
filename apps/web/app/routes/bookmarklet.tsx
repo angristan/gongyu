@@ -197,7 +197,6 @@ export default function Bookmarklet({
         return (
             <AdminPage
                 description="Capture the page you are reading without leaving it."
-                section="Bookmarklet"
                 title="Install bookmarklet"
             >
                 <div className="max-w-3xl">
@@ -258,9 +257,7 @@ export default function Bookmarklet({
         return (
             <AdminPage
                 description="This exact URL is already in your library."
-                section="Bookmarklet"
                 title="Already bookmarked"
-                width="default"
             >
                 <LayerCard>
                     <div className="space-y-4 p-4">
@@ -308,9 +305,7 @@ export default function Bookmarklet({
                     ? 'The captured page is now in your library.'
                     : 'Review the page details and keep the context you need.'
             }
-            section="Bookmarklet"
             title={saved ? 'Bookmark saved' : 'Save captured page'}
-            width="default"
         >
             <LayerCard className="max-w-2xl">
                 {saved ? (

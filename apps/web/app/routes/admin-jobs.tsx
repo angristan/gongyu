@@ -20,7 +20,15 @@ import {
 } from '../auth/session.server';
 import { AdminPage } from '../components/admin-page';
 import { StatusBadge } from '../components/status-badge';
-import { Banner, Button, cn, Dialog, Empty, LayerCard } from '../components/ui';
+import {
+    Banner,
+    Button,
+    cn,
+    Dialog,
+    Empty,
+    HydratedOnly,
+    LayerCard,
+} from '../components/ui';
 import { cloudflareRequestContext } from '../platform-context';
 import type { loader as rootLoader } from '../root';
 import type { Route } from './+types/admin-jobs';
@@ -185,35 +193,38 @@ function RecoveryActions({
     if (job.state === 'needs_review') {
         return (
             <>
-                <Dialog.Root role="alertdialog">
-                    <Dialog.Trigger
-                        render={
-                            <Button
-                                icon={WarningIcon}
-                                size="sm"
-                                variant="secondary"
+                <HydratedOnly>
+                    <Dialog.Root role="alertdialog">
+                        <Dialog.Trigger
+                            render={
+                                <Button
+                                    icon={WarningIcon}
+                                    size="sm"
+                                    variant="secondary"
+                                />
+                            }
+                        >
+                            Review
+                        </Dialog.Trigger>
+                        <Dialog className="space-y-5 p-6" size="lg">
+                            <div className="space-y-2">
+                                <Dialog.Title>
+                                    Ambiguous Twitter delivery
+                                </Dialog.Title>
+                                <Dialog.Description>
+                                    Twitter may have accepted this post before
+                                    the request failed. Retrying can create a
+                                    duplicate.
+                                </Dialog.Description>
+                            </div>
+                            <TwitterReviewChoices
+                                csrfToken={csrfToken}
+                                jobId={job.id}
+                                processing={processing}
                             />
-                        }
-                    >
-                        Review
-                    </Dialog.Trigger>
-                    <Dialog className="space-y-5 p-6" size="lg">
-                        <div className="space-y-2">
-                            <Dialog.Title>
-                                Ambiguous Twitter delivery
-                            </Dialog.Title>
-                            <Dialog.Description>
-                                Twitter may have accepted this post before the
-                                request failed. Retrying can create a duplicate.
-                            </Dialog.Description>
-                        </div>
-                        <TwitterReviewChoices
-                            csrfToken={csrfToken}
-                            jobId={job.id}
-                            processing={processing}
-                        />
-                    </Dialog>
-                </Dialog.Root>
+                        </Dialog>
+                    </Dialog.Root>
+                </HydratedOnly>
                 <noscript>
                     <div className="space-y-3 rounded-lg border border-gongyu-line p-3">
                         <p className="text-sm leading-6 text-gongyu-default">
@@ -258,10 +269,8 @@ export default function AdminJobs({
     const processing = useNavigation().state !== 'idle';
     return (
         <AdminPage
-            description="Inspect durable metadata, thumbnail, and social delivery work."
-            section="Background work"
+            description="Review metadata, thumbnail, and social sharing jobs."
             title="Background work"
-            width="wide"
         >
             {actionData?.error === undefined ? null : (
                 <Banner

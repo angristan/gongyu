@@ -37,7 +37,7 @@ const libraryNavigation: ReadonlyArray<NavigationItem> = [
     {
         href: '/admin/bookmarks/new',
         icon: PlusIcon,
-        label: 'Save bookmark',
+        label: 'New bookmark',
         match: 'exact',
     },
     {
@@ -82,7 +82,7 @@ const toolsNavigation: ReadonlyArray<NavigationItem> = [
     {
         href: '/bookmarklet',
         icon: ListMagnifyingGlassIcon,
-        label: 'Bookmarklet',
+        label: 'Install bookmarklet',
         match: 'exact',
     },
 ];
@@ -353,12 +353,12 @@ function AdminShell({
             <div className="gongyu-admin-main min-w-0 flex-1">
                 <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-gongyu-line bg-gongyu-base/95 px-4 backdrop-blur lg:hidden">
                     <div className="flex min-w-0 items-center gap-3">
-                        <details className="group relative">
+                        <details className="group relative" key={returnTo}>
                             <summary className="flex size-8 cursor-pointer list-none items-center justify-center rounded-lg text-gongyu-subtle hover:bg-gongyu-tint hover:text-gongyu-default focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gongyu-focus">
                                 <ListIcon aria-hidden="true" size={19} />
                                 <span className="sr-only">Menu</span>
                             </summary>
-                            <div className="absolute left-0 top-10 z-50 w-64 rounded-lg border border-gongyu-line bg-gongyu-base p-3 shadow-md">
+                            <div className="absolute left-0 top-10 z-50 max-h-[calc(100svh-4rem)] w-64 overflow-y-auto rounded-lg border border-gongyu-line bg-gongyu-base p-3 shadow-md">
                                 <AdminNavigation pathname={location.pathname} />
                                 <div className="mt-4 flex items-center justify-between border-t border-gongyu-line pt-3">
                                     <Link

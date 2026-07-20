@@ -48,7 +48,7 @@ const SOURCE_LIMIT_BYTES = 10 * 1_024 * 1_024;
 const BACKUP_LIMIT_BYTES = 16 * 1_024 * 1_024;
 
 export function meta(): Route.MetaDescriptors {
-    return [{ title: 'Data · Gongyu' }];
+    return [{ title: 'Data & recovery · Gongyu' }];
 }
 
 async function digest(bytes: Uint8Array): Promise<string> {
@@ -541,14 +541,12 @@ export default function AdminData({ loaderData }: Route.ComponentProps) {
     const isSubmitting = navigation.state !== 'idle';
     return (
         <AdminPage
-            description="Move bookmarks between systems, create portable exports, and manage disaster recovery."
-            section="Data & recovery"
+            description="Import, export, back up, or restore your data."
             title="Data & recovery"
-            width="wide"
         >
             {isSubmitting ? (
                 <Banner
-                    description="Keep this page open until the operation has been accepted by its durable Workflow."
+                    description="Keep this page open until the operation starts."
                     title="Starting data operation"
                     variant="secondary"
                 />
@@ -810,8 +808,7 @@ export default function AdminData({ loaderData }: Route.ComponentProps) {
                         Recent operations
                     </h2>
                     <p className="mt-1 text-sm text-gongyu-subtle">
-                        Durable Workflow progress, row outcomes, and temporary
-                        downloads.
+                        Progress and downloads for recent data operations.
                     </p>
                 </div>
                 {loaderData.operations.length === 0 ? (

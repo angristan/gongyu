@@ -187,8 +187,7 @@ export default function AdminSettings({
     ] as const;
     return (
         <AdminPage
-            description="Configure social delivery and the public feed. Secrets remain encrypted and responses are never cached."
-            section="Settings"
+            description="Configure social sharing and the public Atom feed."
             title="Settings"
         >
             {loaderData.saved ? (
@@ -198,7 +197,7 @@ export default function AdminSettings({
                     variant="secondary"
                 />
             ) : null}
-            <Form className="max-w-5xl" method="post">
+            <Form method="post">
                 <input name="_csrf" type="hidden" value={csrfToken} />
                 <LayerCard className="overflow-hidden">
                     <div className="divide-y divide-gongyu-line">

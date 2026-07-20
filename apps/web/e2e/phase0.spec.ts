@@ -314,7 +314,10 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
     await expect(page.getByLabel('Description')).toHaveValue('Selected text');
 
     await page.goto('/admin/bookmarks');
-    await page.getByRole('link', { name: 'New bookmark' }).click();
+    await page
+        .locator('#main-content')
+        .getByRole('link', { name: 'New bookmark' })
+        .click();
     await page.getByLabel('URL').fill('https://example.com/phase-two');
     await page.getByLabel('Title').fill('Phase Two Bookmark');
     await page.getByLabel('Description').fill('Searchable Cloudflare notes');
@@ -482,7 +485,9 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
             () => document.documentElement.scrollWidth <= window.innerWidth,
         ),
     ).toBe(true);
-    await mobileMenu.click();
+    await page.getByRole('link', { name: 'Bookmarks', exact: true }).click();
+    await expect(page).toHaveURL(/\/admin\/bookmarks$/u);
+    await expect(mobileMenu.locator('..')).not.toHaveAttribute('open', '');
     await page.setViewportSize({ height: 900, width: 1280 });
 
     await page.goto('/admin/data');
@@ -515,7 +520,9 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
         }),
     ).toBeVisible();
     await expect(
-        noJavaScriptAdmin.getByRole('link', { name: 'New bookmark' }),
+        noJavaScriptAdmin
+            .locator('#main-content')
+            .getByRole('link', { name: 'New bookmark' }),
     ).toBeVisible();
     const editHref = await noJavaScriptAdmin
         .getByRole('link', { name: 'Edit' })
@@ -544,7 +551,8 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
         ['/admin/security', 'Security'],
         ['/bookmarklet', 'Install bookmarklet'],
     ];
-    for (const width of [1280, 320]) {
+    const desktopMainWidths: number[] = [];
+    for (const width of [1600, 320]) {
         await noJavaScriptAdmin.setViewportSize({ height: 800, width });
         for (const [path, heading] of administratorRoutes) {
             await noJavaScriptAdmin.goto(path);
@@ -554,10 +562,30 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
                     name: heading,
                 }),
             ).toBeVisible();
+            const main = noJavaScriptAdmin.locator('#main-content');
             const sidebar = noJavaScriptAdmin.locator(
                 'aside[data-admin-sidebar]',
             );
+            if (path === '/admin/bookmarks/new') {
+                await expect(
+                    noJavaScriptAdmin.getByRole('button', {
+                        name: 'Fetch metadata',
+                    }),
+                ).toHaveCount(0);
+            }
+            if (path === '/admin/security') {
+                await expect(
+                    noJavaScriptAdmin.getByRole('button', {
+                        name: 'Replace passkey',
+                    }),
+                ).toHaveCount(0);
+            }
             if (path === '/admin/jobs') {
+                await expect(
+                    noJavaScriptAdmin.getByRole('button', {
+                        name: 'Review',
+                    }),
+                ).toHaveCount(0);
                 await expect(
                     noJavaScriptAdmin.getByRole('button', {
                         name: 'Mark delivered',
@@ -578,6 +606,11 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
                 ).toBeVisible();
             } else {
                 await expect(sidebar).toBeVisible();
+                const mainBox = await main.boundingBox();
+                expect(mainBox?.width).toBeLessThanOrEqual(1280);
+                if (mainBox !== null) {
+                    desktopMainWidths.push(Math.round(mainBox.width));
+                }
             }
             expect(
                 await noJavaScriptAdmin.evaluate(
@@ -588,6 +621,7 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
             ).toBe(true);
         }
     }
+    expect(new Set(desktopMainWidths).size).toBe(1);
     await noJavaScriptAdmin
         .locator('summary')
         .filter({ hasText: /^Menu$/u })

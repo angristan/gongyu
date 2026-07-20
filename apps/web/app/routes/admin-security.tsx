@@ -2,17 +2,20 @@ import {
     RegistrationOptionsEnvelope,
     RegistrationVerificationRequest,
 } from '@gongyu/auth/contracts';
-import {
-    FingerprintSimpleIcon,
-    KeyIcon,
-    WarningIcon,
-} from '@phosphor-icons/react';
+import { FingerprintSimpleIcon, KeyIcon } from '@phosphor-icons/react';
 import { startRegistration } from '@simplewebauthn/browser';
 import { Schema } from 'effect';
 import { useState } from 'react';
 import { redirect, useRouteLoaderData } from 'react-router';
 import { AdminPage } from '../components/admin-page';
-import { Badge, Banner, Button, Dialog, LayerCard } from '../components/ui';
+import {
+    Badge,
+    Banner,
+    Button,
+    Dialog,
+    HydratedOnly,
+    LayerCard,
+} from '../components/ui';
 import { cloudflareRequestContext } from '../platform-context';
 import type { loader as rootLoader } from '../root';
 import type { Route } from './+types/admin-security';
@@ -63,9 +66,7 @@ async function postJson(
 export default function AdminSecurity() {
     const rootData = useRouteLoaderData<typeof rootLoader>('root');
     const csrfToken = rootData?.csrfToken ?? '';
-    const [message, setMessage] = useState(
-        'Replacing the passkey invalidates the current session and signs this browser back in with a fresh session.',
-    );
+    const [message, setMessage] = useState<string | null>(null);
     const [processing, setProcessing] = useState(false);
 
     async function replacePasskey() {
@@ -106,10 +107,8 @@ export default function AdminSecurity() {
 
     return (
         <AdminPage
-            description="Manage the single credential that protects the administrator interface."
-            section="Security"
+            description="Manage your administrator passkey."
             title="Security"
-            width="default"
         >
             <div className="space-y-3">
                 <LayerCard>
@@ -142,66 +141,66 @@ export default function AdminSecurity() {
                                     </p>
                                 </div>
                             </div>
-                            <Dialog.Root role="alertdialog">
-                                <Dialog.Trigger
-                                    render={
-                                        <Button
-                                            icon={KeyIcon}
-                                            size="sm"
-                                            variant="secondary"
-                                        />
-                                    }
+                            <HydratedOnly>
+                                <Dialog.Root role="alertdialog">
+                                    <Dialog.Trigger
+                                        render={
+                                            <Button
+                                                icon={KeyIcon}
+                                                size="sm"
+                                                variant="secondary"
+                                            />
+                                        }
+                                    >
+                                        Replace passkey
+                                    </Dialog.Trigger>
+                                    <Dialog className="space-y-5 p-6" size="lg">
+                                        <div className="space-y-2">
+                                            <Dialog.Title>
+                                                Replace the administrator
+                                                passkey?
+                                            </Dialog.Title>
+                                            <Dialog.Description>
+                                                The current credential stops
+                                                working immediately. Every
+                                                session is invalidated, then
+                                                this browser signs in again with
+                                                the replacement.
+                                            </Dialog.Description>
+                                        </div>
+                                        <div className="flex justify-end gap-2">
+                                            <Dialog.Close
+                                                render={
+                                                    <Button variant="secondary" />
+                                                }
+                                            >
+                                                Cancel
+                                            </Dialog.Close>
+                                            <Button
+                                                loading={processing}
+                                                onClick={replacePasskey}
+                                                type="button"
+                                                variant="destructive"
+                                            >
+                                                Replace now
+                                            </Button>
+                                        </div>
+                                    </Dialog>
+                                </Dialog.Root>
+                            </HydratedOnly>
+                        </div>
+                        {message === null ? null : (
+                            <div className="mt-4 rounded-lg border border-gongyu-line px-3 py-2">
+                                <p
+                                    aria-live="polite"
+                                    className="text-sm text-gongyu-default"
                                 >
-                                    Replace passkey
-                                </Dialog.Trigger>
-                                <Dialog className="space-y-5 p-6" size="lg">
-                                    <div className="space-y-2">
-                                        <Dialog.Title>
-                                            Replace the administrator passkey?
-                                        </Dialog.Title>
-                                        <Dialog.Description>
-                                            The current credential stops working
-                                            immediately. Every session is
-                                            invalidated, then this browser signs
-                                            in again with the replacement.
-                                        </Dialog.Description>
-                                    </div>
-                                    <div className="flex justify-end gap-2">
-                                        <Dialog.Close
-                                            render={
-                                                <Button variant="secondary" />
-                                            }
-                                        >
-                                            Cancel
-                                        </Dialog.Close>
-                                        <Button
-                                            loading={processing}
-                                            onClick={replacePasskey}
-                                            type="button"
-                                            variant="destructive"
-                                        >
-                                            Replace now
-                                        </Button>
-                                    </div>
-                                </Dialog>
-                            </Dialog.Root>
-                        </div>
-                        <div className="mt-4 rounded-lg border border-gongyu-line px-3 py-2">
-                            <p
-                                aria-live="polite"
-                                className="text-sm text-gongyu-default"
-                            >
-                                {message}
-                            </p>
-                        </div>
+                                    {message}
+                                </p>
+                            </div>
+                        )}
                     </section>
                 </LayerCard>
-                <Banner
-                    description="Replacement revokes existing sessions and the previous passkey together."
-                    icon={<WarningIcon aria-hidden="true" size={20} />}
-                    title="Before replacing your passkey"
-                    variant="secondary"
-                />
                 <LayerCard>
                     <section className="grid gap-4 p-4 text-sm sm:grid-cols-2">
                         <div>

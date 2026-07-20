@@ -28,9 +28,16 @@ import {
     type ReactNode,
     type TextareaHTMLAttributes,
     useContext,
+    useEffect,
     useState,
 } from 'react';
 import { Link } from 'react-router';
+
+export function HydratedOnly({ children }: { readonly children: ReactNode }) {
+    const [hydrated, setHydrated] = useState(false);
+    useEffect(() => setHydrated(true), []);
+    return hydrated ? children : null;
+}
 
 export function cn(
     ...values: ReadonlyArray<string | false | null | undefined>
@@ -383,6 +390,7 @@ export function Empty({
     contents,
     description,
     icon,
+    size,
     title,
 }: {
     readonly className?: string;
@@ -392,14 +400,25 @@ export function Empty({
     readonly size?: 'sm';
     readonly title: ReactNode;
 }) {
+    const compact = size === 'sm';
     return (
-        <Stack align="center" className={className} gap="xs" p="xl">
+        <Stack
+            align="center"
+            className={className}
+            gap={compact ? 4 : 'xs'}
+            p={compact ? 'md' : 'xl'}
+        >
             {icon}
-            <Title order={3} size="h5">
+            <Title order={3} size={compact ? 'h6' : 'h5'}>
                 {title}
             </Title>
             {description === undefined ? null : (
-                <Text c="dimmed" maw={460} size="sm" ta="center">
+                <Text
+                    c="dimmed"
+                    maw={460}
+                    size={compact ? 'xs' : 'sm'}
+                    ta="center"
+                >
                     {description}
                 </Text>
             )}
@@ -546,10 +565,6 @@ function BreadcrumbCurrent({ children }: { readonly children: ReactNode }) {
     );
 }
 
-function BreadcrumbSeparator() {
-    return null;
-}
-
 function BreadcrumbsRoot({
     children,
     className,
@@ -568,5 +583,4 @@ function BreadcrumbsRoot({
 export const Breadcrumbs = Object.assign(BreadcrumbsRoot, {
     Current: BreadcrumbCurrent,
     Link: BreadcrumbLink,
-    Separator: BreadcrumbSeparator,
 });
