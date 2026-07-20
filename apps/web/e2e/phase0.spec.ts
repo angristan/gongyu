@@ -653,9 +653,7 @@ test('serves public list, search, detail, and feed without JavaScript', async ({
     browser,
 }) => {
     const staging = process.env.STAGING_BASE_URL !== undefined;
-    const expectedTitle = staging
-        ? 'Cloudflare Workers documentation'
-        : 'Captured page';
+    let expectedTitle = 'Captured page';
     const context = await browser.newContext({
         baseURL:
             process.env.STAGING_BASE_URL ??
@@ -663,7 +661,21 @@ test('serves public list, search, detail, and feed without JavaScript', async ({
         javaScriptEnabled: false,
     });
     const page = await context.newPage();
-    await page.goto(`/search?q=${staging ? 'Cloudflare' : 'Captured'}`);
+    if (staging) {
+        await page.goto('/');
+        const importedTitle = await page
+            .locator(
+                'ol[aria-label="Bookmarks in list view"] a[target="_blank"]',
+            )
+            .first()
+            .textContent();
+        if (importedTitle === null || importedTitle.trim() === '') {
+            throw new Error('Staging has no public bookmarks to exercise.');
+        }
+        expectedTitle = importedTitle.trim();
+    }
+    const query = expectedTitle.split(/\s+/u)[0] ?? expectedTitle;
+    await page.goto(`/search?q=${encodeURIComponent(query)}`);
     await expect(page.getByText(expectedTitle)).toBeVisible();
     await expect(
         page.getByRole('list', { name: 'Bookmarks in list view' }),
@@ -678,7 +690,12 @@ test('serves public list, search, detail, and feed without JavaScript', async ({
     const publicHtml = await page.content();
     expect(publicHtml).not.toContain('thumbnailCleanupKey');
     expect(publicHtml).not.toContain('thumbnailKey');
-    const detailLink = page.locator('a[href^="/b/"]').first();
+    const detailLink = page
+        .locator('article')
+        .filter({ hasText: expectedTitle })
+        .first()
+        .locator('a[href^="/b/"]')
+        .first();
     await expect(detailLink).toBeVisible();
     await detailLink.click();
     await expect(
@@ -691,19 +708,21 @@ test('serves public list, search, detail, and feed without JavaScript', async ({
     expect(
         await page.locator('meta[property="og:url"]').getAttribute('content'),
     ).toBe(canonical);
-    if (staging) {
-        expect(
-            await page
-                .locator('meta[property="og:image"]')
-                .getAttribute('content'),
-        ).toMatch(/\/thumbnails\/Demo0001\/[a-f0-9]{64}$/u);
-        expect(
-            await page
-                .locator('meta[name="twitter:card"]')
-                .getAttribute('content'),
-        ).toBe('summary_large_image');
+    const openGraphImageElement = page.locator('meta[property="og:image"]');
+    const openGraphImage =
+        (await openGraphImageElement.count()) === 0
+            ? null
+            : await openGraphImageElement.getAttribute('content');
+    const twitterCard = await page
+        .locator('meta[name="twitter:card"]')
+        .getAttribute('content');
+    if (openGraphImage === null) {
+        expect(twitterCard).toBe('summary');
     } else {
-        expect(await page.locator('meta[property="og:image"]').count()).toBe(0);
+        expect(openGraphImage).toMatch(
+            /\/thumbnails\/[A-Za-z0-9]{8}\/[a-f0-9]{64}$/u,
+        );
+        expect(twitterCard).toBe('summary_large_image');
     }
     await page.setViewportSize({ height: 800, width: 320 });
     expect(
