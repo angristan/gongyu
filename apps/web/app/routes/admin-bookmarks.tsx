@@ -37,6 +37,7 @@ import {
     LayerCard,
     LinkButton,
 } from '../components/ui';
+import { matchesFormSubmission } from '../form-navigation';
 import { cloudflareRequestContext } from '../platform-context';
 import type { loader as rootLoader } from '../root';
 import type { Route } from './+types/admin-bookmarks';
@@ -333,7 +334,16 @@ export default function AdminBookmarks({
 }: Route.ComponentProps) {
     const rootData = useRouteLoaderData<typeof rootLoader>('root');
     const csrfToken = rootData?.csrfToken ?? '';
-    const isSubmitting = useNavigation().state !== 'idle';
+    const navigation = useNavigation();
+    const isSearching = matchesFormSubmission(navigation, {
+        action: '/admin/bookmarks',
+        method: 'GET',
+    });
+    const isDeleting = matchesFormSubmission(navigation, {
+        action: '/admin/bookmarks',
+        method: 'POST',
+    });
+    const isSubmitting = isSearching || isDeleting;
     const { result } = loaderData;
     return (
         <AdminPage
@@ -378,8 +388,9 @@ export default function AdminBookmarks({
                             type="search"
                         />
                         <Button
+                            disabled={isSubmitting}
                             icon={MagnifyingGlassIcon}
-                            loading={isSubmitting}
+                            loading={isSearching}
                             size="sm"
                             type="submit"
                             variant="secondary"
@@ -574,7 +585,8 @@ export default function AdminBookmarks({
                                             Cancel
                                         </Dialog.Close>
                                         <Button
-                                            loading={isSubmitting}
+                                            disabled={isSubmitting}
+                                            loading={isDeleting}
                                             type="submit"
                                             variant="destructive"
                                         >

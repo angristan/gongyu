@@ -318,6 +318,43 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
         .locator('#main-content')
         .getByRole('link', { name: 'New bookmark' })
         .click();
+    let releaseMetadataResponse = () => {};
+    let reportMetadataRequest = () => {};
+    const metadataResponseGate = new Promise<void>((resolve) => {
+        releaseMetadataResponse = resolve;
+    });
+    const metadataRequestStarted = new Promise<void>((resolve) => {
+        reportMetadataRequest = resolve;
+    });
+    await page.route('**/api/metadata/preview', async (route) => {
+        reportMetadataRequest();
+        await metadataResponseGate;
+        await route.fulfill({
+            body: JSON.stringify({
+                description: 'Fetched description',
+                title: 'Fetched title',
+            }),
+            contentType: 'application/json',
+            status: 200,
+        });
+    });
+    await page.getByLabel('URL').fill('https://example.com/metadata-race');
+    const metadataRequest = page
+        .getByRole('button', { name: 'Fetch metadata' })
+        .click();
+    await metadataRequestStarted;
+    await page.getByLabel('Title').fill('Manual title');
+    await page.getByLabel('Description').fill('Manual description');
+    releaseMetadataResponse();
+    await metadataRequest;
+    await expect(
+        page.getByText('Metadata candidates are ready.'),
+    ).toBeVisible();
+    await expect(page.getByLabel('Title')).toHaveValue('Manual title');
+    await expect(page.getByLabel('Description')).toHaveValue(
+        'Manual description',
+    );
+    await page.unroute('**/api/metadata/preview');
     await page.getByLabel('URL').fill('https://example.com/phase-two');
     await page.getByLabel('Title').fill('Phase Two Bookmark');
     await page.getByLabel('Description').fill('Searchable Cloudflare notes');
@@ -356,7 +393,32 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
     expect(bookmarkColumns.savedRight).toBeLessThan(
         bookmarkColumns.actionsLeft,
     );
-    await page.getByRole('link', { name: 'Gallery view' }).click();
+    let releaseGalleryNavigation = () => {};
+    let reportGalleryRequest = () => {};
+    const galleryNavigationGate = new Promise<void>((resolve) => {
+        releaseGalleryNavigation = resolve;
+    });
+    const galleryRequestStarted = new Promise<void>((resolve) => {
+        reportGalleryRequest = resolve;
+    });
+    await page.route('**/*', async (route) => {
+        const url = new URL(route.request().url());
+        if (url.searchParams.get('view') !== 'gallery') {
+            await route.continue();
+            return;
+        }
+        reportGalleryRequest();
+        await galleryNavigationGate;
+        await route.continue();
+    });
+    const galleryNavigation = page
+        .getByRole('link', { name: 'Gallery view' })
+        .click();
+    await galleryRequestStarted;
+    await expect(page.getByRole('button', { name: 'Search' })).toBeEnabled();
+    releaseGalleryNavigation();
+    await galleryNavigation;
+    await page.unroute('**/*');
     await expect(page).toHaveURL(/view=gallery/u);
     await expect(
         page.getByRole('list', { name: 'Bookmarks in gallery view' }),
@@ -654,12 +716,9 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
 
     await page.goto('/admin/data');
     await page.getByRole('button', { name: 'Create full backup' }).click();
-    await expect(async () => {
-        await page.reload();
-        await expect(
-            page.getByText('Backup file ready to download.').first(),
-        ).toBeVisible();
-    }).toPass({ timeout: 30_000 });
+    await expect(
+        page.getByText('Backup file ready to download.').first(),
+    ).toBeVisible({ timeout: 30_000 });
     const downloadPromise = page.waitForEvent('download');
     await page.getByRole('link', { name: 'Download' }).first().click();
     const download = await downloadPromise;

@@ -39,6 +39,7 @@ import {
     LinkButton,
 } from '../components/ui';
 import { failure, success } from '../effect/result';
+import { matchesFormSubmission } from '../form-navigation';
 import { cloudflareRequestContext } from '../platform-context';
 import type { loader as rootLoader } from '../root';
 import type { Route } from './+types/bookmarklet';
@@ -160,7 +161,10 @@ export default function Bookmarklet({
 }: Route.ComponentProps) {
     const rootData = useRouteLoaderData<typeof rootLoader>('root');
     const csrfToken = rootData?.csrfToken ?? '';
-    const isSubmitting = useNavigation().state !== 'idle';
+    const isSubmitting = matchesFormSubmission(useNavigation(), {
+        action: '/bookmarklet',
+        method: 'POST',
+    });
     const installLink = useRef<HTMLAnchorElement>(null);
     const values =
         actionData !== undefined && 'input' in actionData
@@ -352,18 +356,18 @@ export default function Bookmarklet({
                             <MetadataPreview
                                 csrfToken={csrfToken}
                                 onCandidates={(candidates) => {
-                                    if (
-                                        title === '' &&
+                                    setTitle((current) =>
+                                        current === '' &&
                                         candidates.title !== null
-                                    ) {
-                                        setTitle(candidates.title);
-                                    }
-                                    if (
-                                        description === '' &&
+                                            ? candidates.title
+                                            : current,
+                                    );
+                                    setDescription((current) =>
+                                        current === '' &&
                                         candidates.description !== null
-                                    ) {
-                                        setDescription(candidates.description);
-                                    }
+                                            ? candidates.description
+                                            : current,
+                                    );
                                 }}
                                 url={url}
                             />

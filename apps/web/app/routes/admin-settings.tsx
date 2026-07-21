@@ -21,6 +21,7 @@ import {
 import { AdminPage } from '../components/admin-page';
 import { adminPanelFooterClass } from '../components/admin-panel';
 import { Badge, Banner, Button, Input, LayerCard } from '../components/ui';
+import { matchesFormSubmission } from '../form-navigation';
 import { cloudflareRequestContext } from '../platform-context';
 import type { loader as rootLoader } from '../root';
 import type { Route } from './+types/admin-settings';
@@ -164,7 +165,10 @@ export default function AdminSettings({
     const csrfToken = rootData?.csrfToken ?? '';
     const values = actionData?.values ?? loaderData.settings;
     const errors = actionData?.errors ?? {};
-    const isSubmitting = useNavigation().state !== 'idle';
+    const isSubmitting = matchesFormSubmission(useNavigation(), {
+        action: '/admin/settings',
+        method: 'POST',
+    });
     const providerGroups = [
         {
             description: 'OAuth 1.0a credentials for posting saved links.',

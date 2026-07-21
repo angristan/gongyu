@@ -47,6 +47,7 @@ import {
     LinkButton,
 } from '../components/ui';
 import { failure, success } from '../effect/result';
+import { matchesFormSubmission } from '../form-navigation';
 import { cloudflareRequestContext } from '../platform-context';
 import type { loader as rootLoader } from '../root';
 import type { Route } from './+types/admin-bookmark-edit';
@@ -184,7 +185,19 @@ export default function AdminBookmarkEdit({
 }: Route.ComponentProps) {
     const rootData = useRouteLoaderData<typeof rootLoader>('root');
     const csrfToken = rootData?.csrfToken ?? '';
-    const isSubmitting = useNavigation().state !== 'idle';
+    const navigation = useNavigation();
+    const formAction = `/admin/bookmarks/${loaderData.bookmark.shortUrl}/edit`;
+    const isUpdating = matchesFormSubmission(navigation, {
+        action: formAction,
+        fields: { intent: 'update' },
+        method: 'POST',
+    });
+    const isDeleting = matchesFormSubmission(navigation, {
+        action: formAction,
+        fields: { intent: 'delete' },
+        method: 'POST',
+    });
+    const isSubmitting = isUpdating || isDeleting;
     const values =
         actionData !== undefined && 'input' in actionData
             ? actionData.input
@@ -322,8 +335,9 @@ export default function AdminBookmarkEdit({
                         </div>
                         <div className={adminPanelFooterClass}>
                             <Button
+                                disabled={isSubmitting}
                                 icon={FloppyDiskIcon}
-                                loading={isSubmitting}
+                                loading={isUpdating}
                                 type="submit"
                                 variant="primary"
                             >
@@ -445,7 +459,8 @@ export default function AdminBookmarkEdit({
                                                     Cancel
                                                 </Dialog.Close>
                                                 <Button
-                                                    loading={isSubmitting}
+                                                    disabled={isSubmitting}
+                                                    loading={isDeleting}
                                                     type="submit"
                                                     variant="destructive"
                                                 >
