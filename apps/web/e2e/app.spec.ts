@@ -496,6 +496,20 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
     ).toBeVisible();
     await expect(page.getByLabel('Source format')).toBeVisible();
     await expect(page.getByLabel('Full backup file')).toBeVisible();
+    await page.getByRole('button', { name: 'Create full backup' }).click();
+    await expect(async () => {
+        await page.reload();
+        await expect(
+            page.getByText('Backup file ready to download.').first(),
+        ).toBeVisible();
+    }).toPass({ timeout: 30_000 });
+    const downloadPromise = page.waitForEvent('download');
+    await page.getByRole('link', { name: 'Download' }).first().click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toMatch(
+        /^gongyu-backup-.+\.backup\.json$/u,
+    );
+    expect(await download.path()).not.toBeNull();
 
     await page.goto('/admin/settings');
     await page.getByLabel('Twitter API key').fill('browser-test-key');
