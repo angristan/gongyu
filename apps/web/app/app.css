@@ -135,9 +135,24 @@ body {
     transition: background-color 150ms ease;
 }
 
+.gongyu-public-app .gongyu-bookmark-preview {
+    box-shadow: 0 1px 2px rgb(95 70 52 / 8%);
+    filter: saturate(0.78);
+    opacity: 0.82;
+    transition:
+        filter 150ms ease,
+        opacity 150ms ease;
+}
+
 .gongyu-public-app .gongyu-bookmark-row:hover,
 .gongyu-public-app .gongyu-bookmark-row:focus-within {
     background: rgb(248 242 236 / 58%);
+}
+
+.gongyu-public-app .gongyu-bookmark-row:hover .gongyu-bookmark-preview,
+.gongyu-public-app .gongyu-bookmark-row:focus-within .gongyu-bookmark-preview {
+    filter: saturate(0.95);
+    opacity: 1;
 }
 
 [data-mantine-color-scheme="dark"] .gongyu-public-app {

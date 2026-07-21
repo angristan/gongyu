@@ -2,9 +2,11 @@ import {
     ArrowRightIcon,
     ArrowSquareOutIcon,
     BookmarkSimpleIcon,
+    CaretRightIcon,
     MagnifyingGlassIcon,
     XIcon,
 } from '@phosphor-icons/react';
+import type { ReactNode } from 'react';
 import { Form, Link } from 'react-router';
 import {
     Button,
@@ -50,6 +52,61 @@ function formatDate(microseconds: number): string {
     }).format(new Date(microseconds / 1_000));
 }
 
+function escapeRegularExpression(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+}
+
+function HighlightedText({
+    query,
+    text,
+}: {
+    readonly query: string;
+    readonly text: string;
+}) {
+    const terms = Array.from(
+        new Set(
+            query
+                .trim()
+                .split(/\s+/u)
+                .map((term) =>
+                    term.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, ''),
+                )
+                .filter((term) => term !== '')
+                .map((term) => term.toLocaleLowerCase('en-US')),
+        ),
+    ).sort((left, right) => right.length - left.length);
+    if (terms.length === 0) {
+        return text;
+    }
+
+    const pattern = new RegExp(
+        terms.map(escapeRegularExpression).join('|'),
+        'giu',
+    );
+    const highlighted: ReactNode[] = [];
+    let cursor = 0;
+    for (const match of text.matchAll(pattern)) {
+        const start = match.index;
+        if (start > cursor) {
+            highlighted.push(text.slice(cursor, start));
+        }
+        highlighted.push(
+            <mark
+                className="rounded-sm bg-gongyu-brand/12 px-[0.08em] text-inherit"
+                key={`${start}-${match[0]}`}
+            >
+                {match[0]}
+            </mark>,
+        );
+        cursor = start + match[0].length;
+    }
+    if (cursor < text.length) {
+        highlighted.push(text.slice(cursor));
+    }
+
+    return highlighted;
+}
+
 function pageHref(
     basePath: string,
     query: string,
@@ -65,7 +122,13 @@ function pageHref(
     return `${basePath}?${parameters.toString()}`;
 }
 
-function BookmarkCard({ bookmark }: { readonly bookmark: PublicBookmark }) {
+function BookmarkCard({
+    bookmark,
+    query,
+}: {
+    readonly bookmark: PublicBookmark;
+    readonly query: string;
+}) {
     const hostname = new URL(bookmark.url).hostname.replace(/^www\./u, '');
     return (
         <LayerCard className="gongyu-bookmark-card group h-full overflow-hidden">
@@ -95,7 +158,9 @@ function BookmarkCard({ bookmark }: { readonly bookmark: PublicBookmark }) {
                 </Link>
                 <div className="flex flex-1 flex-col gap-2.5 p-3.5">
                     <div className="flex min-w-0 items-center gap-1.5 text-[11px] text-gongyu-subtle">
-                        <span className="truncate font-medium">{hostname}</span>
+                        <span className="truncate font-medium">
+                            <HighlightedText query={query} text={hostname} />
+                        </span>
                         <span aria-hidden="true" className="opacity-45">
                             ·
                         </span>
@@ -116,7 +181,10 @@ function BookmarkCard({ bookmark }: { readonly bookmark: PublicBookmark }) {
                                 rel="noreferrer"
                                 target="_blank"
                             >
-                                {bookmark.title}
+                                <HighlightedText
+                                    query={query}
+                                    text={bookmark.title}
+                                />
                                 <ArrowSquareOutIcon
                                     aria-hidden="true"
                                     className="ml-1 inline-block align-[-0.1em] text-gongyu-subtle/65"
@@ -126,7 +194,10 @@ function BookmarkCard({ bookmark }: { readonly bookmark: PublicBookmark }) {
                         </h2>
                         {bookmark.description === null ? null : (
                             <p className="line-clamp-2 whitespace-pre-wrap text-xs leading-5 text-gongyu-subtle">
-                                {bookmark.description}
+                                <HighlightedText
+                                    query={query}
+                                    text={bookmark.description}
+                                />
                             </p>
                         )}
                     </div>
@@ -143,49 +214,46 @@ function BookmarkCard({ bookmark }: { readonly bookmark: PublicBookmark }) {
     );
 }
 
-function BookmarkListItem({ bookmark }: { readonly bookmark: PublicBookmark }) {
+function BookmarkListItem({
+    bookmark,
+    query,
+}: {
+    readonly bookmark: PublicBookmark;
+    readonly query: string;
+}) {
     const hostname = new URL(bookmark.url).hostname.replace(/^www\./u, '');
     return (
-        <article className="gongyu-bookmark-row group flex items-start gap-3 px-3 py-3 sm:px-4">
-            {bookmark.thumbnailSha256 === null ? null : (
-                <Link
-                    aria-label={`View details for ${bookmark.title}`}
-                    className="h-[3.75rem] w-20 shrink-0 overflow-hidden rounded-md bg-gongyu-tint sm:w-[5.5rem]"
-                    to={`/b/${bookmark.shortUrl}`}
-                >
-                    <img
-                        alt=""
-                        className="size-full object-cover"
-                        loading="lazy"
-                        src={`/thumbnails/${bookmark.shortUrl}/${bookmark.thumbnailSha256}`}
-                    />
-                </Link>
-            )}
-            <div className="min-w-0 flex-1">
-                <h2 className="line-clamp-2 text-sm font-semibold leading-snug tracking-[-0.01em] text-gongyu-default">
-                    <a
-                        className="decoration-gongyu-line underline-offset-4 hover:text-gongyu-link hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gongyu-focus"
-                        href={bookmark.url}
-                        rel="noreferrer"
-                        target="_blank"
-                        title={bookmark.url}
-                    >
-                        {bookmark.title}
-                        <ArrowSquareOutIcon
-                            aria-hidden="true"
-                            className="ml-1 inline-block align-[-0.1em] text-gongyu-subtle/60"
-                            size={13}
-                        />
-                    </a>
-                </h2>
-                {bookmark.description === null ? null : (
-                    <p className="mt-1 line-clamp-2 whitespace-pre-wrap text-xs leading-5 text-gongyu-subtle">
-                        {bookmark.description}
-                    </p>
-                )}
-                <div className="mt-1.5 flex min-w-0 items-center gap-1.5 text-[11px] text-gongyu-subtle">
-                    <span className="truncate font-medium">{hostname}</span>
-                    <span aria-hidden="true" className="opacity-45">
+        <article className="gongyu-bookmark-row group grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2.5 px-3 py-2.5 sm:gap-4 sm:px-4">
+            <div className="min-w-0 sm:grid sm:grid-cols-[minmax(0,1fr)_8.5rem] sm:items-start sm:gap-4">
+                <div className="min-w-0">
+                    <h2 className="line-clamp-2 text-sm font-semibold leading-snug tracking-[-0.01em] text-gongyu-default sm:line-clamp-1">
+                        <a
+                            className="decoration-gongyu-line underline-offset-4 hover:text-gongyu-link hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gongyu-focus"
+                            href={bookmark.url}
+                            rel="noreferrer"
+                            target="_blank"
+                            title={bookmark.url}
+                        >
+                            <HighlightedText
+                                query={query}
+                                text={bookmark.title}
+                            />
+                        </a>
+                    </h2>
+                    {bookmark.description === null ? null : (
+                        <p className="mt-1 line-clamp-2 whitespace-pre-wrap text-xs leading-5 text-gongyu-subtle sm:line-clamp-1">
+                            <HighlightedText
+                                query={query}
+                                text={bookmark.description}
+                            />
+                        </p>
+                    )}
+                </div>
+                <div className="mt-1.5 flex min-w-0 items-center gap-1.5 text-[11px] text-gongyu-subtle sm:mt-0 sm:flex-col sm:items-end sm:gap-0.5 sm:text-right">
+                    <span className="truncate font-medium sm:max-w-full">
+                        <HighlightedText query={query} text={hostname} />
+                    </span>
+                    <span aria-hidden="true" className="opacity-45 sm:hidden">
                         ·
                     </span>
                     <time
@@ -196,17 +264,35 @@ function BookmarkListItem({ bookmark }: { readonly bookmark: PublicBookmark }) {
                     >
                         {formatDate(bookmark.createdAt)}
                     </time>
-                    <span aria-hidden="true" className="opacity-45">
-                        ·
-                    </span>
-                    <Link
-                        className="inline-flex shrink-0 items-center gap-0.5 font-medium text-gongyu-link hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gongyu-focus"
-                        to={`/b/${bookmark.shortUrl}`}
-                    >
-                        Details
-                        <ArrowRightIcon aria-hidden="true" size={12} />
-                    </Link>
                 </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-1.5 sm:w-[7.25rem] sm:justify-end sm:gap-2">
+                {bookmark.thumbnailSha256 === null ? null : (
+                    <span
+                        aria-hidden="true"
+                        className="gongyu-bookmark-preview aspect-video w-16 overflow-hidden rounded-md border border-gongyu-line bg-gongyu-tint sm:w-20"
+                        data-bookmark-preview
+                    >
+                        <img
+                            alt=""
+                            className="size-full object-cover"
+                            loading="lazy"
+                            src={`/thumbnails/${bookmark.shortUrl}/${bookmark.thumbnailSha256}`}
+                        />
+                    </span>
+                )}
+                <Link
+                    aria-label={`View details for ${bookmark.title}`}
+                    className="inline-flex size-7 shrink-0 items-center justify-center rounded-full text-gongyu-subtle transition-colors hover:bg-gongyu-tint hover:text-gongyu-link focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gongyu-focus"
+                    title="View details"
+                    to={`/b/${bookmark.shortUrl}`}
+                >
+                    <CaretRightIcon
+                        aria-hidden="true"
+                        size={16}
+                        weight="bold"
+                    />
+                </Link>
             </div>
         </article>
     );
@@ -390,7 +476,10 @@ export function PublicBookmarkPage({
                     >
                         {result.bookmarks.map((bookmark) => (
                             <li key={bookmark.id}>
-                                <BookmarkCard bookmark={bookmark} />
+                                <BookmarkCard
+                                    bookmark={bookmark}
+                                    query={query}
+                                />
                             </li>
                         ))}
                     </ol>
@@ -404,7 +493,10 @@ export function PublicBookmarkPage({
                         >
                             {result.bookmarks.map((bookmark) => (
                                 <li key={bookmark.id}>
-                                    <BookmarkListItem bookmark={bookmark} />
+                                    <BookmarkListItem
+                                        bookmark={bookmark}
+                                        query={query}
+                                    />
                                 </li>
                             ))}
                         </ol>

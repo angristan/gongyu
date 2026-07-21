@@ -434,6 +434,7 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
 
     await page.goto('/?q=cloudflare');
     await expect(page.getByText('Phase Two Bookmark')).toBeVisible();
+    await expect(page.locator('mark')).toHaveText('Cloudflare');
     await page.locator('a[href^="/b/"]').first().click();
     await expect(
         page.getByRole('heading', { name: 'Phase Two Bookmark' }),
@@ -799,6 +800,31 @@ test('serves public list, search, detail, and feed without JavaScript', async ({
     });
     const page = await context.newPage();
     const query = expectedTitle.split(/\s+/u)[0] ?? expectedTitle;
+    const previewSha256 = 'a'.repeat(64);
+    const { stdout: previewOutput } = await execute(
+        'bunx',
+        d1Arguments(`
+            UPDATE bookmarks
+            SET
+                thumbnail_content_type = 'image/webp',
+                thumbnail_size = 68,
+                thumbnail_width = 1,
+                thumbnail_height = 1,
+                thumbnail_sha256 = '${previewSha256}'
+            WHERE title = '${expectedTitle}';
+        `),
+    );
+    expect(previewOutput).toContain('success');
+    await context.route('**/thumbnails/**', async (route) => {
+        await route.fulfill({
+            body: Buffer.from(
+                'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+                'base64',
+            ),
+            contentType: 'image/png',
+            status: 200,
+        });
+    });
     await page.goto('/');
     await page.getByRole('searchbox', { name: 'Search bookmarks' }).fill(query);
     await page.getByRole('button', { name: 'Search bookmarks' }).click();
@@ -826,8 +852,44 @@ test('serves public list, search, detail, and feed without JavaScript', async ({
         name: expectedTitle,
     });
     await expect(originalLink).toHaveAttribute('target', '_blank');
-    const detailLink = resultArticle.getByRole('link', { name: 'Details' });
+    await expect(originalLink.locator('svg')).toHaveCount(0);
+    await expect(resultArticle.locator('mark')).toHaveText(query);
+    const preview = resultArticle.locator('[data-bookmark-preview]');
+    await expect(preview).toBeVisible();
+    expect(
+        await preview.evaluate(
+            (element) => element.getBoundingClientRect().left,
+        ),
+    ).toBeGreaterThan(
+        await originalLink.evaluate(
+            (element) => element.getBoundingClientRect().left,
+        ),
+    );
+    const detailLink = resultArticle.getByRole('link', {
+        exact: true,
+        name: `View details for ${expectedTitle}`,
+    });
     await expect(detailLink).toBeVisible();
+    await page.setViewportSize({ height: 800, width: 320 });
+    expect(
+        await page.evaluate(
+            () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+    ).toBe(true);
+    const { stdout: clearPreviewOutput } = await execute(
+        'bunx',
+        d1Arguments(`
+            UPDATE bookmarks
+            SET
+                thumbnail_content_type = NULL,
+                thumbnail_size = NULL,
+                thumbnail_width = NULL,
+                thumbnail_height = NULL,
+                thumbnail_sha256 = NULL
+            WHERE title = '${expectedTitle}';
+        `),
+    );
+    expect(clearPreviewOutput).toContain('success');
     await detailLink.click();
     await expect(
         page.getByRole('heading', { name: expectedTitle }),
@@ -844,13 +906,6 @@ test('serves public list, search, detail, and feed without JavaScript', async ({
     expect(
         await page.locator('meta[name="twitter:card"]').getAttribute('content'),
     ).toBe('summary');
-    await page.setViewportSize({ height: 800, width: 320 });
-    expect(
-        await page.evaluate(
-            () => document.documentElement.scrollWidth <= window.innerWidth,
-        ),
-    ).toBe(true);
-
     const missingShaarliRedirect = await context.request.get(
         '/shaare/not-a-known-hash',
         { maxRedirects: 0 },
