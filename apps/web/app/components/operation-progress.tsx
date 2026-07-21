@@ -4,6 +4,26 @@ interface OperationProgressProps {
     readonly total: number;
 }
 
+export function hasRowProgress(kind: string): boolean {
+    return kind === 'import' || kind === 'restore';
+}
+
+export function artifactOperationStatus(kind: string, state: string): string {
+    const operation = kind === 'backup' ? 'Backup' : 'Export';
+    switch (state) {
+        case 'completed':
+            return `${operation} file ready to download.`;
+        case 'expired':
+            return `${operation} completed; its download has expired.`;
+        case 'failed':
+            return `${operation} failed. Review the operation errors below.`;
+        case 'running':
+            return `Creating ${operation.toLowerCase()} file…`;
+        default:
+            return `${operation} is waiting to start.`;
+    }
+}
+
 export function OperationProgress({
     label,
     processed,

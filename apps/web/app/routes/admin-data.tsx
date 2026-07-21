@@ -36,7 +36,11 @@ import {
     adminPanelBodyClass,
     adminPanelFooterClass,
 } from '../components/admin-panel';
-import { OperationProgress } from '../components/operation-progress';
+import {
+    artifactOperationStatus,
+    hasRowProgress,
+    OperationProgress,
+} from '../components/operation-progress';
 import { StatusBadge } from '../components/status-badge';
 import {
     Banner,
@@ -840,38 +844,49 @@ export default function AdminData({ loaderData }: Route.ComponentProps) {
                                         ) : null}
                                     </div>
 
-                                    <OperationProgress
-                                        label="Rows processed"
-                                        processed={run.processedRows}
-                                        total={run.totalRows}
-                                    />
+                                    {hasRowProgress(run.kind) ? (
+                                        <>
+                                            <OperationProgress
+                                                label="Rows processed"
+                                                processed={run.processedRows}
+                                                total={run.totalRows}
+                                            />
 
-                                    <dl className="grid grid-cols-3 gap-2 text-center">
-                                        <div className="rounded-md border border-gongyu-line p-2">
-                                            <dt className="text-xs text-gongyu-subtle">
-                                                Imported
-                                            </dt>
-                                            <dd className="mt-1 font-semibold text-gongyu-default">
-                                                {run.importedRows}
-                                            </dd>
-                                        </div>
-                                        <div className="rounded-md border border-gongyu-line p-2">
-                                            <dt className="text-xs text-gongyu-subtle">
-                                                Skipped
-                                            </dt>
-                                            <dd className="mt-1 font-semibold text-gongyu-default">
-                                                {run.skippedRows}
-                                            </dd>
-                                        </div>
-                                        <div className="rounded-md border border-gongyu-line p-2">
-                                            <dt className="text-xs text-gongyu-subtle">
-                                                Errors
-                                            </dt>
-                                            <dd className="mt-1 font-semibold text-gongyu-default">
-                                                {run.errorRows}
-                                            </dd>
-                                        </div>
-                                    </dl>
+                                            <dl className="grid grid-cols-3 gap-2 text-center">
+                                                <div className="rounded-md border border-gongyu-line p-2">
+                                                    <dt className="text-xs text-gongyu-subtle">
+                                                        Imported
+                                                    </dt>
+                                                    <dd className="mt-1 font-semibold text-gongyu-default">
+                                                        {run.importedRows}
+                                                    </dd>
+                                                </div>
+                                                <div className="rounded-md border border-gongyu-line p-2">
+                                                    <dt className="text-xs text-gongyu-subtle">
+                                                        Skipped
+                                                    </dt>
+                                                    <dd className="mt-1 font-semibold text-gongyu-default">
+                                                        {run.skippedRows}
+                                                    </dd>
+                                                </div>
+                                                <div className="rounded-md border border-gongyu-line p-2">
+                                                    <dt className="text-xs text-gongyu-subtle">
+                                                        Errors
+                                                    </dt>
+                                                    <dd className="mt-1 font-semibold text-gongyu-default">
+                                                        {run.errorRows}
+                                                    </dd>
+                                                </div>
+                                            </dl>
+                                        </>
+                                    ) : (
+                                        <p className="rounded-md border border-gongyu-line bg-gongyu-fill px-3 py-2 text-sm text-gongyu-subtle">
+                                            {artifactOperationStatus(
+                                                run.kind,
+                                                run.state,
+                                            )}
+                                        </p>
+                                    )}
 
                                     {run.errorCode === null &&
                                     errors.length === 0 ? null : (
