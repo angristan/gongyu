@@ -8,6 +8,8 @@ import { makeJobsEffectRunner } from './runtime';
 export { DataWorkflow } from './data-workflow';
 
 const OUTBOX_LEASE_MICROS = 60 * 1_000_000;
+const TERMINAL_HISTORY_RETENTION_MICROS = 7 * 24 * 60 * 60 * 1_000_000;
+const TERMINAL_HISTORY_PRUNE_LIMIT = 100;
 
 function runner(env: Env, trigger: 'queue' | 'scheduled' | 'workflow') {
     if (env.ENCRYPTION_KEYS === undefined) {
@@ -93,15 +95,9 @@ export default {
                 Math.floor(now / 1_000) - 86_400_000,
             ),
         ]);
-        const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1_000_000;
+        const terminalHistoryCutoff = now - TERMINAL_HISTORY_RETENTION_MICROS;
         const ninetyDaysAgo = now - 90 * 24 * 60 * 60 * 1_000_000;
         await env.DB.withSession('first-primary').batch([
-            env.DB.prepare(
-                `DELETE FROM jobs WHERE state IN ('completed', 'failed') AND updated_at < ?`,
-            ).bind(thirtyDaysAgo),
-            env.DB.prepare(
-                `DELETE FROM outbox WHERE state IN ('completed', 'failed') AND updated_at < ?`,
-            ).bind(thirtyDaysAgo),
             env.DB.prepare('DELETE FROM audit_log WHERE occurred_at < ?').bind(
                 ninetyDaysAgo,
             ),
@@ -110,19 +106,32 @@ export default {
             ).bind(ninetyDaysAgo),
         ]);
         const token = crypto.randomUUID();
-        const leases = await effect.runPromise(
+        const maintenance = await effect.runPromise(
             Effect.gen(function* () {
                 const repository = yield* WorkRepository;
+                const prunedHistory = yield* repository.pruneTerminalHistory({
+                    before: terminalHistoryCutoff,
+                    limit: TERMINAL_HISTORY_PRUNE_LIMIT,
+                });
                 yield* repository.reconcilePendingDeletions(now);
-                return yield* repository.claimOutbox({
+                const leases = yield* repository.claimOutbox({
                     leaseDurationMicros: OUTBOX_LEASE_MICROS,
                     limit: 25,
                     now,
                     token,
                 });
+                return { leases, prunedHistory };
             }),
         );
-        for (const lease of leases) {
+        if (maintenance.prunedHistory > 0) {
+            console.info(
+                JSON.stringify({
+                    event: 'job.history.pruned',
+                    outboxCount: maintenance.prunedHistory,
+                }),
+            );
+        }
+        for (const lease of maintenance.leases) {
             try {
                 const payload =
                     lease.payloadJson === null

@@ -29,6 +29,16 @@ class StateRow extends Schema.Class<StateRow>('StateRow')({
     state: Schema.String,
 }) {}
 
+class RetentionCounts extends Schema.Class<RetentionCounts>('RetentionCounts')({
+    active: Schema.Number,
+    oldJob: Schema.Number,
+    oldTerminal: Schema.Number,
+    orphan: Schema.Number,
+    recent: Schema.Number,
+    review: Schema.Number,
+    social: Schema.Number,
+}) {}
+
 const TestLayer = Layer.mergeAll(
     D1StoreTest,
     Layer.provide(BookmarkRepositoryTest, D1StoreTest),
@@ -189,6 +199,165 @@ it.layer(TestLayer)('durable work repository', (it) => {
             yield* work.ensureJob(message, 4_800);
             assert.isNull(yield* work.getJobStatus(message.jobId));
         }),
+    );
+
+    it.effect(
+        'prunes bounded terminal metadata history without touching protected work',
+        () =>
+            Effect.gen(function* () {
+                const bookmarks = yield* BookmarkRepository;
+                const work = yield* WorkRepository;
+                const d1 = yield* D1Store;
+                const bookmark = yield* bookmarks.create({
+                    createdAt: 7_000,
+                    description: null,
+                    title: 'Retention target',
+                    url: 'https://example.com/retention-target',
+                });
+                const outboxRows = [
+                    {
+                        id: 'retention:old-terminal',
+                        kind: 'metadata',
+                        state: 'completed',
+                        updatedAt: 1_000,
+                    },
+                    {
+                        id: 'retention:orphan',
+                        kind: 'metadata',
+                        state: 'failed',
+                        updatedAt: 1_000,
+                    },
+                    {
+                        id: 'retention:recent',
+                        kind: 'metadata',
+                        state: 'completed',
+                        updatedAt: 11_000,
+                    },
+                    {
+                        id: 'retention:social',
+                        kind: 'social',
+                        state: 'completed',
+                        updatedAt: 1_000,
+                    },
+                    {
+                        id: 'retention:review',
+                        kind: 'metadata',
+                        state: 'completed',
+                        updatedAt: 1_000,
+                    },
+                    {
+                        id: 'retention:active',
+                        kind: 'metadata',
+                        state: 'completed',
+                        updatedAt: 1_000,
+                    },
+                ];
+                const jobRows = [
+                    {
+                        id: 'retention:old-terminal',
+                        kind: 'metadata',
+                        state: 'completed',
+                        updatedAt: 1_000,
+                    },
+                    {
+                        id: 'retention:recent',
+                        kind: 'metadata',
+                        state: 'completed',
+                        updatedAt: 11_000,
+                    },
+                    {
+                        id: 'retention:social',
+                        kind: 'social',
+                        state: 'completed',
+                        updatedAt: 1_000,
+                    },
+                    {
+                        id: 'retention:review',
+                        kind: 'metadata',
+                        state: 'needs_review',
+                        updatedAt: 1_000,
+                    },
+                    {
+                        id: 'retention:active',
+                        kind: 'metadata',
+                        state: 'retrying',
+                        updatedAt: 1_000,
+                    },
+                ];
+                yield* d1.batch([
+                    ...outboxRows.map((row) => ({
+                        sql: `
+                            INSERT INTO outbox (
+                                id, bookmark_short_url, kind, state,
+                                payload_version, created_at, updated_at
+                            )
+                            VALUES (?, ?, ?, ?, 1, ?, ?)
+                        `,
+                        parameters: [
+                            row.id,
+                            bookmark.shortUrl,
+                            row.kind,
+                            row.state,
+                            row.updatedAt,
+                            row.updatedAt,
+                        ],
+                    })),
+                    ...jobRows.map((row) => ({
+                        sql: `
+                            INSERT INTO jobs (
+                                id, outbox_id, bookmark_short_url, kind, state,
+                                payload_version, created_at, updated_at
+                            )
+                            VALUES (?, ?, ?, ?, ?, 1, ?, ?)
+                        `,
+                        parameters: [
+                            row.id,
+                            row.id,
+                            bookmark.shortUrl,
+                            row.kind,
+                            row.state,
+                            row.updatedAt,
+                            row.updatedAt,
+                        ],
+                    })),
+                ]);
+
+                assert.strictEqual(
+                    yield* work.pruneTerminalHistory({
+                        before: 1_500,
+                        limit: 1,
+                    }),
+                    1,
+                );
+                assert.strictEqual(
+                    yield* work.pruneTerminalHistory({
+                        before: 1_500,
+                        limit: 100,
+                    }),
+                    1,
+                );
+                const counts = yield* d1.first(
+                    RetentionCounts,
+                    `
+                        SELECT
+                            (SELECT COUNT(*) FROM outbox WHERE id = 'retention:active') AS active,
+                            (SELECT COUNT(*) FROM jobs WHERE id = 'retention:old-terminal') AS "oldJob",
+                            (SELECT COUNT(*) FROM outbox WHERE id = 'retention:old-terminal') AS "oldTerminal",
+                            (SELECT COUNT(*) FROM outbox WHERE id = 'retention:orphan') AS orphan,
+                            (SELECT COUNT(*) FROM outbox WHERE id = 'retention:recent') AS recent,
+                            (SELECT COUNT(*) FROM outbox WHERE id = 'retention:review') AS review,
+                            (SELECT COUNT(*) FROM outbox WHERE id = 'retention:social') AS social
+                    `,
+                );
+
+                assert.strictEqual(counts?.active, 1);
+                assert.strictEqual(counts?.oldJob, 0);
+                assert.strictEqual(counts?.oldTerminal, 0);
+                assert.strictEqual(counts?.orphan, 0);
+                assert.strictEqual(counts?.recent, 1);
+                assert.strictEqual(counts?.review, 1);
+                assert.strictEqual(counts?.social, 1);
+            }),
     );
 
     it.effect('makes duplicate Queue deliveries side-effect free', () =>

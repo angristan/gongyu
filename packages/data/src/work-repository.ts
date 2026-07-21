@@ -31,6 +31,10 @@ export class JobStatus extends Schema.Class<JobStatus>('JobStatus')({
     state: Schema.String,
 }) {}
 
+class PrunedOutbox extends Schema.Class<PrunedOutbox>('PrunedOutbox')({
+    id: Schema.String,
+}) {}
+
 export class JobSummary extends Schema.Class<JobSummary>('JobSummary')({
     attempts: Schema.Number,
     bookmarkShortUrl: Schema.String,
@@ -82,6 +86,10 @@ export interface WorkRepositoryShape {
     readonly listJobs: (
         limit: number,
     ) => Effect.Effect<ReadonlyArray<JobSummary>, D1StoreFailure>;
+    readonly pruneTerminalHistory: (input: {
+        readonly before: number;
+        readonly limit: number;
+    }) => Effect.Effect<number, D1StoreFailure>;
     readonly reconcilePendingDeletions: (
         now: number,
     ) => Effect.Effect<number, D1StoreFailure>;
@@ -505,6 +513,37 @@ export function makeWorkRepository(
         ]);
     });
 
+    const pruneTerminalHistory = Effect.fn(
+        'WorkRepository.pruneTerminalHistory',
+    )(function* (input: { readonly before: number; readonly limit: number }) {
+        const result = yield* d1Store.query(
+            PrunedOutbox,
+            `
+                DELETE FROM outbox
+                WHERE id IN (
+                    SELECT outbox.id
+                    FROM outbox
+                    LEFT JOIN jobs ON jobs.outbox_id = outbox.id
+                    WHERE outbox.kind IN ('metadata', 'thumbnail_delete')
+                      AND outbox.state IN ('completed', 'failed')
+                      AND outbox.updated_at < ?
+                      AND (
+                        jobs.id IS NULL
+                        OR (
+                            jobs.state IN ('completed', 'failed')
+                            AND jobs.updated_at < ?
+                        )
+                      )
+                    ORDER BY outbox.updated_at, outbox.id
+                    LIMIT ?
+                )
+                RETURNING id
+            `,
+            [input.before, input.before, input.limit],
+        );
+        return result.rows.length;
+    });
+
     const reconcilePendingDeletions = Effect.fn(
         'WorkRepository.reconcilePendingDeletions',
     )(function* (now: number) {
@@ -692,6 +731,7 @@ export function makeWorkRepository(
         failJob,
         getJobStatus,
         listJobs,
+        pruneTerminalHistory,
         reconcilePendingDeletions,
         releaseJob,
         releaseOutbox,
