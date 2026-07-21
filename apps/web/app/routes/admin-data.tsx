@@ -836,6 +836,7 @@ export default function AdminData({ loaderData }: Route.ComponentProps) {
                                             <LinkButton
                                                 href={`/admin/data/${run.id}/download`}
                                                 icon={DownloadSimpleIcon}
+                                                reloadDocument
                                                 size="sm"
                                                 variant="secondary"
                                             >

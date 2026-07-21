@@ -133,6 +133,7 @@ interface LinkButtonProps
     readonly external?: boolean;
     readonly href: string;
     readonly icon?: Icon;
+    readonly reloadDocument?: boolean;
     readonly shape?: 'square';
     readonly size?: 'lg' | 'sm';
     readonly variant?: ButtonVariant;
@@ -143,6 +144,7 @@ export function LinkButton({
     external = false,
     href,
     icon: IconComponent,
+    reloadDocument = false,
     shape,
     size = 'sm',
     variant,
@@ -173,6 +175,7 @@ export function LinkButton({
         ) : (
             <ActionIcon
                 component={Link}
+                reloadDocument={reloadDocument}
                 to={href}
                 {...props}
                 color={appearance.color}
@@ -200,6 +203,7 @@ export function LinkButton({
     ) : (
         <MantineButton
             component={Link}
+            reloadDocument={reloadDocument}
             to={href}
             {...props}
             color={appearance.color}
