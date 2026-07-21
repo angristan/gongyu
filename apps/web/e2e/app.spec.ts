@@ -103,8 +103,7 @@ test('renders the SSR shell and persists hydrated theme changes', async ({
     const html = await response.text();
     expect(html).toContain('data-mantine-color-scheme="light"');
     expect(html).toContain('data-mode="light"');
-    expect(html).toContain('Links worth returning to');
-    expect(html).toContain('Personal library');
+    expect(html).not.toContain('Personal library');
     expect(html).toContain('src="/images/logo.png"');
     expect(html).toContain('Search titles, notes, and URLs');
     expect(html).toContain('id="main-content"');
@@ -125,12 +124,6 @@ test('renders the SSR shell and persists hydrated theme changes', async ({
     expect(health.requestId).toBe(healthResponse.headers()['x-request-id']);
 
     await page.goto('/');
-    await expect(
-        page.getByRole('heading', {
-            name: 'Links worth returning to',
-            exact: true,
-        }),
-    ).toBeVisible();
     await expect(
         page.getByRole('search', { name: 'Search bookmarks' }),
     ).toBeVisible();
@@ -718,6 +711,12 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
     ).toBeVisible();
     await noJavaScriptContext.close();
 
+    await page.goto('/');
+    await expect(page.getByRole('link', { name: 'Dashboard' })).toHaveAttribute(
+        'href',
+        '/admin/dashboard',
+    );
+
     await page.goto('/admin/data');
     await page.getByRole('button', { name: 'Create full backup' }).click();
     await expect(
@@ -828,6 +827,10 @@ test('serves public list, search, detail, and feed without JavaScript', async ({
         });
     });
     await page.goto('/');
+    await expect(page.getByText('Personal library')).toHaveCount(0);
+    await expect(
+        page.getByRole('heading', { name: 'Links worth returning to' }),
+    ).toHaveCount(0);
     await expect(page.locator('meta[property="og:image"]')).toHaveAttribute(
         'content',
         'https://bookmarks.stanislas.blog/og-image.png',
@@ -844,6 +847,9 @@ test('serves public list, search, detail, and feed without JavaScript', async ({
     expect(socialImage.status()).toBe(200);
     expect(socialImage.headers()['content-type']).toBe('image/png');
     expect((await socialImage.body()).byteLength).toBeGreaterThan(10_000);
+    await expect(
+        page.getByRole('link', { name: 'Gongyu on GitHub' }),
+    ).toHaveAttribute('href', 'https://github.com/angristan/gongyu');
     await page.getByRole('searchbox', { name: 'Search bookmarks' }).fill(query);
     await page.getByRole('button', { name: 'Search bookmarks' }).click();
     await expect(page).toHaveURL(/\/search\?.*q=Captured/u);

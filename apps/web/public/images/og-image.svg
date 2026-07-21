@@ -39,7 +39,6 @@
   <g transform="translate(72 62)" font-family="Inter, Arial, sans-serif">
     <image href="logo.png" x="-8" y="-4" width="72" height="72"/>
     <text x="74" y="30" fill="#302b27" font-size="25" font-weight="750" letter-spacing="-0.7">Gongyu</text>
-    <text x="74" y="53" fill="#8a7d73" font-size="11" font-weight="700" letter-spacing="2.1">PERSONAL BOOKMARK LIBRARY</text>
   </g>
 
   <!-- Main message -->

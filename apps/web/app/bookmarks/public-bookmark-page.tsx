@@ -369,21 +369,21 @@ export function PublicBookmarkPage({
             id="main-content"
             tabIndex={-1}
         >
-            <header className="border-l-2 border-gongyu-brand/35 pl-3">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gongyu-link">
-                    {hasQuery ? 'Library search' : 'Personal library'}
-                </p>
-                <h1 className="mt-0.5 break-words text-xl font-semibold leading-tight tracking-[-0.025em] text-gongyu-default sm:text-2xl">
-                    {hasQuery
-                        ? `Results for “${query}”`
-                        : 'Links worth returning to'}
-                </h1>
-                <p className="mt-1 text-xs leading-5 text-gongyu-subtle">
-                    {hasQuery
-                        ? `${bookmarkCount} ${result.total === 1 ? 'match' : 'matches'} across titles, notes, and URLs.`
-                        : `${bookmarkCount} ${result.total === 1 ? 'bookmark' : 'bookmarks'} saved for later reference.`}
-                </p>
-            </header>
+            {hasQuery ? (
+                <header className="border-l-2 border-gongyu-brand/35 pl-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gongyu-link">
+                        Library search
+                    </p>
+                    <h1 className="mt-0.5 break-words text-xl font-semibold leading-tight tracking-[-0.025em] text-gongyu-default sm:text-2xl">
+                        Results for “{query}”
+                    </h1>
+                    <p className="mt-1 text-xs leading-5 text-gongyu-subtle">
+                        {bookmarkCount}{' '}
+                        {result.total === 1 ? 'match' : 'matches'} across
+                        titles, notes, and URLs.
+                    </p>
+                </header>
+            ) : null}
 
             <LayerCard className="gongyu-library-toolbar p-2">
                 <section

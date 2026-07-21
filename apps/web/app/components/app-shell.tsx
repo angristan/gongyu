@@ -4,6 +4,7 @@ import {
     ChartLineUpIcon,
     DatabaseIcon,
     GearIcon,
+    GithubLogoIcon,
     ListIcon,
     ListMagnifyingGlassIcon,
     MoonIcon,
@@ -176,22 +177,29 @@ function PublicShell({
                 <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-4 sm:px-6">
                     <Brand prominent />
                     <nav aria-label="Public navigation">
-                        <Link
-                            className="text-sm font-medium text-gongyu-link hover:underline"
-                            to={
-                                isAuthenticationPage
-                                    ? '/'
-                                    : authenticated
-                                      ? '/admin/dashboard'
-                                      : '/login'
-                            }
-                        >
-                            {isAuthenticationPage
-                                ? 'Back to library'
-                                : authenticated
-                                  ? 'Dashboard'
-                                  : 'Login'}
-                        </Link>
+                        {isAuthenticationPage ? (
+                            <Link
+                                className="text-sm font-medium text-gongyu-link hover:underline"
+                                to="/"
+                            >
+                                Back to library
+                            </Link>
+                        ) : authenticated ? (
+                            <LinkButton
+                                href="/admin/dashboard"
+                                size="sm"
+                                variant="primary"
+                            >
+                                Dashboard
+                            </LinkButton>
+                        ) : (
+                            <Link
+                                className="text-sm font-medium text-gongyu-link hover:underline"
+                                to="/login"
+                            >
+                                Login
+                            </Link>
+                        )}
                     </nav>
                 </div>
             </header>
@@ -210,6 +218,14 @@ function PublicShell({
                         </a>
                     </p>
                     <div className="flex items-center gap-1">
+                        <LinkButton
+                            aria-label="Gongyu on GitHub"
+                            external
+                            href="https://github.com/angristan/gongyu"
+                            icon={GithubLogoIcon}
+                            shape="square"
+                            variant="ghost"
+                        />
                         <LinkButton
                             aria-label="Atom feed"
                             href="/feed"
