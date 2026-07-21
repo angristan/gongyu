@@ -117,17 +117,17 @@ function Brand({
                 alt=""
                 className={cn(
                     'shrink-0 object-contain',
-                    prominent ? 'size-11' : 'size-9',
+                    prominent ? 'size-10' : 'size-9',
                 )}
-                height={prominent ? 44 : 36}
+                height={prominent ? 40 : 36}
                 src="/images/logo.png"
-                width={prominent ? 44 : 36}
+                width={prominent ? 40 : 36}
             />
             {compact ? null : (
                 <span
                     className={cn(
                         'block truncate font-semibold leading-tight tracking-[-0.01em]',
-                        prominent ? 'text-xl' : 'text-sm',
+                        prominent ? 'text-lg' : 'text-sm',
                     )}
                 >
                     Gongyu
@@ -172,7 +172,7 @@ function PublicShell({
         location.pathname === '/login' || location.pathname === '/setup';
     return (
         <div className="gongyu-public-app min-h-screen bg-gongyu-base">
-            <header className="pt-5 sm:pt-6">
+            <header className="pt-4 sm:pt-5">
                 <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-4 sm:px-6">
                     <Brand prominent />
                     <nav aria-label="Public navigation">

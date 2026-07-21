@@ -103,9 +103,10 @@ test('renders the SSR shell and persists hydrated theme changes', async ({
     const html = await response.text();
     expect(html).toContain('data-mantine-color-scheme="light"');
     expect(html).toContain('data-mode="light"');
-    expect(html).toContain('A simple bookmark manager');
+    expect(html).toContain('Links worth returning to');
+    expect(html).toContain('Personal library');
     expect(html).toContain('src="/images/logo.png"');
-    expect(html).toContain('Search bookmarks');
+    expect(html).toContain('Search titles, notes, and URLs');
     expect(html).toContain('id="main-content"');
 
     const adminResponse = await request.get('/admin/bookmarks', {
@@ -126,9 +127,15 @@ test('renders the SSR shell and persists hydrated theme changes', async ({
     await page.goto('/');
     await expect(
         page.getByRole('heading', {
-            name: 'Bookmarks',
+            name: 'Links worth returning to',
             exact: true,
         }),
+    ).toBeVisible();
+    await expect(
+        page.getByRole('search', { name: 'Search bookmarks' }),
+    ).toBeVisible();
+    await expect(
+        page.getByRole('button', { name: 'Search bookmarks' }),
     ).toBeVisible();
     await page.emulateMedia({ reducedMotion: 'reduce' });
     const logoTransitionDuration = await page
@@ -153,6 +160,13 @@ test('renders the SSR shell and persists hydrated theme changes', async ({
     await page.reload();
     await expect(page.locator('html')).toHaveAttribute('data-mode', 'dark');
     await page.setViewportSize({ height: 800, width: 320 });
+    await expect(
+        page.getByRole('search', { name: 'Search bookmarks' }),
+    ).toBeVisible();
+    await expect(page.getByRole('link', { name: 'List view' })).toBeVisible();
+    await expect(
+        page.getByRole('link', { name: 'Gallery view' }),
+    ).toBeVisible();
     expect(
         await page.evaluate(
             () => document.documentElement.scrollWidth <= window.innerWidth,
@@ -785,7 +799,10 @@ test('serves public list, search, detail, and feed without JavaScript', async ({
     });
     const page = await context.newPage();
     const query = expectedTitle.split(/\s+/u)[0] ?? expectedTitle;
-    await page.goto(`/search?q=${encodeURIComponent(query)}`);
+    await page.goto('/');
+    await page.getByRole('searchbox', { name: 'Search bookmarks' }).fill(query);
+    await page.getByRole('button', { name: 'Search bookmarks' }).click();
+    await expect(page).toHaveURL(/\/search\?.*q=Captured/u);
     await expect(page.getByText(expectedTitle)).toBeVisible();
     await expect(
         page.getByRole('list', { name: 'Bookmarks in list view' }),
@@ -800,12 +817,16 @@ test('serves public list, search, detail, and feed without JavaScript', async ({
     const publicHtml = await page.content();
     expect(publicHtml).not.toContain('thumbnailCleanupKey');
     expect(publicHtml).not.toContain('thumbnailKey');
-    const detailLink = page
+    const resultArticle = page
         .locator('article')
         .filter({ hasText: expectedTitle })
-        .first()
-        .locator('a[href^="/b/"]')
         .first();
+    const originalLink = resultArticle.getByRole('link', {
+        exact: true,
+        name: expectedTitle,
+    });
+    await expect(originalLink).toHaveAttribute('target', '_blank');
+    const detailLink = resultArticle.getByRole('link', { name: 'Details' });
     await expect(detailLink).toBeVisible();
     await detailLink.click();
     await expect(

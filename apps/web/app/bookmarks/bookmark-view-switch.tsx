@@ -36,7 +36,7 @@ export function BookmarkViewSwitch({
     return (
         <nav
             aria-label="Bookmark view"
-            className="flex shrink-0 gap-0.5 rounded-lg bg-gongyu-tint p-0.5"
+            className="flex shrink-0 gap-0.5 rounded-lg border border-gongyu-line bg-gongyu-recessed/70 p-0.5"
         >
             <LinkButton
                 aria-current={view === 'list' ? 'page' : undefined}

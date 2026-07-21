@@ -118,6 +118,28 @@ body {
     box-shadow: 0 3px 10px rgb(95 70 52 / 9%);
 }
 
+.gongyu-public-app .gongyu-library-toolbar {
+    border-color: #e7dfd7;
+    background: rgb(255 253 250 / 70%);
+    box-shadow: 0 1px 3px rgb(95 70 52 / 6%);
+    backdrop-filter: blur(8px);
+}
+
+.gongyu-public-app .gongyu-bookmark-list {
+    border-color: #e7dfd7;
+    background: rgb(255 253 250 / 54%);
+    box-shadow: 0 1px 3px rgb(95 70 52 / 6%);
+}
+
+.gongyu-public-app .gongyu-bookmark-row {
+    transition: background-color 150ms ease;
+}
+
+.gongyu-public-app .gongyu-bookmark-row:hover,
+.gongyu-public-app .gongyu-bookmark-row:focus-within {
+    background: rgb(248 242 236 / 58%);
+}
+
 [data-mantine-color-scheme="dark"] .gongyu-public-app {
     --mantine-color-text: #d9d2ca;
     --mantine-color-dimmed: #aaa198;
@@ -140,6 +162,31 @@ body {
     .gongyu-bookmark-card:hover {
     border-color: #4a433d;
     box-shadow: 0 3px 10px rgb(0 0 0 / 16%);
+}
+
+[data-mantine-color-scheme="dark"]
+    .gongyu-public-app
+    .gongyu-library-toolbar {
+    border-color: #3e3934;
+    background: rgb(48 43 39 / 62%);
+    box-shadow: 0 1px 3px rgb(0 0 0 / 10%);
+}
+
+[data-mantine-color-scheme="dark"]
+    .gongyu-public-app
+    .gongyu-bookmark-list {
+    border-color: #3e3934;
+    background: rgb(48 43 39 / 44%);
+    box-shadow: 0 1px 3px rgb(0 0 0 / 10%);
+}
+
+[data-mantine-color-scheme="dark"]
+    .gongyu-public-app
+    .gongyu-bookmark-row:hover,
+[data-mantine-color-scheme="dark"]
+    .gongyu-public-app
+    .gongyu-bookmark-row:focus-within {
+    background: rgb(61 55 50 / 48%);
 }
 
 .gongyu-admin-app {

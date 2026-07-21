@@ -1,12 +1,12 @@
 import {
     ArrowRightIcon,
+    ArrowSquareOutIcon,
     BookmarkSimpleIcon,
     MagnifyingGlassIcon,
     XIcon,
 } from '@phosphor-icons/react';
 import { Form, Link } from 'react-router';
 import {
-    Badge,
     Button,
     cn,
     Empty,
@@ -39,6 +39,10 @@ interface PublicBookmarkPageProps {
     readonly view: BookmarkView;
 }
 
+function formatCount(value: number): string {
+    return new Intl.NumberFormat('en-US').format(value);
+}
+
 function formatDate(microseconds: number): string {
     return new Intl.DateTimeFormat('en-US', {
         dateStyle: 'medium',
@@ -64,68 +68,74 @@ function pageHref(
 function BookmarkCard({ bookmark }: { readonly bookmark: PublicBookmark }) {
     const hostname = new URL(bookmark.url).hostname.replace(/^www\./u, '');
     return (
-        <LayerCard className="gongyu-bookmark-card group h-full overflow-hidden transition duration-200 hover:-translate-y-0.5">
+        <LayerCard className="gongyu-bookmark-card group h-full overflow-hidden">
             <article className="flex h-full flex-col">
                 <Link
                     aria-label={`View details for ${bookmark.title}`}
-                    className="relative block aspect-[16/10] overflow-hidden bg-gongyu-tint"
+                    className="relative block aspect-video overflow-hidden bg-gongyu-tint"
                     to={`/b/${bookmark.shortUrl}`}
                 >
                     {bookmark.thumbnailSha256 === null ? (
                         <span className="flex size-full items-center justify-center">
                             <BookmarkSimpleIcon
                                 aria-hidden="true"
-                                className="text-gongyu-subtle/50 transition-transform duration-300 group-hover:scale-110"
-                                size={40}
+                                className="text-gongyu-subtle/45"
+                                size={36}
                                 weight="duotone"
                             />
                         </span>
                     ) : (
                         <img
                             alt=""
-                            className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                            className="size-full object-cover"
                             loading="lazy"
                             src={`/thumbnails/${bookmark.shortUrl}/${bookmark.thumbnailSha256}`}
                         />
                     )}
                 </Link>
                 <div className="flex flex-1 flex-col gap-2.5 p-3.5">
-                    <div className="space-y-2">
-                        <div className="flex items-center justify-between gap-3">
-                            <Badge variant="secondary">{hostname}</Badge>
-                            <time
-                                className="shrink-0 text-xs text-gongyu-subtle"
-                                dateTime={new Date(
-                                    bookmark.createdAt / 1_000,
-                                ).toISOString()}
+                    <div className="flex min-w-0 items-center gap-1.5 text-[11px] text-gongyu-subtle">
+                        <span className="truncate font-medium">{hostname}</span>
+                        <span aria-hidden="true" className="opacity-45">
+                            ·
+                        </span>
+                        <time
+                            className="shrink-0"
+                            dateTime={new Date(
+                                bookmark.createdAt / 1_000,
+                            ).toISOString()}
+                        >
+                            {formatDate(bookmark.createdAt)}
+                        </time>
+                    </div>
+                    <div className="space-y-1.5">
+                        <h2 className="line-clamp-2 text-sm font-semibold leading-snug tracking-[-0.01em] text-gongyu-default">
+                            <a
+                                className="decoration-gongyu-line underline-offset-4 hover:text-gongyu-link hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gongyu-focus"
+                                href={bookmark.url}
+                                rel="noreferrer"
+                                target="_blank"
                             >
-                                {formatDate(bookmark.createdAt)}
-                            </time>
-                        </div>
-                        <div className="space-y-1.5">
-                            <h2 className="text-sm font-semibold leading-snug tracking-[-0.01em] text-gongyu-default">
-                                <a
-                                    className="decoration-gongyu-line underline-offset-4 hover:text-gongyu-link hover:underline"
-                                    href={bookmark.url}
-                                    rel="noreferrer"
-                                    target="_blank"
-                                >
-                                    {bookmark.title}
-                                </a>
-                            </h2>
-                            {bookmark.description === null ? null : (
-                                <p className="line-clamp-2 whitespace-pre-wrap text-xs leading-5 text-gongyu-subtle">
-                                    {bookmark.description}
-                                </p>
-                            )}
-                        </div>
+                                {bookmark.title}
+                                <ArrowSquareOutIcon
+                                    aria-hidden="true"
+                                    className="ml-1 inline-block align-[-0.1em] text-gongyu-subtle/65"
+                                    size={13}
+                                />
+                            </a>
+                        </h2>
+                        {bookmark.description === null ? null : (
+                            <p className="line-clamp-2 whitespace-pre-wrap text-xs leading-5 text-gongyu-subtle">
+                                {bookmark.description}
+                            </p>
+                        )}
                     </div>
                     <Link
-                        className="mt-auto inline-flex items-center gap-1 text-xs font-medium text-gongyu-link"
+                        className="mt-auto inline-flex items-center gap-1 text-xs font-medium text-gongyu-link hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gongyu-focus"
                         to={`/b/${bookmark.shortUrl}`}
                     >
                         Notes and details
-                        <ArrowRightIcon aria-hidden="true" size={15} />
+                        <ArrowRightIcon aria-hidden="true" size={14} />
                     </Link>
                 </div>
             </article>
@@ -136,48 +146,69 @@ function BookmarkCard({ bookmark }: { readonly bookmark: PublicBookmark }) {
 function BookmarkListItem({ bookmark }: { readonly bookmark: PublicBookmark }) {
     const hostname = new URL(bookmark.url).hostname.replace(/^www\./u, '');
     return (
-        <LayerCard className="gongyu-bookmark-card transition-shadow">
-            <article className="flex items-start gap-3 p-3">
-                {bookmark.thumbnailSha256 === null ? null : (
-                    <Link
-                        aria-label={`View details for ${bookmark.title}`}
-                        className="h-[3.75rem] w-20 shrink-0 overflow-hidden rounded-md bg-gongyu-tint"
-                        to={`/b/${bookmark.shortUrl}`}
-                    >
-                        <img
-                            alt=""
-                            className="size-full object-cover"
-                            loading="lazy"
-                            src={`/thumbnails/${bookmark.shortUrl}/${bookmark.thumbnailSha256}`}
-                        />
-                    </Link>
-                )}
-                <div className="min-w-0 flex-1">
+        <article className="gongyu-bookmark-row group flex items-start gap-3 px-3 py-3 sm:px-4">
+            {bookmark.thumbnailSha256 === null ? null : (
+                <Link
+                    aria-label={`View details for ${bookmark.title}`}
+                    className="h-[3.75rem] w-20 shrink-0 overflow-hidden rounded-md bg-gongyu-tint sm:w-[5.5rem]"
+                    to={`/b/${bookmark.shortUrl}`}
+                >
+                    <img
+                        alt=""
+                        className="size-full object-cover"
+                        loading="lazy"
+                        src={`/thumbnails/${bookmark.shortUrl}/${bookmark.thumbnailSha256}`}
+                    />
+                </Link>
+            )}
+            <div className="min-w-0 flex-1">
+                <h2 className="line-clamp-2 text-sm font-semibold leading-snug tracking-[-0.01em] text-gongyu-default">
                     <a
-                        className="block truncate text-sm font-semibold text-gongyu-default hover:text-gongyu-link hover:underline"
+                        className="decoration-gongyu-line underline-offset-4 hover:text-gongyu-link hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gongyu-focus"
                         href={bookmark.url}
                         rel="noreferrer"
                         target="_blank"
+                        title={bookmark.url}
                     >
                         {bookmark.title}
+                        <ArrowSquareOutIcon
+                            aria-hidden="true"
+                            className="ml-1 inline-block align-[-0.1em] text-gongyu-subtle/60"
+                            size={13}
+                        />
                     </a>
-                    {bookmark.description === null ? null : (
-                        <p className="mt-1 line-clamp-2 text-xs leading-5 text-gongyu-subtle">
-                            {bookmark.description}
-                        </p>
-                    )}
-                    <div className="mt-1.5 flex min-w-0 items-center gap-2">
-                        <Badge variant="secondary">{hostname}</Badge>
-                        <Link
-                            className="truncate text-[11px] text-gongyu-subtle hover:text-gongyu-link"
-                            to={`/b/${bookmark.shortUrl}`}
-                        >
-                            {formatDate(bookmark.createdAt)}
-                        </Link>
-                    </div>
+                </h2>
+                {bookmark.description === null ? null : (
+                    <p className="mt-1 line-clamp-2 whitespace-pre-wrap text-xs leading-5 text-gongyu-subtle">
+                        {bookmark.description}
+                    </p>
+                )}
+                <div className="mt-1.5 flex min-w-0 items-center gap-1.5 text-[11px] text-gongyu-subtle">
+                    <span className="truncate font-medium">{hostname}</span>
+                    <span aria-hidden="true" className="opacity-45">
+                        ·
+                    </span>
+                    <time
+                        className="shrink-0"
+                        dateTime={new Date(
+                            bookmark.createdAt / 1_000,
+                        ).toISOString()}
+                    >
+                        {formatDate(bookmark.createdAt)}
+                    </time>
+                    <span aria-hidden="true" className="opacity-45">
+                        ·
+                    </span>
+                    <Link
+                        className="inline-flex shrink-0 items-center gap-0.5 font-medium text-gongyu-link hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gongyu-focus"
+                        to={`/b/${bookmark.shortUrl}`}
+                    >
+                        Details
+                        <ArrowRightIcon aria-hidden="true" size={12} />
+                    </Link>
                 </div>
-            </article>
-        </LayerCard>
+            </div>
+        </article>
     );
 }
 
@@ -206,7 +237,7 @@ function BookmarkPagination({
         >
             <p className="text-xs text-gongyu-subtle">
                 Page <strong className="text-gongyu-default">{page}</strong> of{' '}
-                {pageCount} · {total} bookmarks
+                {pageCount} · {formatCount(total)} bookmarks
             </p>
             <div className="flex items-center gap-2">
                 <LinkButton
@@ -245,67 +276,77 @@ export function PublicBookmarkPage({
     view,
 }: PublicBookmarkPageProps) {
     const hasQuery = query !== '';
+    const bookmarkCount = formatCount(result.total);
     return (
         <main
-            className="mx-auto flex min-h-[calc(100vh-11rem)] w-full max-w-4xl flex-col gap-4 px-4 py-4 sm:px-6 sm:py-5"
+            className="mx-auto flex min-h-[calc(100vh-11rem)] w-full max-w-4xl flex-col gap-3.5 px-4 py-4 sm:gap-4 sm:px-6 sm:py-5"
             id="main-content"
             tabIndex={-1}
         >
-            {hasQuery ? (
-                <header>
-                    <h1 className="truncate text-lg font-semibold tracking-[-0.02em] text-gongyu-default">
-                        Results for “{query}”
-                    </h1>
-                    <p className="mt-0.5 text-xs text-gongyu-subtle">
-                        {result.total}{' '}
-                        {result.total === 1 ? 'bookmark' : 'bookmarks'}
-                    </p>
-                </header>
-            ) : (
-                <header>
-                    <h1 className="sr-only">Bookmarks</h1>
-                    <p className="text-sm text-gongyu-subtle">
-                        A simple bookmark manager
-                    </p>
-                </header>
-            )}
+            <header className="border-l-2 border-gongyu-brand/35 pl-3">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gongyu-link">
+                    {hasQuery ? 'Library search' : 'Personal library'}
+                </p>
+                <h1 className="mt-0.5 break-words text-xl font-semibold leading-tight tracking-[-0.025em] text-gongyu-default sm:text-2xl">
+                    {hasQuery
+                        ? `Results for “${query}”`
+                        : 'Links worth returning to'}
+                </h1>
+                <p className="mt-1 text-xs leading-5 text-gongyu-subtle">
+                    {hasQuery
+                        ? `${bookmarkCount} ${result.total === 1 ? 'match' : 'matches'} across titles, notes, and URLs.`
+                        : `${bookmarkCount} ${result.total === 1 ? 'bookmark' : 'bookmarks'} saved for later reference.`}
+                </p>
+            </header>
 
-            <section
-                aria-label="Search and view options"
-                className="flex items-center gap-2"
-            >
-                <Form
-                    action="/search"
-                    className="flex min-w-0 flex-1 gap-2"
-                    method="get"
+            <LayerCard className="gongyu-library-toolbar p-2">
+                <section
+                    aria-label="Search and view options"
+                    className="flex items-center gap-2"
                 >
-                    <input name="view" type="hidden" value={view} />
-                    <Input
+                    <Form
+                        action="/search"
                         aria-label="Search bookmarks"
-                        className="min-w-0 flex-1"
-                        defaultValue={query}
-                        leftSection={
-                            <MagnifyingGlassIcon aria-hidden="true" size={16} />
-                        }
-                        name="q"
-                        placeholder="Search bookmarks…"
-                        type="search"
-                    />
-                    <Button size="sm" type="submit" variant="secondary">
-                        <span className="hidden sm:inline">Search</span>
-                        <MagnifyingGlassIcon
-                            aria-hidden="true"
-                            className="sm:hidden"
-                            size={16}
+                        className="flex min-w-0 flex-1 gap-2"
+                        method="get"
+                        role="search"
+                    >
+                        <input name="view" type="hidden" value={view} />
+                        <Input
+                            aria-label="Search bookmarks"
+                            className="min-w-0 flex-1"
+                            defaultValue={query}
+                            leftSection={
+                                <MagnifyingGlassIcon
+                                    aria-hidden="true"
+                                    size={16}
+                                />
+                            }
+                            name="q"
+                            placeholder="Search titles, notes, and URLs…"
+                            type="search"
                         />
-                    </Button>
-                </Form>
-                <BookmarkViewSwitch
-                    basePath={basePath}
-                    query={query}
-                    view={view}
-                />
-            </section>
+                        <Button
+                            aria-label="Search bookmarks"
+                            size="sm"
+                            type="submit"
+                            variant="primary"
+                        >
+                            <span className="hidden sm:inline">Search</span>
+                            <MagnifyingGlassIcon
+                                aria-hidden="true"
+                                className="sm:hidden"
+                                size={16}
+                            />
+                        </Button>
+                    </Form>
+                    <BookmarkViewSwitch
+                        basePath={basePath}
+                        query={query}
+                        view={view}
+                    />
+                </section>
+            </LayerCard>
 
             {result.bookmarks.length === 0 ? (
                 <LayerCard>
@@ -329,10 +370,11 @@ export function PublicBookmarkPage({
                         icon={
                             <BookmarkSimpleIcon
                                 aria-hidden="true"
-                                size={40}
+                                size={34}
                                 weight="duotone"
                             />
                         }
+                        size="sm"
                         title={
                             hasQuery
                                 ? 'No matching bookmarks'
@@ -341,7 +383,7 @@ export function PublicBookmarkPage({
                     />
                 </LayerCard>
             ) : view === 'gallery' ? (
-                <section aria-label="Bookmarks in gallery view">
+                <section>
                     <ol
                         aria-label="Bookmarks in gallery view"
                         className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
@@ -354,13 +396,20 @@ export function PublicBookmarkPage({
                     </ol>
                 </section>
             ) : (
-                <ol aria-label="Bookmarks in list view" className="space-y-2">
-                    {result.bookmarks.map((bookmark) => (
-                        <li key={bookmark.id}>
-                            <BookmarkListItem bookmark={bookmark} />
-                        </li>
-                    ))}
-                </ol>
+                <section>
+                    <LayerCard className="gongyu-bookmark-list overflow-hidden">
+                        <ol
+                            aria-label="Bookmarks in list view"
+                            className="divide-y divide-gongyu-line"
+                        >
+                            {result.bookmarks.map((bookmark) => (
+                                <li key={bookmark.id}>
+                                    <BookmarkListItem bookmark={bookmark} />
+                                </li>
+                            ))}
+                        </ol>
+                    </LayerCard>
+                </section>
             )}
 
             <BookmarkPagination
