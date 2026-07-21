@@ -101,13 +101,16 @@ function isActive(pathname: string, item: NavigationItem): boolean {
 
 function Brand({
     compact = false,
+    heading = false,
     href = '/',
     prominent = false,
 }: {
     readonly compact?: boolean;
+    readonly heading?: boolean;
     readonly href?: string;
     readonly prominent?: boolean;
 }) {
+    const BrandName = heading ? 'h1' : 'span';
     return (
         <Link
             aria-label="Gongyu home"
@@ -125,14 +128,14 @@ function Brand({
                 width={prominent ? 40 : 36}
             />
             {compact ? null : (
-                <span
+                <BrandName
                     className={cn(
                         'block truncate font-semibold leading-tight tracking-[-0.01em]',
                         prominent ? 'text-lg' : 'text-sm',
                     )}
                 >
                     Gongyu
-                </span>
+                </BrandName>
             )}
         </Link>
     );
@@ -175,7 +178,7 @@ function PublicShell({
         <div className="gongyu-public-app min-h-screen bg-gongyu-base">
             <header className="pt-4 sm:pt-5">
                 <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-4 sm:px-6">
-                    <Brand prominent />
+                    <Brand heading={location.pathname === '/'} prominent />
                     <nav aria-label="Public navigation">
                         {isAuthenticationPage ? (
                             <Link

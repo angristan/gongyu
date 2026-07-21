@@ -133,7 +133,7 @@ test('renders the SSR shell and persists hydrated theme changes', async ({
     await page.emulateMedia({ reducedMotion: 'reduce' });
     const logoTransitionDuration = await page
         .getByRole('link', { name: 'Gongyu home' })
-        .locator('span')
+        .locator('h1, span')
         .first()
         .evaluate((element) => getComputedStyle(element).transitionDuration);
     expect(Number.parseFloat(logoTransitionDuration)).toBeLessThan(0.001);
@@ -828,6 +828,9 @@ test('serves public list, search, detail, and feed without JavaScript', async ({
     });
     await page.goto('/');
     await expect(page.getByText('Personal library')).toHaveCount(0);
+    await expect(
+        page.getByRole('heading', { name: 'Gongyu', exact: true }),
+    ).toBeVisible();
     await expect(
         page.getByRole('heading', { name: 'Links worth returning to' }),
     ).toHaveCount(0);
