@@ -77,7 +77,7 @@
   },
   "env": {
     "production": {
-      "name": "gongyu-cloudflare-production",
+      "name": "gongyu",
       "limits": {
         "cpu_ms": 300000
       },

@@ -40,7 +40,7 @@ it('exports queue and scheduled handlers for the web entrypoint', () => {
 it('deploys HTTP and background triggers through one production Worker', () => {
     const production = config.env.production;
 
-    assert.strictEqual(production.name, 'gongyu-cloudflare-production');
+    assert.strictEqual(production.name, 'gongyu');
     assert.strictEqual(production.images.binding, 'IMAGES');
     assert.deepEqual(production.triggers.crons, ['* * * * *']);
     assert.deepEqual(production.queues.producers, [
