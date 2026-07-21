@@ -2,7 +2,7 @@
 
 ## Status
 
-> Historical implementation plan. The rewrite and production cutover are complete. The implementation uses Mantine 9 instead of the originally proposed Cloudflare Kumo components; current operational guidance lives in [`README.md`](../README.md) and [`docs/self-hosting.md`](self-hosting.md).
+> Historical implementation plan. The rewrite and production cutover are complete, and the original two-Worker topology documented below was later consolidated into one Worker. The implementation uses Mantine 9 instead of the originally proposed Cloudflare Kumo components; current operational guidance lives in [`README.md`](../README.md) and [`docs/self-hosting.md`](self-hosting.md).
 
 This document records the agreed direction for the full rewrite of Gongyu.
 

@@ -3,6 +3,7 @@ import { assert, it } from '@effect/vitest';
 import { D1Store } from '@gongyu/data/d1-store';
 import type { ThumbnailImagesBinding } from '@gongyu/integrations/thumbnail-client';
 import { JobsInvocationInfo, makeJobsEffectRunner } from '@gongyu/jobs/runtime';
+import { backgroundHandlers } from '@gongyu/jobs/worker';
 import { Effect, Schema } from 'effect';
 import { makeRequestEffectRunner, RequestInfo } from '../app/effect/runtime';
 
@@ -64,6 +65,74 @@ it.effect('runs authenticated and mutation work in a primary D1 Session', () =>
         assert.isAtLeast(result.rowsRead, 0);
     }),
 );
+
+it('routes invalid Queue messages through the background retry boundary', async () => {
+    let acknowledged = false;
+    let retryDelaySeconds: number | null = null;
+    const message = {
+        ack() {
+            acknowledged = true;
+        },
+        attempts: 1,
+        body: { invalid: true },
+        id: 'invalid-message',
+        retry(options?: QueueRetryOptions) {
+            retryDelaySeconds = options?.delaySeconds ?? 0;
+        },
+        timestamp: new Date(),
+    };
+    const batch = {
+        ackAll() {},
+        messages: [message],
+        metadata: {
+            metrics: {
+                backlogBytes: 0,
+                backlogCount: 1,
+            },
+        },
+        queue: 'gongyu-phase0-jobs',
+        retryAll() {},
+    };
+
+    await backgroundHandlers.queue(batch, env);
+
+    assert.isFalse(acknowledged);
+    assert.strictEqual(retryDelaySeconds, 30);
+});
+
+it('runs scheduled maintenance through the merged Worker handler', async () => {
+    const tokenHash = `expired-${crypto.randomUUID()}`;
+    await env.DB.prepare(
+        `
+            INSERT INTO sessions (
+                token_hash,
+                csrf_token_hash,
+                created_at,
+                last_seen_at,
+                idle_expires_at,
+                absolute_expires_at
+            ) VALUES (?, ?, 0, 0, 0, 0)
+        `,
+    )
+        .bind(tokenHash, 'expired-csrf')
+        .run();
+
+    await backgroundHandlers.scheduled(
+        {
+            cron: '* * * * *',
+            noRetry() {},
+            scheduledTime: Date.now(),
+        },
+        env,
+    );
+
+    const expired = await env.DB.prepare(
+        'SELECT token_hash FROM sessions WHERE token_hash = ?',
+    )
+        .bind(tokenHash)
+        .first();
+    assert.isNull(expired);
+});
 
 it.effect(
     'runs jobs invocations through their own primary-session boundary',

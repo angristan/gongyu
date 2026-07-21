@@ -4,6 +4,9 @@
   "main": "./workers/app.ts",
   "compatibility_date": "2026-07-15",
   "compatibility_flags": ["global_fetch_strictly_public"],
+  "limits": {
+    "cpu_ms": 300000
+  },
   "observability": {
     "enabled": true,
     "head_sampling_rate": 0.1,
@@ -27,6 +30,37 @@
       "bucket_name": "gongyu-phase0-uploads"
     }
   ],
+  "images": {
+    "binding": "IMAGES"
+  },
+  "queues": {
+    "producers": [
+      {
+        "binding": "JOBS_QUEUE",
+        "queue": "gongyu-phase0-jobs"
+      }
+    ],
+    "consumers": [
+      {
+        "queue": "gongyu-phase0-jobs",
+        "dead_letter_queue": "gongyu-phase0-jobs-dlq",
+        "max_batch_size": 5,
+        "max_batch_timeout": 2,
+        "max_retries": 5,
+        "max_concurrency": 2
+      },
+      {
+        "queue": "gongyu-phase0-jobs-dlq",
+        "max_batch_size": 5,
+        "max_batch_timeout": 2,
+        "max_retries": 1,
+        "max_concurrency": 1
+      }
+    ]
+  },
+  "triggers": {
+    "crons": ["* * * * *"]
+  },
   "workflows": [
     {
       "binding": "DATA_WORKFLOW",
@@ -44,6 +78,9 @@
   "env": {
     "production": {
       "name": "gongyu-cloudflare-production",
+      "limits": {
+        "cpu_ms": 300000
+      },
       "routes": [
         {
           "pattern": "bookmarks.stanislas.blog",
@@ -64,12 +101,42 @@
           "bucket_name": "gongyu-production-uploads"
         }
       ],
+      "images": {
+        "binding": "IMAGES"
+      },
+      "queues": {
+        "producers": [
+          {
+            "binding": "JOBS_QUEUE",
+            "queue": "gongyu-production-jobs"
+          }
+        ],
+        "consumers": [
+          {
+            "queue": "gongyu-production-jobs",
+            "dead_letter_queue": "gongyu-production-jobs-dlq",
+            "max_batch_size": 5,
+            "max_batch_timeout": 2,
+            "max_retries": 5,
+            "max_concurrency": 2
+          },
+          {
+            "queue": "gongyu-production-jobs-dlq",
+            "max_batch_size": 5,
+            "max_batch_timeout": 2,
+            "max_retries": 1,
+            "max_concurrency": 1
+          }
+        ]
+      },
+      "triggers": {
+        "crons": ["* * * * *"]
+      },
       "workflows": [
         {
           "binding": "DATA_WORKFLOW",
           "class_name": "DataWorkflow",
-          "name": "gongyu-production-data-workflow",
-          "script_name": "gongyu-cloudflare-production-jobs"
+          "name": "gongyu-production-data-workflow"
         }
       ],
       "vars": {

@@ -11,11 +11,11 @@
   "scripts": {
     "build": "bun run --cwd apps/web build",
     "check": "bun run --cwd apps/web check && bun run --cwd apps/jobs check",
-    "deploy:production": "bun run migrate:production && bun run --cwd apps/jobs deploy:production && bun run --cwd apps/web deploy:production",
+    "deploy:production": "bun run migrate:production && bun run --cwd apps/web deploy:production",
     "dev": "bun run --cwd apps/web dev",
     "format": "bunx biome check --write .",
     "lint": "bunx biome check .",
-    "migrate:production": "bun run --cwd apps/jobs migrate:production",
+    "migrate:production": "bun run --cwd apps/web migrate:production",
     "prepare": "[ -d .git ] && lefthook install || true",
     "test": "bun run --cwd apps/web test",
     "test:unit": "bun run --cwd apps/web test:unit",

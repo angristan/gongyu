@@ -4,8 +4,8 @@
 
 Gongyu is a Bun workspace targeting Cloudflare Workers.
 
-- `apps/web`: React 19, React Router 8 SSR, Mantine, Tailwind CSS, Cloudflare Vite plugin
-- `apps/jobs`: Queues, scheduled handlers, and Cloudflare Workflows
+- `apps/web`: React 19, React Router 8 SSR, Mantine, Tailwind CSS, and the Cloudflare Worker entrypoint
+- `apps/jobs`: Reusable Queue, scheduled, and Cloudflare Workflow implementations
 - `packages/*`: Effect-based domain, data, auth, integration, and UI modules
 - Persistence: D1 with hand-written Wrangler migrations
 - Object storage: private R2
@@ -36,8 +36,8 @@ Use Bun for dependency management and scripts. Do not add or change dependencies
 
 ## Cloudflare resources
 
-- `apps/web/wrangler.jsonc` and `apps/jobs/wrangler.jsonc` must agree on shared D1, R2, and Workflow resources.
-- The jobs Worker owns queue consumers, cron work, and Workflow implementations; the web Worker binds to those Workflows.
+- `apps/web/wrangler.jsonc` is the sole Worker configuration and must define HTTP routes, D1, R2, Images, Queues, cron, and Workflows together.
+- The Worker entrypoint owns HTTP, Queue, and scheduled handlers and exports Workflow implementations from `apps/jobs`.
 - Never put secrets in Wrangler configuration or source code. Use Wrangler secrets for `ENCRYPTION_KEYS` and `SETUP_TOKEN`.
 - Do not hand-edit `worker-configuration.d.ts`; regenerate binding types with the app's `typecheck` or `cf-typegen` script.
 - Do not run remote migrations, deploy Workers, modify Cloudflare resources, or touch production data without explicit authorization.
@@ -65,7 +65,7 @@ bun run --cwd apps/web test:e2e
 ```
 
 - `bun run test` runs the web/workerd Vitest suite.
-- `bun run check` typechecks both apps, builds the web Worker, and performs Wrangler deployment dry runs.
+- `bun run check` typechecks both apps, builds the Worker, and performs a Wrangler deployment dry run.
 - Run Playwright when changing routes, forms, authentication, SSR, hydration, or user journeys.
 - Use `bun install --frozen-lockfile` when verifying the committed lockfile.
 

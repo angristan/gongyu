@@ -1,3 +1,4 @@
+import { backgroundHandlers } from '@gongyu/jobs/worker';
 import { createRequestHandler, RouterContextProvider } from 'react-router';
 import {
     appendClearedSessionCookies,
@@ -16,6 +17,7 @@ const requestHandler = createRequestHandler(
 );
 
 export default {
+    ...backgroundHandlers,
     fetch(request, env, executionContext) {
         const requestId = crypto.randomUUID();
         const sessionConstraint = requestSessionConstraint(request);

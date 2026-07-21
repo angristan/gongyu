@@ -23,21 +23,19 @@ Gongyu is a single-tenant bookmark manager inspired by [Shaarli](https://github.
 Browser
   |
   v
-Web Worker (React Router SSR)
+Gongyu Worker
+  |-- HTTP: React Router SSR, authentication, bookmarks, thumbnails
   |-- D1: bookmarks, search, sessions, settings, job state
   |-- R2: thumbnails, import sources, exports, backups
-  `-- Workflows: imports, exports, backups, restores
-          |
-          v
-Jobs Worker
   |-- Queues: metadata, thumbnails, social delivery
+  |-- Workflows: imports, exports, backups, restores
   `-- Cron: outbox dispatch and cleanup
 ```
 
 The repository is a Bun workspace:
 
-- `apps/web` — React 19, React Router 8 SSR, and the HTTP Worker
-- `apps/jobs` — queue, scheduled, and Workflow handlers
+- `apps/web` — React 19, React Router 8 SSR, and the Cloudflare Worker entrypoint
+- `apps/jobs` — reusable queue, scheduled, and Workflow implementations
 - `packages/domain` — Effect Schema domain models and contracts
 - `packages/data` — D1 repositories and persistence adapters
 - `packages/auth` — passkey and session services
@@ -79,11 +77,11 @@ bun run --cwd apps/web test:e2e
 
 Use `bun run test:unit` for fast runtime-neutral tests, `bun run test:workerd` for binding-dependent tests, and `bun run test:watch` while iterating. `bun run test` runs both projects.
 
-`bun run check` typechecks both Workers, builds the web application, and performs Wrangler dry-run deployments.
+`bun run check` typechecks both apps, builds the production Worker, and performs a Wrangler dry-run deployment.
 
 ## Deployment
 
-Gongyu is deployed as two Cloudflare Workers backed by D1, R2, Queues, and Workflows. Apply D1 migrations before deploying either Worker.
+Gongyu is deployed as one Cloudflare Worker backed by D1, R2, Queues, and Workflows. Apply D1 migrations before deploying the Worker.
 
 See [docs/self-hosting.md](docs/self-hosting.md) for resource provisioning, secrets, deployment, and updates.
 
@@ -93,7 +91,7 @@ The checked-in configuration deploys the production environment:
 bun run deploy:production
 ```
 
-This command applies production D1 migrations, deploys the jobs Worker, then builds and deploys the web Worker. Review the Wrangler resource names, IDs, hostnames, routes, and secrets before using it for your own installation.
+This command applies production D1 migrations, then builds and deploys the Worker. Review the Wrangler resource names, IDs, hostnames, routes, and secrets before using it for your own installation.
 
 ## Public routes
 

@@ -1,15 +1,15 @@
 # Self-hosting on Cloudflare
 
-Gongyu runs as two Cloudflare Workers. It is not a container or VPS application.
+Gongyu runs as one Cloudflare Worker. It is not a container or VPS application.
 
 ## Requirements
 
 - A Cloudflare account with a Workers plan that supports Workflows
 - Bun 1.3.9
 - Wrangler authentication: `bunx wrangler login`
-- A final HTTPS hostname for the web Worker before passkey enrollment
+- A final HTTPS hostname for the Worker before passkey enrollment
 
-The checked-in Wrangler files contain the maintainers' production environment. Treat it as a template: replace all Worker, D1, R2, Queue, Workflow, hostname, and account-specific values before deploying a separate installation.
+The checked-in Wrangler file contains the maintainers' production environment. Treat it as a template: replace all Worker, D1, R2, Queue, Workflow, hostname, and account-specific values before deploying a separate installation.
 
 ## 1. Install and provision resources
 
@@ -22,20 +22,20 @@ bunx wrangler queues create gongyu-jobs
 bunx wrangler queues create gongyu-jobs-dlq
 ```
 
-Update both `apps/web/wrangler.jsonc` and `apps/jobs/wrangler.jsonc` so they reference the same D1 database and R2 bucket. Configure the Queue producer, consumer, and dead-letter queue in the jobs Worker.
+Update `apps/web/wrangler.jsonc` with the D1 database, R2 bucket, Queue producer, Queue consumers, dead-letter queue, cron, and Workflow bindings.
 
 Use unique names for:
 
-- the web and jobs Workers;
+- the Worker;
 - the data Workflow;
 - D1 and R2 resources;
 - the main queue and dead-letter queue.
 
-The web Worker's Workflow bindings must use the deployed jobs Worker as `script_name`.
+The Workflow is implemented by the same Worker, so its binding must not use `script_name`.
 
 ## 2. Configure the hostname
 
-Set these web Worker variables for the deployment environment:
+Set these Worker variables for the deployment environment:
 
 | Variable | Value |
 | --- | --- |
@@ -43,7 +43,7 @@ Set these web Worker variables for the deployment environment:
 | `RP_ID` | The exact hostname, without scheme or port |
 | `RP_ORIGIN` | The exact HTTPS origin, without a trailing slash |
 
-Set the same `RP_ID` on the jobs Worker. Configure the web Worker's custom domain or `workers.dev` hostname to match.
+Configure the Worker's custom domain or `workers.dev` hostname to match.
 
 Passkeys are bound to `RP_ID`. Changing it later requires passkey recovery or re-enrollment, so choose the final hostname first.
 
@@ -56,10 +56,9 @@ bun -e 'const key=crypto.getRandomValues(new Uint8Array(32)); console.log(JSON.s
 bun -e 'console.log(Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString("base64url"))'
 ```
 
-Store the first output as `ENCRYPTION_KEYS` on **both** Workers and the second as `SETUP_TOKEN` on the web Worker. Wrangler prompts for each value without placing it in the command line:
+Store the first output as `ENCRYPTION_KEYS` and the second as `SETUP_TOKEN` on the Worker. Wrangler prompts for each value without placing it in the command line:
 
 ```bash
-bunx wrangler secret put ENCRYPTION_KEYS --env production --config apps/jobs/wrangler.jsonc
 bunx wrangler secret put ENCRYPTION_KEYS --env production --config apps/web/wrangler.jsonc
 bunx wrangler secret put SETUP_TOKEN --env production --config apps/web/wrangler.jsonc
 ```
@@ -75,7 +74,7 @@ bun run check
 bun run deploy:production
 ```
 
-The root deployment script applies production D1 migrations first, deploys the jobs Worker, then builds and deploys the web Worker. For another environment, add equivalent environment bindings and migration-first scripts.
+The root deployment script applies production D1 migrations first, then builds and deploys the Worker. For another environment, add equivalent environment bindings and migration-first scripts.
 
 ## 5. Enroll the administrator
 
@@ -104,14 +103,13 @@ Health check:
 https://your-host/health
 ```
 
-Tail each Worker independently:
+Tail the Worker:
 
 ```bash
 bunx wrangler tail --env production --config apps/web/wrangler.jsonc
-bunx wrangler tail --env production --config apps/jobs/wrangler.jsonc
 ```
 
-The jobs Worker consumes queue messages, runs Workflow classes, dispatches the D1 outbox every minute, and cleans expired sessions, jobs, audit events, and generated artifacts. Inspect Cloudflare Queues for dead-letter messages when background work repeatedly fails.
+The Worker's background entrypoints consume queue messages, run Workflow classes, dispatch the D1 outbox every minute, and clean expired sessions, jobs, audit events, and generated artifacts. Inspect Cloudflare Queues for dead-letter messages when background work repeatedly fails.
 
 Imports, exports, backups, restores, and job status are available under **Admin → Data** and **Admin → Jobs**. Generated data artifacts are private and expire; download anything you need to retain.
 

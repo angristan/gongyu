@@ -1,17 +1,27 @@
 import { DataRunRepository } from '@gongyu/data/data-run-repository';
 import { WorkRepository } from '@gongyu/data/work-repository';
 import { QueueJobMessage } from '@gongyu/domain/jobs';
+import type { ThumbnailImagesBinding } from '@gongyu/integrations/thumbnail-client';
 import { Effect, Schema } from 'effect';
 import { failDeadLetterJob, processQueueJob } from './processor';
 import { makeJobsEffectRunner } from './runtime';
 
-export { DataWorkflow } from './data-workflow';
+export interface BackgroundEnv {
+    readonly DB: D1Database;
+    readonly ENCRYPTION_KEYS?: string;
+    readonly IMAGES: ThumbnailImagesBinding;
+    readonly JOBS_QUEUE: Queue;
+    readonly UPLOADS: R2Bucket;
+}
 
 const OUTBOX_LEASE_MICROS = 60 * 1_000_000;
 const TERMINAL_HISTORY_RETENTION_MICROS = 7 * 24 * 60 * 60 * 1_000_000;
 const TERMINAL_HISTORY_PRUNE_LIMIT = 100;
 
-function runner(env: Env, trigger: 'queue' | 'scheduled' | 'workflow') {
+function runner(
+    env: BackgroundEnv,
+    trigger: 'queue' | 'scheduled' | 'workflow',
+) {
     if (env.ENCRYPTION_KEYS === undefined) {
         throw new Error('ENCRYPTION_KEYS is not configured.');
     }
@@ -29,11 +39,7 @@ async function decodeQueueMessage(value: unknown): Promise<QueueJobMessage> {
     return Schema.decodeUnknownPromise(QueueJobMessage)(value);
 }
 
-export default {
-    fetch() {
-        return new Response('Not found', { status: 404 });
-    },
-
+export const backgroundHandlers = {
     async queue(batch, env) {
         const effect = runner(env, 'queue');
         const isDeadLetter = batch.queue.endsWith('-dlq');
@@ -216,4 +222,4 @@ export default {
             }
         }
     },
-} satisfies ExportedHandler<Env>;
+} satisfies ExportedHandler<BackgroundEnv>;
