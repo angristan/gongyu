@@ -41,18 +41,9 @@ it('creates the canonical schema from sequential migrations', async () => {
 
     assert.strictEqual(
         fingerprint,
-        'fa4090724b4b7d2096c23b3888477a99f0b36b396d519a023de68111bd3df042',
+        'a9b5ecd7cc609cbb2bd3df356ef7e4381de95e738112d22a502a3f1d27012070',
     );
     assert.isFalse(results.some(({ name }) => name.startsWith('phase0_')));
-    assert.isTrue(results.some(({ name }) => name === 'preview_backfill_runs'));
-    assert.isTrue(
-        results.some(({ name }) => name === 'preview_backfill_items'),
-    );
-
-    const backfillRuns = await env.DB.prepare(
-        'SELECT COUNT(*) AS count FROM preview_backfill_runs',
-    ).first<{ readonly count: number }>();
-    assert.strictEqual(backfillRuns?.count, 0);
 
     const appState = await env.DB.prepare(
         `

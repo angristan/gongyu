@@ -12,10 +12,6 @@ import {
     makeMetadataRepository,
 } from '@gongyu/data/metadata-repository';
 import {
-    makePreviewBackfillRepository,
-    PreviewBackfillRepository,
-} from '@gongyu/data/preview-backfill-repository';
-import {
     makeSettingsRepository,
     SettingsRepository,
 } from '@gongyu/data/settings-repository';
@@ -62,7 +58,6 @@ export type JobsServices =
     | JobsInvocationInfo
     | MetadataClient
     | MetadataRepository
-    | PreviewBackfillRepository
     | R2Store
     | SettingsRepository
     | SocialClients
@@ -100,9 +95,6 @@ export function makeJobsEffectRunner(options: {
     const metadataRepository = MetadataRepository.of(
         makeMetadataRepository(d1Store),
     );
-    const previewBackfillRepository = PreviewBackfillRepository.of(
-        makePreviewBackfillRepository(d1Store),
-    );
     const r2Store = makeR2Store(options.objectStorage);
     const settingsRepository = SettingsRepository.of(
         makeSettingsRepository(d1Store, encryption),
@@ -130,10 +122,6 @@ export function makeJobsEffectRunner(options: {
                 Effect.provideService(JobsInvocationInfo, invocationInfo),
                 Effect.provideService(MetadataClient, metadataClient),
                 Effect.provideService(MetadataRepository, metadataRepository),
-                Effect.provideService(
-                    PreviewBackfillRepository,
-                    previewBackfillRepository,
-                ),
                 Effect.provideService(R2Store, r2Store),
                 Effect.provideService(SettingsRepository, settingsRepository),
                 Effect.provideService(SocialClients, socialClients),

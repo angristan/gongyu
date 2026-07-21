@@ -7,7 +7,6 @@ const variants: Readonly<Record<string, BadgeVariant>> = {
     expired: 'secondary',
     failed: 'error',
     needs_review: 'warning',
-    paused: 'warning',
     pending: 'info',
     processing: 'info',
     queued: 'info',

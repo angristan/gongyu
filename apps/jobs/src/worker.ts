@@ -1,7 +1,6 @@
 import { DataRunRepository } from '@gongyu/data/data-run-repository';
-import { PreviewBackfillRepository } from '@gongyu/data/preview-backfill-repository';
 import { WorkRepository } from '@gongyu/data/work-repository';
-import { BackgroundQueueMessage, QueueJobMessage } from '@gongyu/domain/jobs';
+import { QueueJobMessage } from '@gongyu/domain/jobs';
 import type { ThumbnailImagesBinding } from '@gongyu/integrations/thumbnail-client';
 import { Effect, Schema } from 'effect';
 import { failDeadLetterJob, processQueueJob } from './processor';
@@ -18,8 +17,6 @@ export interface BackgroundEnv {
 const OUTBOX_LEASE_MICROS = 60 * 1_000_000;
 const TERMINAL_HISTORY_RETENTION_MICROS = 7 * 24 * 60 * 60 * 1_000_000;
 const TERMINAL_HISTORY_PRUNE_LIMIT = 100;
-const PREVIEW_BACKFILL_BATCH_LIMIT = 5;
-const PREVIEW_BACKFILL_MAX_IN_FLIGHT = 10;
 
 function runner(
     env: BackgroundEnv,
@@ -38,10 +35,8 @@ function runner(
     });
 }
 
-async function decodeQueueMessage(
-    value: unknown,
-): Promise<BackgroundQueueMessage> {
-    return Schema.decodeUnknownPromise(BackgroundQueueMessage)(value);
+async function decodeQueueMessage(value: unknown): Promise<QueueJobMessage> {
+    return Schema.decodeUnknownPromise(QueueJobMessage)(value);
 }
 
 export const backgroundHandlers = {
@@ -120,34 +115,18 @@ export const backgroundHandlers = {
         const maintenance = await effect.runPromise(
             Effect.gen(function* () {
                 const repository = yield* WorkRepository;
-                const dataRuns = yield* DataRunRepository;
-                const previewBackfill = yield* PreviewBackfillRepository;
                 const prunedHistory = yield* repository.pruneTerminalHistory({
                     before: terminalHistoryCutoff,
                     limit: TERMINAL_HISTORY_PRUNE_LIMIT,
                 });
                 yield* repository.reconcilePendingDeletions(now);
-                yield* previewBackfill.pruneTerminalHistory({
-                    completedBefore: terminalHistoryCutoff,
-                    limit: TERMINAL_HISTORY_PRUNE_LIMIT,
-                });
-                yield* previewBackfill.reconcile(now);
-                const appState = yield* dataRuns.getAppState;
-                const stagedPreviews =
-                    appState.readOnly === 1
-                        ? 0
-                        : yield* previewBackfill.enqueueBatch({
-                              batchLimit: PREVIEW_BACKFILL_BATCH_LIMIT,
-                              maxInFlight: PREVIEW_BACKFILL_MAX_IN_FLIGHT,
-                              now,
-                          });
                 const leases = yield* repository.claimOutbox({
                     leaseDurationMicros: OUTBOX_LEASE_MICROS,
                     limit: 25,
                     now,
                     token,
                 });
-                return { leases, prunedHistory, stagedPreviews };
+                return { leases, prunedHistory };
             }),
         );
         if (maintenance.prunedHistory > 0) {
@@ -155,14 +134,6 @@ export const backgroundHandlers = {
                 JSON.stringify({
                     event: 'job.history.pruned',
                     outboxCount: maintenance.prunedHistory,
-                }),
-            );
-        }
-        if (maintenance.stagedPreviews > 0) {
-            console.info(
-                JSON.stringify({
-                    count: maintenance.stagedPreviews,
-                    event: 'preview.backfill.staged',
                 }),
             );
         }
@@ -194,32 +165,11 @@ export const backgroundHandlers = {
                 await effect.runPromise(
                     Effect.gen(function* () {
                         const repository = yield* WorkRepository;
-                        const now = Date.now() * 1_000;
-                        if (
-                            lease.id.startsWith('preview-backfill:') &&
-                            lease.attempts >= 3
-                        ) {
-                            const previewBackfill =
-                                yield* PreviewBackfillRepository;
-                            yield* repository.failOutbox({
-                                errorCode: 'queue_dispatch_failed',
-                                id: lease.id,
-                                now,
-                                token: lease.token,
-                            });
-                            yield* previewBackfill.terminalizeItem({
-                                errorCode: 'queue_dispatch_failed',
-                                jobId: lease.id,
-                                now,
-                                state: 'failed',
-                            });
-                            return;
-                        }
                         yield* repository.releaseOutbox({
-                            availableAt: now + 30 * 1_000_000,
+                            availableAt: Date.now() * 1_000 + 30 * 1_000_000,
                             errorCode: 'queue_dispatch_failed',
                             id: lease.id,
-                            now,
+                            now: Date.now() * 1_000,
                             token: lease.token,
                         });
                     }),

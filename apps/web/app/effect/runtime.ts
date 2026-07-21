@@ -20,10 +20,6 @@ import {
     makeMetadataRepository,
 } from '@gongyu/data/metadata-repository';
 import {
-    makePreviewBackfillRepository,
-    PreviewBackfillRepository,
-} from '@gongyu/data/preview-backfill-repository';
-import {
     makeSettingsRepository,
     SettingsRepository,
 } from '@gongyu/data/settings-repository';
@@ -57,7 +53,6 @@ export type RequestServices =
     | Encryption
     | MetadataClient
     | MetadataRepository
-    | PreviewBackfillRepository
     | R2Store
     | RequestInfo
     | SessionService
@@ -95,9 +90,6 @@ export function makeRequestEffectRunner(options: {
     const metadataRepository = MetadataRepository.of(
         makeMetadataRepository(d1Store),
     );
-    const previewBackfillRepository = PreviewBackfillRepository.of(
-        makePreviewBackfillRepository(d1Store),
-    );
     const r2Store = makeR2Store(options.bucket);
     const sessionService = SessionService.of(makeSessionService(d1Store));
     const settingsRepository = SettingsRepository.of(
@@ -125,10 +117,6 @@ export function makeRequestEffectRunner(options: {
                 Effect.provideService(Encryption, encryption),
                 Effect.provideService(MetadataClient, metadataClient),
                 Effect.provideService(MetadataRepository, metadataRepository),
-                Effect.provideService(
-                    PreviewBackfillRepository,
-                    previewBackfillRepository,
-                ),
                 Effect.provideService(R2Store, r2Store),
                 Effect.provideService(SessionService, sessionService),
                 Effect.provideService(SettingsRepository, settingsRepository),
