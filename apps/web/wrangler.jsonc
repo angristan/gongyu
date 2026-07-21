@@ -74,6 +74,12 @@
     },
     "production": {
       "name": "gongyu-cloudflare-production",
+      "routes": [
+        {
+          "pattern": "bookmarks.stanislas.blog",
+          "custom_domain": true
+        }
+      ],
       "d1_databases": [
         {
           "binding": "DB",
