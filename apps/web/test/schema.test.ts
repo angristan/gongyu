@@ -13,7 +13,7 @@ function hex(bytes: ArrayBuffer): string {
     ).join('');
 }
 
-it('creates the canonical schema from one clean migration', async () => {
+it('creates the canonical schema from sequential migrations', async () => {
     const { results } = await env.DB.prepare(
         `
             SELECT type, name, sql
@@ -41,9 +41,18 @@ it('creates the canonical schema from one clean migration', async () => {
 
     assert.strictEqual(
         fingerprint,
-        'a9b5ecd7cc609cbb2bd3df356ef7e4381de95e738112d22a502a3f1d27012070',
+        'fa4090724b4b7d2096c23b3888477a99f0b36b396d519a023de68111bd3df042',
     );
     assert.isFalse(results.some(({ name }) => name.startsWith('phase0_')));
+    assert.isTrue(results.some(({ name }) => name === 'preview_backfill_runs'));
+    assert.isTrue(
+        results.some(({ name }) => name === 'preview_backfill_items'),
+    );
+
+    const backfillRuns = await env.DB.prepare(
+        'SELECT COUNT(*) AS count FROM preview_backfill_runs',
+    ).first<{ readonly count: number }>();
+    assert.strictEqual(backfillRuns?.count, 0);
 
     const appState = await env.DB.prepare(
         `

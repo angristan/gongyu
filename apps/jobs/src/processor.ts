@@ -1,9 +1,14 @@
 import { DataRunRepository } from '@gongyu/data/data-run-repository';
 import { MetadataRepository } from '@gongyu/data/metadata-repository';
+import { PreviewBackfillRepository } from '@gongyu/data/preview-backfill-repository';
 import { SettingsRepository } from '@gongyu/data/settings-repository';
 import { SocialRepository } from '@gongyu/data/social-repository';
 import { WorkRepository } from '@gongyu/data/work-repository';
-import type { QueueJobMessage } from '@gongyu/domain/jobs';
+import {
+    type BackgroundQueueMessage,
+    PreviewBackfillQueueMessage,
+    type QueueJobMessage,
+} from '@gongyu/domain/jobs';
 import { MetadataError } from '@gongyu/domain/metadata';
 import { configuredProviders } from '@gongyu/domain/social';
 import { MetadataClient } from '@gongyu/integrations/metadata-client';
@@ -20,6 +25,8 @@ import { Effect } from 'effect';
 
 const JOB_LEASE_MICROS = 120 * 1_000_000;
 const RETRY_DELAYS_SECONDS = [30, 120, 300, 900, 1_800] as const;
+const PREVIEW_RETRY_DELAYS_SECONDS = [60, 300] as const;
+const PREVIEW_MAX_ATTEMPTS = 3;
 
 export interface ProcessOutcome {
     readonly retryDelaySeconds: number | null;
@@ -236,6 +243,225 @@ const processMetadata = Effect.fn('Jobs.processMetadata')(function* (input: {
     return { retryDelaySeconds: null } satisfies ProcessOutcome;
 });
 
+const processPreviewBackfill = Effect.fn('Jobs.processPreviewBackfill')(
+    function* (input: {
+        readonly attempts: number;
+        readonly message: PreviewBackfillQueueMessage;
+        readonly now: number;
+        readonly token: string;
+    }) {
+        const previewBackfill = yield* PreviewBackfillRepository;
+        const workRepository = yield* WorkRepository;
+        const target = yield* previewBackfill.findTarget(
+            input.message.jobId,
+            input.message.bookmarkShortUrl,
+        );
+        if (target === null) {
+            const completionNow = Date.now() * 1_000;
+            yield* previewBackfill.finishItem({
+                errorCode: 'bookmark_not_eligible',
+                jobId: input.message.jobId,
+                now: completionNow,
+                sourceUrl: null,
+                state: 'skipped',
+                token: input.token,
+            });
+            yield* workRepository.completeJob({
+                id: input.message.jobId,
+                now: completionNow,
+                token: input.token,
+            });
+            return { retryDelaySeconds: null } satisfies ProcessOutcome;
+        }
+
+        const failures: Array<{
+            readonly code: string;
+            readonly retryable: boolean;
+        }> = [];
+        const metadataClient = yield* MetadataClient;
+        const metadataResult = yield* metadataClient.fetch(target.url).pipe(
+            Effect.match({
+                onFailure: (error) => ({ ok: false as const, error }),
+                onSuccess: (value) => ({ ok: true as const, value }),
+            }),
+        );
+        let discoveredImageUrl: string | null = null;
+        if (metadataResult.ok) {
+            discoveredImageUrl = metadataResult.value.imageUrl;
+        } else {
+            failures.push({
+                code:
+                    metadataResult.error instanceof MetadataError
+                        ? metadataResult.error.code
+                        : 'metadata_failed',
+                retryable:
+                    metadataResult.error instanceof MetadataError &&
+                    metadataResult.error.retryable,
+            });
+        }
+
+        const sourceUrls = Array.from(
+            new Set(
+                [target.thumbnailUrl, discoveredImageUrl].filter(
+                    (value): value is string => value !== null,
+                ),
+            ),
+        );
+        if (sourceUrls.length === 0 && failures.length === 0) {
+            const completionNow = Date.now() * 1_000;
+            yield* previewBackfill.finishItem({
+                errorCode: null,
+                jobId: input.message.jobId,
+                now: completionNow,
+                sourceUrl: null,
+                state: 'no_preview',
+                token: input.token,
+            });
+            yield* workRepository.completeJob({
+                id: input.message.jobId,
+                now: completionNow,
+                token: input.token,
+            });
+            return { retryDelaySeconds: null } satisfies ProcessOutcome;
+        }
+
+        const thumbnailClient = yield* ThumbnailClient;
+        for (const sourceUrl of sourceUrls) {
+            const thumbnailResult = yield* thumbnailClient
+                .fetch(sourceUrl)
+                .pipe(
+                    Effect.match({
+                        onFailure: (error) => ({
+                            ok: false as const,
+                            error,
+                        }),
+                        onSuccess: (value) => ({ ok: true as const, value }),
+                    }),
+                );
+            if (!thumbnailResult.ok) {
+                failures.push({
+                    code:
+                        thumbnailResult.error instanceof ThumbnailError
+                            ? thumbnailResult.error.code
+                            : 'thumbnail_failed',
+                    retryable:
+                        thumbnailResult.error instanceof ThumbnailError &&
+                        thumbnailResult.error.retryable,
+                });
+                continue;
+            }
+
+            const validated = thumbnailResult.value;
+            const key = `thumbnails/${target.bookmarkShortUrl}/${validated.sha256}-${input.token}.${validated.extension}`;
+            const r2 = yield* R2Store;
+            const existing = yield* r2.head(key);
+            if (
+                existing !== null &&
+                (existing.size !== validated.bytes.byteLength ||
+                    existing.contentType !== validated.contentType)
+            ) {
+                return yield* Effect.die(
+                    new Error(
+                        'Immutable thumbnail key has incompatible metadata.',
+                    ),
+                );
+            }
+            let uploaded = false;
+            if (existing === null) {
+                const body = new Response(validated.bytes.slice()).body;
+                if (body === null) {
+                    return yield* Effect.die(
+                        new Error('Unable to stream validated thumbnail.'),
+                    );
+                }
+                yield* r2.putStream({
+                    body,
+                    contentLength: validated.bytes.byteLength,
+                    contentType: validated.contentType,
+                    key,
+                });
+                uploaded = true;
+            }
+
+            const completionNow = Date.now() * 1_000;
+            const outcome = yield* previewBackfill.attachPreview({
+                contentType: validated.contentType,
+                expectedUpdatedAt: target.updatedAt,
+                height: validated.height,
+                jobId: input.message.jobId,
+                key,
+                now: completionNow,
+                sha256: validated.sha256,
+                size: validated.bytes.byteLength,
+                sourceUrl: validated.sourceUrl,
+                token: input.token,
+                width: validated.width,
+            });
+            if (outcome !== 'previewed' && uploaded) {
+                yield* r2.delete(key);
+            }
+            if (outcome === 'stale') {
+                yield* workRepository.releaseJob({
+                    availableAt: completionNow + 30 * 1_000_000,
+                    errorCode: 'preview_backfill_stale_lease',
+                    id: input.message.jobId,
+                    now: completionNow,
+                    token: input.token,
+                });
+                return { retryDelaySeconds: 30 } satisfies ProcessOutcome;
+            }
+            yield* workRepository.completeJob({
+                id: input.message.jobId,
+                now: completionNow,
+                token: input.token,
+            });
+            return { retryDelaySeconds: null } satisfies ProcessOutcome;
+        }
+
+        if (
+            failures.some((failure) => failure.retryable) &&
+            input.attempts < PREVIEW_MAX_ATTEMPTS
+        ) {
+            const delay =
+                PREVIEW_RETRY_DELAYS_SECONDS[
+                    Math.min(
+                        Math.max(input.attempts - 1, 0),
+                        PREVIEW_RETRY_DELAYS_SECONDS.length - 1,
+                    )
+                ] ?? 300;
+            const latestFailure = failures.at(-1);
+            const completionNow = Date.now() * 1_000;
+            yield* workRepository.releaseJob({
+                availableAt: completionNow + delay * 1_000_000,
+                errorCode: latestFailure?.code ?? 'preview_backfill_failed',
+                id: input.message.jobId,
+                now: completionNow,
+                token: input.token,
+            });
+            return { retryDelaySeconds: delay } satisfies ProcessOutcome;
+        }
+
+        const latestFailure = failures.at(-1);
+        const completionNow = Date.now() * 1_000;
+        yield* previewBackfill.finishItem({
+            errorCode: latestFailure?.code ?? 'preview_backfill_failed',
+            jobId: input.message.jobId,
+            now: completionNow,
+            sourceUrl: sourceUrls.at(-1) ?? null,
+            state: 'failed',
+            token: input.token,
+        });
+        yield* workRepository.failJob({
+            errorCode: latestFailure?.code ?? 'preview_backfill_failed',
+            id: input.message.jobId,
+            needsReview: false,
+            now: completionNow,
+            token: input.token,
+        });
+        return { retryDelaySeconds: null } satisfies ProcessOutcome;
+    },
+);
+
 const processSocial = Effect.fn('Jobs.processSocial')(function* (input: {
     readonly attempts: number;
     readonly message: QueueJobMessage;
@@ -386,21 +612,35 @@ const processSocial = Effect.fn('Jobs.processSocial')(function* (input: {
 });
 
 export const failDeadLetterJob = Effect.fn('Jobs.failDeadLetterJob')(function* (
-    message: QueueJobMessage,
+    message: BackgroundQueueMessage,
 ) {
     const now = Date.now() * 1_000;
     const workRepository = yield* WorkRepository;
     yield* workRepository.ensureJob(message, now);
+    if (message instanceof PreviewBackfillQueueMessage) {
+        const previewBackfill = yield* PreviewBackfillRepository;
+        yield* previewBackfill.terminalizeItem({
+            errorCode: 'retry_exhausted',
+            jobId: message.jobId,
+            now,
+            state: 'failed',
+        });
+    }
     yield* workRepository.terminalizeDeadLetter(message.jobId, now);
 });
 
 export const processQueueJob = Effect.fn('Jobs.processQueueJob')(function* (
-    message: QueueJobMessage,
+    message: BackgroundQueueMessage,
 ) {
     const now = Date.now() * 1_000;
     const token = crypto.randomUUID();
     const dataRuns = yield* DataRunRepository;
     if ((yield* dataRuns.getAppState).readOnly === 1) {
+        if (message instanceof PreviewBackfillQueueMessage) {
+            const previewBackfill = yield* PreviewBackfillRepository;
+            yield* previewBackfill.deferForMaintenance(message.jobId, now);
+            return { retryDelaySeconds: null } satisfies ProcessOutcome;
+        }
         return { retryDelaySeconds: 30 } satisfies ProcessOutcome;
     }
     const workRepository = yield* WorkRepository;
@@ -413,6 +653,11 @@ export const processQueueJob = Effect.fn('Jobs.processQueueJob')(function* (
     });
     if (lease === null) {
         if ((yield* dataRuns.getAppState).readOnly === 1) {
+            if (message instanceof PreviewBackfillQueueMessage) {
+                const previewBackfill = yield* PreviewBackfillRepository;
+                yield* previewBackfill.deferForMaintenance(message.jobId, now);
+                return { retryDelaySeconds: null } satisfies ProcessOutcome;
+            }
             return { retryDelaySeconds: 30 } satisfies ProcessOutcome;
         }
         const status = yield* workRepository.getJobStatus(message.jobId);
@@ -433,6 +678,14 @@ export const processQueueJob = Effect.fn('Jobs.processQueueJob')(function* (
             } satisfies ProcessOutcome;
         }
         return { retryDelaySeconds: null } satisfies ProcessOutcome;
+    }
+    if (message instanceof PreviewBackfillQueueMessage) {
+        return yield* processPreviewBackfill({
+            attempts: lease.attempts,
+            message,
+            now,
+            token,
+        });
     }
     if (message.kind === 'metadata') {
         return yield* processMetadata({

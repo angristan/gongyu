@@ -485,7 +485,9 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
         'bunx',
         d1Arguments(`
             UPDATE bookmarks
-            SET shaarli_short_url = 'captured'
+            SET
+                shaarli_short_url = 'captured',
+                metadata_state = 'completed'
             WHERE url = 'https://example.com/captured';
             INSERT INTO outbox (
                 id, bookmark_short_url, kind, state, payload_version,
@@ -666,7 +668,23 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
             }
             if (path === '/admin/jobs') {
                 await expect(
+                    noJavaScriptAdmin.getByRole('region', {
+                        name: 'Preview backfill',
+                    }),
+                ).toBeVisible();
+                await expect(
                     noJavaScriptAdmin.getByRole('button', {
+                        name: 'Start preview backfill',
+                    }),
+                ).toBeVisible();
+                await expect(
+                    noJavaScriptAdmin.getByRole('link', {
+                        name: 'Refresh status',
+                    }),
+                ).toBeVisible();
+                await expect(
+                    noJavaScriptAdmin.getByRole('button', {
+                        exact: true,
                         name: 'Review',
                     }),
                 ).toHaveCount(0);
@@ -706,6 +724,32 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
         }
     }
     expect(new Set(desktopMainWidths).size).toBe(1);
+    await noJavaScriptAdmin.goto('/admin/jobs');
+    await noJavaScriptAdmin
+        .getByRole('button', { name: 'Start preview backfill' })
+        .click();
+    await expect(noJavaScriptAdmin).toHaveURL(
+        /\/admin\/jobs\?updated=backfill_started$/u,
+    );
+    await expect(
+        noJavaScriptAdmin.getByRole('button', { name: 'Pause' }),
+    ).toBeVisible();
+    await expect(
+        noJavaScriptAdmin.getByRole('progressbar', {
+            name: 'Previews processed',
+        }),
+    ).toHaveAttribute('aria-valuenow', '0');
+    await noJavaScriptAdmin.getByRole('button', { name: 'Pause' }).click();
+    await expect(noJavaScriptAdmin).toHaveURL(
+        /\/admin\/jobs\?updated=backfill_paused$/u,
+    );
+    await expect(
+        noJavaScriptAdmin.getByRole('button', { name: 'Resume' }),
+    ).toBeVisible();
+    await noJavaScriptAdmin.getByRole('button', { name: 'Resume' }).click();
+    await expect(noJavaScriptAdmin).toHaveURL(
+        /\/admin\/jobs\?updated=backfill_resumed$/u,
+    );
     await noJavaScriptAdmin
         .locator('summary')
         .filter({ hasText: /^Menu$/u })
@@ -788,6 +832,8 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
     }
     await page.getByRole('button', { name: 'Sign in with passkey' }).click();
     await expect(page.getByText(/timed out or was not allowed/u)).toBeVisible();
+    await client.send('WebAuthn.disable');
+    await client.detach();
 });
 
 test('serves public list, search, detail, and feed without JavaScript', async ({

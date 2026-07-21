@@ -1,4 +1,7 @@
-import { QueueJobMessage } from '@gongyu/domain/jobs';
+import {
+    type BackgroundQueueMessage,
+    QueueJobMessage,
+} from '@gongyu/domain/jobs';
 import { Context, Effect, Schema } from 'effect';
 import type { D1Store, D1StoreFailure } from './d1-store';
 
@@ -70,13 +73,19 @@ export interface WorkRepositoryShape {
         readonly token: string;
     }) => Effect.Effect<boolean, D1StoreFailure>;
     readonly ensureJob: (
-        message: QueueJobMessage,
+        message: BackgroundQueueMessage,
         now: number,
     ) => Effect.Effect<void, D1StoreFailure>;
     readonly failJob: (input: {
         readonly errorCode: string;
         readonly id: string;
         readonly needsReview: boolean;
+        readonly now: number;
+        readonly token: string;
+    }) => Effect.Effect<boolean, D1StoreFailure>;
+    readonly failOutbox: (input: {
+        readonly errorCode: string;
+        readonly id: string;
         readonly now: number;
         readonly token: string;
     }) => Effect.Effect<boolean, D1StoreFailure>;
@@ -239,8 +248,33 @@ export function makeWorkRepository(
         },
     );
 
+    const failOutbox = Effect.fn('WorkRepository.failOutbox')(
+        function* (input: {
+            readonly errorCode: string;
+            readonly id: string;
+            readonly now: number;
+            readonly token: string;
+        }) {
+            const result = yield* d1Store.run(
+                `
+                    UPDATE outbox
+                    SET
+                        state = 'failed',
+                        claim_token = NULL,
+                        lease_expires_at = NULL,
+                        last_error_code = ?,
+                        completed_at = ?,
+                        updated_at = ?
+                    WHERE id = ? AND state = 'claimed' AND claim_token = ?
+                `,
+                [input.errorCode, input.now, input.now, input.id, input.token],
+            );
+            return result.changes === 1;
+        },
+    );
+
     const ensureJob = Effect.fn('WorkRepository.ensureJob')(function* (
-        message: QueueJobMessage,
+        message: BackgroundQueueMessage,
         now: number,
     ) {
         yield* d1Store.run(
@@ -444,11 +478,17 @@ export function makeWorkRepository(
                     SELECT
                         id,
                         bookmark_short_url AS "bookmarkShortUrl",
-                        kind,
+                        CASE
+                            WHEN id LIKE 'preview-backfill:%' THEN 'preview:backfill'
+                            ELSE kind
+                        END AS kind,
                         state,
                         attempts,
                         last_error_code AS "lastErrorCode",
-                        1 AS recoverable,
+                        CASE
+                            WHEN id LIKE 'preview-backfill:%' THEN 0
+                            ELSE 1
+                        END AS recoverable,
                         updated_at AS "updatedAt"
                     FROM jobs
                     WHERE kind <> 'social'
@@ -646,7 +686,9 @@ export function makeWorkRepository(
                     1 AS recoverable,
                     updated_at AS "updatedAt"
                 FROM jobs
-                WHERE id = ? AND state IN ('failed', 'needs_review')
+                WHERE id = ?
+                  AND id NOT LIKE 'preview-backfill:%'
+                  AND state IN ('failed', 'needs_review')
             `,
             [id],
         );
@@ -729,6 +771,7 @@ export function makeWorkRepository(
         completeOutbox,
         ensureJob,
         failJob,
+        failOutbox,
         getJobStatus,
         listJobs,
         pruneTerminalHistory,

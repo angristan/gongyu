@@ -1,6 +1,7 @@
 import { env } from 'cloudflare:workers';
 import { assert, it } from '@effect/vitest';
 import { D1Store } from '@gongyu/data/d1-store';
+import { PreviewBackfillRepository } from '@gongyu/data/preview-backfill-repository';
 import type { ThumbnailImagesBinding } from '@gongyu/integrations/thumbnail-client';
 import { JobsInvocationInfo, makeJobsEffectRunner } from '@gongyu/jobs/runtime';
 import { backgroundHandlers } from '@gongyu/jobs/worker';
@@ -9,6 +10,10 @@ import { makeRequestEffectRunner, RequestInfo } from '../app/effect/runtime';
 
 class SessionProbeRow extends Schema.Class<SessionProbeRow>('SessionProbeRow')({
     ok: Schema.Number,
+}) {}
+
+class CountRow extends Schema.Class<CountRow>('CountRow')({
+    count: Schema.Number,
 }) {}
 
 const unusedImagesBinding: ThumbnailImagesBinding = {
@@ -132,6 +137,86 @@ it('runs scheduled maintenance through the merged Worker handler', async () => {
         .bind(tokenHash)
         .first();
     assert.isNull(expired);
+});
+
+it('admits at most five preview backfill items per scheduled run', async () => {
+    const now = Date.now() * 1_000;
+    await env.DB.batch(
+        Array.from({ length: 6 }, (_, index) =>
+            env.DB.prepare(
+                `
+                    INSERT INTO bookmarks (
+                        short_url,
+                        url,
+                        title,
+                        created_at,
+                        updated_at,
+                        metadata_state
+                    ) VALUES (?, ?, ?, ?, ?, 'completed')
+                `,
+            ).bind(
+                `Prev${String(index).padStart(4, '0')}`,
+                `https://example.com/runtime-preview-${index}`,
+                `Runtime preview ${index}`,
+                now + index,
+                now + index,
+            ),
+        ),
+    );
+    const effect = makeJobsEffectRunner({
+        database: env.DB,
+        encryptionKeyring:
+            '{"currentVersion":1,"keys":{"1":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="}}',
+        images: unusedImagesBinding,
+        invocationId: 'scheduled-backfill-test',
+        objectStorage: env.UPLOADS,
+        trigger: 'scheduled',
+    });
+    assert.isTrue(
+        await effect.runPromise(
+            Effect.gen(function* () {
+                const backfill = yield* PreviewBackfillRepository;
+                return yield* backfill.start({
+                    itemLimit: 10,
+                    now,
+                    runId: 'runtime-backfill',
+                });
+            }),
+        ),
+    );
+
+    await env.DB.prepare(
+        `UPDATE app_state SET read_only = 1, reason = 'restore:test' WHERE singleton_id = 1`,
+    ).run();
+    await backgroundHandlers.scheduled(
+        {
+            cron: '* * * * *',
+            noRetry() {},
+            scheduledTime: Date.now(),
+        },
+        env,
+    );
+    let queued = await env.DB.prepare(
+        `SELECT COUNT(*) AS count FROM preview_backfill_items WHERE state = 'queued'`,
+    ).first<CountRow>();
+    assert.strictEqual(queued?.count, 0);
+
+    await env.DB.prepare(
+        `UPDATE app_state SET read_only = 0, reason = NULL WHERE singleton_id = 1`,
+    ).run();
+    await backgroundHandlers.scheduled(
+        {
+            cron: '* * * * *',
+            noRetry() {},
+            scheduledTime: Date.now(),
+        },
+        env,
+    );
+
+    queued = await env.DB.prepare(
+        `SELECT COUNT(*) AS count FROM preview_backfill_items WHERE state = 'queued'`,
+    ).first<CountRow>();
+    assert.strictEqual(queued?.count, 5);
 });
 
 it.effect(
