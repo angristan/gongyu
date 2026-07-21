@@ -300,7 +300,7 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
     ).toBeVisible();
 
     const bookmarkletReturn =
-        '/bookmarklet?url=https%3A%2F%2Fexample.com%2Fcaptured&title=Captured%20page&description=Selected%20text&source=bookmarklet';
+        '/bookmarklet?url=https%3A%2F%2Fexample.com%2Fcaptured&title=Captured%20page%20%7C%20Example%20Site&description=Selected%20text&source=bookmarklet';
     await page.goto(bookmarkletReturn);
     await expect(page).toHaveURL(/\/login\?returnTo=/u);
     await page.getByRole('button', { name: 'Sign in with passkey' }).click();
