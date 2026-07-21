@@ -118,6 +118,7 @@ export async function action({ context, request }: Route.ActionArgs) {
         blueskyAppPassword: stringValue(formData, 'bluesky_app_password'),
         feedCount,
         blueskyHandle: stringValue(formData, 'bluesky_handle'),
+        libraryName: stringValue(formData, 'library_name'),
         mastodonAccessToken: stringValue(formData, 'mastodon_access_token'),
         mastodonInstance: stringValue(formData, 'mastodon_instance'),
         twitterAccessSecret: stringValue(formData, 'twitter_access_secret'),
@@ -126,6 +127,11 @@ export async function action({ context, request }: Route.ActionArgs) {
         twitterApiSecret: stringValue(formData, 'twitter_api_secret'),
     };
     const errors: Record<string, string> = {};
+    if (values.libraryName === '') {
+        errors.library_name = 'Enter a library name.';
+    } else if (values.libraryName.length > 80) {
+        errors.library_name = 'Use 80 characters or fewer.';
+    }
     for (const field of fields) {
         if (values[field.key].length > 255) {
             errors[field.name] = 'Use 255 characters or fewer.';
@@ -191,12 +197,12 @@ export default function AdminSettings({
     ] as const;
     return (
         <AdminPage
-            description="Configure social sharing and the public Atom feed."
+            description="Configure the public library, social sharing, and Atom feed."
             title="Settings"
         >
             {loaderData.saved ? (
                 <Banner
-                    description="New credentials will be used the next time a delivery is created."
+                    description="Your public library and delivery settings have been updated."
                     title="Settings saved"
                     variant="secondary"
                 />
@@ -205,6 +211,24 @@ export default function AdminSettings({
                 <input name="_csrf" type="hidden" value={csrfToken} />
                 <LayerCard className="overflow-hidden">
                     <div className="divide-y divide-gongyu-line">
+                        <section className="p-4">
+                            <div className="mb-3">
+                                <h2 className="font-semibold text-gongyu-default">
+                                    Public library
+                                </h2>
+                                <p className="mt-0.5 text-sm text-gongyu-subtle">
+                                    Name shown as the public homepage heading.
+                                </p>
+                            </div>
+                            <Input
+                                className="max-w-sm"
+                                defaultValue={values.libraryName}
+                                error={errors.library_name}
+                                label="Library name"
+                                maxLength={80}
+                                name="library_name"
+                            />
+                        </section>
                         {providerGroups.map((provider) => {
                             const configured = provider.fields.every(
                                 (field) =>

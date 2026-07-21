@@ -24,6 +24,7 @@ interface AppShellProps {
     readonly authenticated: boolean;
     readonly children: ReactNode;
     readonly csrfToken: string | null;
+    readonly libraryName: string;
     readonly themeMode: ThemeMode;
 }
 
@@ -103,11 +104,13 @@ function Brand({
     compact = false,
     heading = false,
     href = '/',
+    name = 'Gongyu',
     prominent = false,
 }: {
     readonly compact?: boolean;
     readonly heading?: boolean;
     readonly href?: string;
+    readonly name?: string;
     readonly prominent?: boolean;
 }) {
     const BrandName = heading ? 'h1' : 'span';
@@ -134,7 +137,7 @@ function Brand({
                         prominent ? 'text-lg' : 'text-sm',
                     )}
                 >
-                    Gongyu
+                    {name}
                 </BrandName>
             )}
         </Link>
@@ -168,6 +171,7 @@ function ThemeForm({
 function PublicShell({
     authenticated,
     children,
+    libraryName,
     themeMode,
 }: Omit<AppShellProps, 'csrfToken'>) {
     const location = useLocation();
@@ -178,7 +182,11 @@ function PublicShell({
         <div className="gongyu-public-app min-h-screen bg-gongyu-base">
             <header className="pt-4 sm:pt-5">
                 <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-4 sm:px-6">
-                    <Brand heading={location.pathname === '/'} prominent />
+                    <Brand
+                        heading={location.pathname === '/'}
+                        name={libraryName}
+                        prominent
+                    />
                     <nav aria-label="Public navigation">
                         {isAuthenticationPage ? (
                             <Link
@@ -332,7 +340,7 @@ function AdminShell({
     children,
     csrfToken,
     themeMode,
-}: Omit<AppShellProps, 'authenticated'>) {
+}: Omit<AppShellProps, 'authenticated' | 'libraryName'>) {
     const location = useLocation();
     const returnTo = `${location.pathname}${location.search}`;
     const currentPage = [...libraryNavigation, ...toolsNavigation].find(
@@ -414,6 +422,7 @@ export function AppShell({
     authenticated,
     children,
     csrfToken,
+    libraryName,
     themeMode,
 }: AppShellProps) {
     const location = useLocation();
@@ -428,7 +437,11 @@ export function AppShell({
             {children}
         </AdminShell>
     ) : (
-        <PublicShell authenticated={authenticated} themeMode={themeMode}>
+        <PublicShell
+            authenticated={authenticated}
+            libraryName={libraryName}
+            themeMode={themeMode}
+        >
             {children}
         </PublicShell>
     );

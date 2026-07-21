@@ -5,7 +5,7 @@ import {
     makeSettingsRepository,
     SettingsRepository,
 } from '@gongyu/data/settings-repository';
-import { Settings } from '@gongyu/domain/settings';
+import { DEFAULT_LIBRARY_NAME, Settings } from '@gongyu/domain/settings';
 import {
     Encryption,
     EncryptionError,
@@ -44,6 +44,7 @@ function completeSettings(): Settings {
         blueskyAppPassword: 'bluesky-password',
         blueskyHandle: 'alice.example.com',
         feedCount: 250,
+        libraryName: 'Alice’s library',
         mastodonAccessToken: 'mastodon-token',
         mastodonInstance: 'https://mastodon.social',
         twitterAccessSecret: 'twitter-access-secret',
@@ -59,6 +60,11 @@ it.layer(TestLayer)('encrypted settings repository', (it) => {
             const settings = yield* SettingsRepository;
             const result = yield* settings.get;
             assert.strictEqual(result.feedCount, 50);
+            assert.strictEqual(result.libraryName, DEFAULT_LIBRARY_NAME);
+            assert.strictEqual(
+                yield* settings.getLibraryName,
+                DEFAULT_LIBRARY_NAME,
+            );
             assert.strictEqual(result.twitterApiKey, '');
             assert.strictEqual(result.blueskyAppPassword, '');
         }),
@@ -81,7 +87,11 @@ it.layer(TestLayer)('encrypted settings repository', (it) => {
                     ORDER BY key
                 `,
             );
-            assert.strictEqual(rows.rows.length, 9);
+            assert.strictEqual(rows.rows.length, 10);
+            assert.strictEqual(
+                yield* settings.getLibraryName,
+                expected.libraryName,
+            );
             for (const row of rows.rows) {
                 assert.isNotNull(row.encryptedValue);
                 assert.isFalse(
@@ -100,6 +110,7 @@ it.layer(TestLayer)('encrypted settings repository', (it) => {
                 blueskyAppPassword: '',
                 blueskyHandle: '',
                 feedCount: 50,
+                libraryName: DEFAULT_LIBRARY_NAME,
                 mastodonAccessToken: '',
                 mastodonInstance: '',
                 twitterAccessSecret: '',

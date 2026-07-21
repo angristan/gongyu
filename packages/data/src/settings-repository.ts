@@ -1,4 +1,4 @@
-import { Settings } from '@gongyu/domain/settings';
+import { DEFAULT_LIBRARY_NAME, Settings } from '@gongyu/domain/settings';
 import type {
     Encryption,
     EncryptionError,
@@ -13,6 +13,10 @@ class SettingRow extends Schema.Class<SettingRow>('SettingRow')({
 
 export interface SettingsRepositoryShape {
     readonly get: Effect.Effect<Settings, D1StoreFailure | EncryptionError>;
+    readonly getLibraryName: Effect.Effect<
+        string,
+        D1StoreFailure | EncryptionError
+    >;
     readonly save: (
         settings: Settings,
         updatedAt: number,
@@ -45,6 +49,7 @@ export function makeSettingsRepository(
                 : yield* encryption.decrypt(value);
         });
         const feedCountValue = yield* read('feed_count');
+        const libraryNameValue = yield* read('library_name');
         const feedCount = Number.parseInt(feedCountValue, 10);
 
         return Settings.make({
@@ -52,6 +57,10 @@ export function makeSettingsRepository(
             blueskyHandle: yield* read('bluesky_handle'),
             feedCount:
                 Number.isFinite(feedCount) && feedCount > 0 ? feedCount : 50,
+            libraryName:
+                libraryNameValue === ''
+                    ? DEFAULT_LIBRARY_NAME
+                    : libraryNameValue,
             mastodonAccessToken: yield* read('mastodon_access_token'),
             mastodonInstance: yield* read('mastodon_instance'),
             twitterAccessSecret: yield* read('twitter_access_secret'),
@@ -60,6 +69,20 @@ export function makeSettingsRepository(
             twitterApiSecret: yield* read('twitter_api_secret'),
         });
     }).pipe(Effect.withSpan('SettingsRepository.get'));
+
+    const getLibraryName = Effect.gen(function* () {
+        const setting = yield* d1Store.first(
+            SettingRow,
+            `
+                SELECT key, encrypted_value AS "encryptedValue"
+                FROM settings
+                WHERE key = 'library_name'
+            `,
+        );
+        return setting?.encryptedValue === null || setting === null
+            ? DEFAULT_LIBRARY_NAME
+            : yield* encryption.decrypt(setting.encryptedValue);
+    }).pipe(Effect.withSpan('SettingsRepository.getLibraryName'));
 
     const save = Effect.fn('SettingsRepository.save')(function* (
         settings: Settings,
@@ -87,6 +110,7 @@ export function makeSettingsRepository(
                 value: settings.blueskyAppPassword,
             },
             { key: 'feed_count', value: String(settings.feedCount) },
+            { key: 'library_name', value: settings.libraryName },
         ];
         const encryptedValues = yield* Effect.all(
             values.map((entry) =>
@@ -115,5 +139,5 @@ export function makeSettingsRepository(
         );
     });
 
-    return { get, save };
+    return { get, getLibraryName, save };
 }

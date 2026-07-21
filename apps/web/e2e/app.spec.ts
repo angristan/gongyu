@@ -557,6 +557,7 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
     await expect(page.getByLabel('Full backup file')).toBeVisible();
 
     await page.goto('/admin/settings');
+    await page.getByLabel('Library name').fill('Browser test library');
     await page.getByLabel('Twitter API key').fill('browser-test-key');
     await page.getByLabel('Feed item count').fill('250');
     await page.getByRole('button', { name: 'Save settings' }).click();
@@ -565,6 +566,20 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
         'browser-test-key',
     );
     await expect(page.getByLabel('Feed item count')).toHaveValue('250');
+    await expect(page.getByLabel('Library name')).toHaveValue(
+        'Browser test library',
+    );
+    await page.goto('/');
+    await expect(
+        page.getByRole('heading', {
+            exact: true,
+            name: 'Browser test library',
+        }),
+    ).toBeVisible();
+    await page.goto('/admin/settings');
+    await page.getByLabel('Library name').fill('Gongyu');
+    await page.getByRole('button', { name: 'Save settings' }).click();
+    await expect(page).toHaveURL(/\/admin\/settings\?saved=1$/u);
 
     const noJavaScriptContext = await browser.newContext({
         javaScriptEnabled: false,

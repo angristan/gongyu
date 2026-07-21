@@ -11,6 +11,7 @@ const settings = Settings.make({
     blueskyAppPassword: 'app-password',
     blueskyHandle: 'person.test',
     feedCount: 50,
+    libraryName: 'Gongyu',
     mastodonAccessToken: 'mastodon-token',
     mastodonInstance: 'https://social.example/',
     twitterAccessSecret: 'access-secret',

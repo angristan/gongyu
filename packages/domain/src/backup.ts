@@ -39,6 +39,7 @@ export const BackupSettingKey = Schema.Union([
     Schema.Literal('bluesky_app_password'),
     Schema.Literal('bluesky_handle'),
     Schema.Literal('feed_count'),
+    Schema.Literal('library_name'),
     Schema.Literal('mastodon_access_token'),
     Schema.Literal('mastodon_instance'),
     Schema.Literal('twitter_access_secret'),

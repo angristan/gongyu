@@ -106,6 +106,7 @@ const TestLayer = Layer.mergeAll(
                 blueskyAppPassword: '',
                 blueskyHandle: '',
                 feedCount: 50,
+                libraryName: 'Gongyu',
                 mastodonAccessToken: 'token',
                 mastodonInstance: 'https://social.example',
                 twitterAccessSecret: '',
@@ -114,6 +115,7 @@ const TestLayer = Layer.mergeAll(
                 twitterApiSecret: '',
             }),
         ),
+        getLibraryName: Effect.succeed('Gongyu'),
         save: () => Effect.void,
     }),
     Layer.succeed(SocialClients, {

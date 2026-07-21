@@ -1,5 +1,6 @@
 import '@mantine/core/styles.css';
 import { DataRunRepository } from '@gongyu/data/data-run-repository';
+import { SettingsRepository } from '@gongyu/data/settings-repository';
 import { PageShell } from '@gongyu/ui/page-shell';
 import {
     ColorSchemeScript,
@@ -26,10 +27,14 @@ import './app.css';
 
 export async function loader({ context, request }: Route.LoaderArgs) {
     const { authentication, effect } = context.get(cloudflareRequestContext);
-    const appState = await effect.runPromise(
+    const { appState, libraryName } = await effect.runPromise(
         Effect.gen(function* () {
-            const repository = yield* DataRunRepository;
-            return yield* repository.getAppState;
+            const dataRuns = yield* DataRunRepository;
+            const settings = yield* SettingsRepository;
+            return {
+                appState: yield* dataRuns.getAppState,
+                libraryName: yield* settings.getLibraryName,
+            };
         }),
     );
     return {
@@ -38,6 +43,7 @@ export async function loader({ context, request }: Route.LoaderArgs) {
         csrfToken: authentication.authenticated
             ? authentication.csrfToken
             : null,
+        libraryName,
         themeMode: await readThemeMode(request),
     };
 }
@@ -91,6 +97,7 @@ export default function App() {
         <AppShell
             authenticated={rootData?.authenticated ?? false}
             csrfToken={rootData?.csrfToken ?? null}
+            libraryName={rootData?.libraryName ?? 'Gongyu'}
             themeMode={rootData?.themeMode ?? 'light'}
         >
             <Outlet />
