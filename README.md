@@ -63,7 +63,7 @@ bun run dev
 
 Open <http://localhost:5173/setup> and use the local bootstrap token configured in `apps/web/wrangler.jsonc`.
 
-Wrangler stores local D1 and R2 state under `.wrangler/`. The development configuration uses local bindings; it does not access the checked-in staging resources.
+Wrangler stores local D1 and R2 state under `.wrangler/`. The development configuration uses local bindings and does not access production resources.
 
 ## Validation
 
@@ -87,14 +87,13 @@ Gongyu is deployed as two Cloudflare Workers backed by D1, R2, Queues, and Workf
 
 See [docs/self-hosting.md](docs/self-hosting.md) for resource provisioning, secrets, deployment, and updates.
 
-The repository has isolated `staging` and `production` environments:
+The checked-in configuration deploys the production environment:
 
 ```bash
-bun run deploy:staging
 bun run deploy:production
 ```
 
-Each command applies that environment's D1 migrations, deploys the jobs Worker, then builds and deploys the web Worker. Review the Wrangler resource names, IDs, hostnames, routes, and secrets before using either environment for your own installation.
+This command applies production D1 migrations, deploys the jobs Worker, then builds and deploys the web Worker. Review the Wrangler resource names, IDs, hostnames, routes, and secrets before using it for your own installation.
 
 ## Public routes
 

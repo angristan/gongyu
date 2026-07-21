@@ -9,7 +9,7 @@ Gongyu runs as two Cloudflare Workers. It is not a container or VPS application.
 - Wrangler authentication: `bunx wrangler login`
 - A final HTTPS hostname for the web Worker before passkey enrollment
 
-The checked-in Wrangler files contain a `staging` environment for the maintainers' installation. Treat it as a template: replace all Worker, D1, R2, Queue, Workflow, hostname, and account-specific values before deploying a separate installation.
+The checked-in Wrangler files contain the maintainers' production environment. Treat it as a template: replace all Worker, D1, R2, Queue, Workflow, hostname, and account-specific values before deploying a separate installation.
 
 ## 1. Install and provision resources
 
@@ -59,12 +59,12 @@ bun -e 'console.log(Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toSt
 Store the first output as `ENCRYPTION_KEYS` on **both** Workers and the second as `SETUP_TOKEN` on the web Worker. Wrangler prompts for each value without placing it in the command line:
 
 ```bash
-bunx wrangler secret put ENCRYPTION_KEYS --env staging --config apps/jobs/wrangler.jsonc
-bunx wrangler secret put ENCRYPTION_KEYS --env staging --config apps/web/wrangler.jsonc
-bunx wrangler secret put SETUP_TOKEN --env staging --config apps/web/wrangler.jsonc
+bunx wrangler secret put ENCRYPTION_KEYS --env production --config apps/jobs/wrangler.jsonc
+bunx wrangler secret put ENCRYPTION_KEYS --env production --config apps/web/wrangler.jsonc
+bunx wrangler secret put SETUP_TOKEN --env production --config apps/web/wrangler.jsonc
 ```
 
-Replace `staging` with your configured environment. Keep the keyring outside the repository and back it up securely. Losing it makes encrypted social credentials and restored settings unreadable.
+Replace `production` if you created a differently named environment. Keep the keyring outside the repository and back it up securely. Losing it makes encrypted social credentials and restored settings unreadable.
 
 ## 4. Validate and deploy
 
@@ -72,18 +72,10 @@ Validate, apply D1 migrations, and deploy:
 
 ```bash
 bun run check
-bun run deploy:staging
-```
-
-The root deployment script applies staging D1 migrations first, deploys the jobs Worker, then builds and deploys the web Worker.
-
-For the checked-in production environment, run:
-
-```bash
 bun run deploy:production
 ```
 
-This applies production D1 migrations first, deploys the jobs Worker, then builds and deploys the web Worker. For another environment, add equivalent environment bindings and migration-first scripts.
+The root deployment script applies production D1 migrations first, deploys the jobs Worker, then builds and deploys the web Worker. For another environment, add equivalent environment bindings and migration-first scripts.
 
 ## 5. Enroll the administrator
 
@@ -99,7 +91,7 @@ Configure social providers and the public feed from **Admin → Settings**. Prov
 git pull --ff-only
 bun install --frozen-lockfile
 bun run check
-bun run deploy:staging
+bun run deploy:production
 ```
 
 Never edit an applied migration. Add a new numbered SQL migration under `migrations/` and apply it before code that depends on it.
@@ -115,8 +107,8 @@ https://your-host/health
 Tail each Worker independently:
 
 ```bash
-bunx wrangler tail --env staging --config apps/web/wrangler.jsonc
-bunx wrangler tail --env staging --config apps/jobs/wrangler.jsonc
+bunx wrangler tail --env production --config apps/web/wrangler.jsonc
+bunx wrangler tail --env production --config apps/jobs/wrangler.jsonc
 ```
 
 The jobs Worker consumes queue messages, runs Workflow classes, dispatches the D1 outbox every minute, and cleans expired sessions, jobs, audit events, and generated artifacts. Inspect Cloudflare Queues for dead-letter messages when background work repeatedly fails.

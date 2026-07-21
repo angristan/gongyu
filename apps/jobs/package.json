@@ -12,10 +12,8 @@
     "cf-typegen": "wrangler types worker-configuration.d.ts",
     "check": "bun run typecheck && wrangler deploy --dry-run --env=\"\"",
     "deploy:production": "wrangler deploy --env production",
-    "deploy:staging": "wrangler deploy --env staging",
     "migrate:legacy": "bun scripts/migrate-legacy.ts",
     "migrate:production": "wrangler d1 migrations apply DB --remote --env production",
-    "migrate:staging": "wrangler d1 migrations apply DB --remote --env staging",
     "typecheck": "bun run cf-typegen && tsc -p tsconfig.json"
   },
   "dependencies": {

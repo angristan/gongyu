@@ -42,36 +42,6 @@
     "SETUP_TOKEN": "local-development-bootstrap-token"
   },
   "env": {
-    "staging": {
-      "name": "gongyu-cloudflare-staging",
-      "d1_databases": [
-        {
-          "binding": "DB",
-          "database_name": "gongyu-staging",
-          "database_id": "7f6527cb-4be7-48cd-bdad-63f41dac6a5c",
-          "migrations_dir": "../../migrations"
-        }
-      ],
-      "r2_buckets": [
-        {
-          "binding": "UPLOADS",
-          "bucket_name": "gongyu-phase0-staging-uploads"
-        }
-      ],
-      "workflows": [
-        {
-          "binding": "DATA_WORKFLOW",
-          "class_name": "DataWorkflow",
-          "name": "gongyu-staging-data-workflow",
-          "script_name": "gongyu-cloudflare-staging-jobs"
-        }
-      ],
-      "vars": {
-        "APP_ENV": "staging",
-        "RP_ID": "gongyu-cloudflare-staging.angristan.workers.dev",
-        "RP_ORIGIN": "https://gongyu-cloudflare-staging.angristan.workers.dev"
-      }
-    },
     "production": {
       "name": "gongyu-cloudflare-production",
       "routes": [

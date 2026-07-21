@@ -6,15 +6,12 @@ import { Schema } from 'effect';
 const execute = promisify(execFile);
 
 function d1Arguments(command: string): string[] {
-    const target =
-        process.env.STAGING_BASE_URL === undefined
-            ? ['gongyu-local', '--local']
-            : ['DB', '--env', 'staging', '--remote'];
     return [
         'wrangler',
         'd1',
         'execute',
-        ...target,
+        'gongyu-local',
+        '--local',
         '--json',
         `--command=${command}`,
     ];
@@ -126,11 +123,7 @@ test('renders the SSR shell and persists hydrated theme changes', async ({
     expect(health.databaseReady).toBe(true);
     expect(health.requestId).toBe(healthResponse.headers()['x-request-id']);
 
-    await page.goto(
-        process.env.STAGING_BASE_URL === undefined
-            ? '/'
-            : `/?staging-smoke=${Date.now()}`,
-    );
+    await page.goto('/');
     await expect(
         page.getByRole('heading', {
             name: 'Bookmarks',
@@ -174,10 +167,6 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
     context,
     page,
 }) => {
-    test.skip(
-        process.env.STAGING_BASE_URL !== undefined,
-        'Shared staging passkeys must not be modified by automation.',
-    );
     const client = await context.newCDPSession(page);
     await client.send('WebAuthn.enable');
     const { authenticatorId } = await client.send(
@@ -789,28 +778,12 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
 test('serves public list, search, detail, and feed without JavaScript', async ({
     browser,
 }) => {
-    const staging = process.env.STAGING_BASE_URL !== undefined;
-    let expectedTitle = 'Captured page';
+    const expectedTitle = 'Captured page';
     const context = await browser.newContext({
-        baseURL:
-            process.env.STAGING_BASE_URL ??
-            `http://localhost:${process.env.PLAYWRIGHT_PORT ?? '5173'}`,
+        baseURL: `http://localhost:${process.env.PLAYWRIGHT_PORT ?? '5173'}`,
         javaScriptEnabled: false,
     });
     const page = await context.newPage();
-    if (staging) {
-        await page.goto('/');
-        const importedTitle = await page
-            .locator(
-                'ol[aria-label="Bookmarks in list view"] a[target="_blank"]',
-            )
-            .first()
-            .textContent();
-        if (importedTitle === null || importedTitle.trim() === '') {
-            throw new Error('Staging has no public bookmarks to exercise.');
-        }
-        expectedTitle = importedTitle.trim();
-    }
     const query = expectedTitle.split(/\s+/u)[0] ?? expectedTitle;
     await page.goto(`/search?q=${encodeURIComponent(query)}`);
     await expect(page.getByText(expectedTitle)).toBeVisible();
