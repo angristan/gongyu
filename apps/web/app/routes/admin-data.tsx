@@ -18,10 +18,12 @@ import {
     DownloadSimpleIcon,
 } from '@phosphor-icons/react';
 import { Effect } from 'effect';
+import { useEffect } from 'react';
 import {
     Form,
     redirect,
     useNavigation,
+    useRevalidator,
     useRouteLoaderData,
 } from 'react-router';
 import {
@@ -50,6 +52,7 @@ import {
     LayerCard,
     LinkButton,
 } from '../components/ui';
+import { matchesFormSubmission } from '../form-navigation';
 import { cloudflareRequestContext } from '../platform-context';
 import type { loader as rootLoader } from '../root';
 import type { Route } from './+types/admin-data';
@@ -492,7 +495,35 @@ export default function AdminData({ loaderData }: Route.ComponentProps) {
     const rootData = useRouteLoaderData<typeof rootLoader>('root');
     const csrfToken = rootData?.csrfToken ?? '';
     const navigation = useNavigation();
-    const isSubmitting = navigation.state !== 'idle';
+    const isSubmitting = matchesFormSubmission(navigation, {
+        action: '/admin/data',
+        method: 'POST',
+    });
+    const revalidator = useRevalidator();
+    const hasActiveOperations = loaderData.operations.some(({ run }) =>
+        ['pending', 'running'].includes(run.state),
+    );
+    useEffect(() => {
+        if (!hasActiveOperations) {
+            return;
+        }
+        const refresh = () => {
+            if (
+                document.visibilityState === 'visible' &&
+                revalidator.state === 'idle'
+            ) {
+                revalidator.revalidate();
+            }
+        };
+        const interval = window.setInterval(refresh, 2_000);
+        document.addEventListener('visibilitychange', refresh);
+        window.addEventListener('focus', refresh);
+        return () => {
+            window.clearInterval(interval);
+            document.removeEventListener('visibilitychange', refresh);
+            window.removeEventListener('focus', refresh);
+        };
+    }, [hasActiveOperations, revalidator]);
     return (
         <AdminPage
             description="Import, export, back up, or restore your data."

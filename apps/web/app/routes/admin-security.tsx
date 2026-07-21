@@ -5,7 +5,7 @@ import {
 import { FingerprintSimpleIcon, KeyIcon } from '@phosphor-icons/react';
 import { startRegistration } from '@simplewebauthn/browser';
 import { Schema } from 'effect';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { redirect, useRouteLoaderData } from 'react-router';
 import { AdminPage } from '../components/admin-page';
 import {
@@ -68,8 +68,13 @@ export default function AdminSecurity() {
     const csrfToken = rootData?.csrfToken ?? '';
     const [message, setMessage] = useState<string | null>(null);
     const [processing, setProcessing] = useState(false);
+    const replacementInFlight = useRef(false);
 
     async function replacePasskey() {
+        if (replacementInFlight.current) {
+            return;
+        }
+        replacementInFlight.current = true;
         setProcessing(true);
         setMessage('Waiting for the replacement passkey…');
         try {
@@ -95,13 +100,13 @@ export default function AdminSecurity() {
             );
             window.location.assign('/admin/security');
         } catch (error) {
+            replacementInFlight.current = false;
+            setProcessing(false);
             setMessage(
                 error instanceof Error
                     ? error.message
                     : 'Passkey replacement failed.',
             );
-        } finally {
-            setProcessing(false);
         }
     }
 

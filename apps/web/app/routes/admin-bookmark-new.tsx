@@ -34,6 +34,7 @@ import {
     LayerCard,
 } from '../components/ui';
 import { failure, success } from '../effect/result';
+import { matchesFormSubmission } from '../form-navigation';
 import { cloudflareRequestContext } from '../platform-context';
 import type { loader as rootLoader } from '../root';
 import type { Route } from './+types/admin-bookmark-new';
@@ -131,7 +132,10 @@ export default function AdminBookmarkNew({
 }: Route.ComponentProps) {
     const rootData = useRouteLoaderData<typeof rootLoader>('root');
     const csrfToken = rootData?.csrfToken ?? '';
-    const isSubmitting = useNavigation().state !== 'idle';
+    const isSubmitting = matchesFormSubmission(useNavigation(), {
+        action: '/admin/bookmarks/new',
+        method: 'POST',
+    });
     const values = actionData?.input ?? {
         description: '',
         title: '',
@@ -177,18 +181,18 @@ export default function AdminBookmarkNew({
                             <MetadataPreview
                                 csrfToken={csrfToken}
                                 onCandidates={(candidates) => {
-                                    if (
-                                        title === '' &&
+                                    setTitle((current) =>
+                                        current === '' &&
                                         candidates.title !== null
-                                    ) {
-                                        setTitle(candidates.title);
-                                    }
-                                    if (
-                                        description === '' &&
+                                            ? candidates.title
+                                            : current,
+                                    );
+                                    setDescription((current) =>
+                                        current === '' &&
                                         candidates.description !== null
-                                    ) {
-                                        setDescription(candidates.description);
-                                    }
+                                            ? candidates.description
+                                            : current,
+                                    );
                                 }}
                                 url={url}
                             />

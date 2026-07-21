@@ -1,6 +1,6 @@
 import { SparkleIcon } from '@phosphor-icons/react';
 import { Schema } from 'effect';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button, HydratedOnly } from '../components/ui';
 
 class MetadataPreviewResponse extends Schema.Class<MetadataPreviewResponse>(
@@ -28,18 +28,48 @@ export function MetadataPreview(props: {
 }) {
     const [message, setMessage] = useState('');
     const [processing, setProcessing] = useState(false);
+    const activeRequest = useRef<AbortController | null>(null);
+    const requestSequence = useRef(0);
+    const latestUrl = useRef(props.url);
+    const latestOnCandidates = useRef(props.onCandidates);
+    latestUrl.current = props.url;
+    latestOnCandidates.current = props.onCandidates;
+
+    useEffect(() => {
+        latestUrl.current = props.url;
+        requestSequence.current += 1;
+        activeRequest.current?.abort();
+        activeRequest.current = null;
+        setProcessing(false);
+        setMessage('');
+    }, [props.url]);
+
+    useEffect(
+        () => () => {
+            requestSequence.current += 1;
+            activeRequest.current?.abort();
+        },
+        [],
+    );
 
     async function preview() {
+        activeRequest.current?.abort();
+        const controller = new AbortController();
+        const requestId = requestSequence.current + 1;
+        const requestedUrl = latestUrl.current;
+        requestSequence.current = requestId;
+        activeRequest.current = controller;
         setProcessing(true);
         setMessage('Fetching title and description…');
         try {
             const response = await fetch('/api/metadata/preview', {
-                body: JSON.stringify({ url: props.url }),
+                body: JSON.stringify({ url: requestedUrl }),
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRF-Token': props.csrfToken,
                 },
                 method: 'POST',
+                signal: controller.signal,
             });
             const unknownPayload: unknown = await response.json();
             if (!response.ok) {
@@ -52,16 +82,31 @@ export function MetadataPreview(props: {
             const candidates = await Schema.decodeUnknownPromise(
                 MetadataPreviewResponse,
             )(unknownPayload);
-            props.onCandidates(candidates);
+            if (
+                requestId !== requestSequence.current ||
+                requestedUrl !== latestUrl.current
+            ) {
+                return;
+            }
+            latestOnCandidates.current(candidates);
             setMessage('Metadata candidates are ready.');
         } catch (error) {
+            if (
+                controller.signal.aborted ||
+                requestId !== requestSequence.current
+            ) {
+                return;
+            }
             setMessage(
                 error instanceof Error
                     ? error.message
                     : 'Metadata could not be fetched. You can still save manually.',
             );
         } finally {
-            setProcessing(false);
+            if (requestId === requestSequence.current) {
+                activeRequest.current = null;
+                setProcessing(false);
+            }
         }
     }
 

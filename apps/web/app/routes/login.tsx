@@ -5,7 +5,7 @@ import {
 import { FingerprintSimpleIcon } from '@phosphor-icons/react';
 import { startAuthentication } from '@simplewebauthn/browser';
 import { Schema } from 'effect';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { redirect } from 'react-router';
 import { safeReturnTo } from '../auth/bootstrap.server';
 import { Banner, Button, LayerCard } from '../components/ui';
@@ -51,8 +51,13 @@ async function postJson(path: string, body: unknown): Promise<unknown> {
 export default function Login({ loaderData }: Route.ComponentProps) {
     const [message, setMessage] = useState<string | null>(null);
     const [processing, setProcessing] = useState(false);
+    const authenticationInFlight = useRef(false);
 
     async function authenticate() {
+        if (authenticationInFlight.current) {
+            return;
+        }
+        authenticationInFlight.current = true;
         setProcessing(true);
         setMessage('Waiting for your passkey…');
         try {
@@ -69,13 +74,13 @@ export default function Login({ loaderData }: Route.ComponentProps) {
             await postJson('/api/passkey/authentication/verify', verification);
             window.location.assign(loaderData.returnTo);
         } catch (error) {
+            authenticationInFlight.current = false;
+            setProcessing(false);
             setMessage(
                 error instanceof Error
                     ? error.message
                     : 'Passkey authentication failed.',
             );
-        } finally {
-            setProcessing(false);
         }
     }
 

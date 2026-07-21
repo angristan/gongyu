@@ -29,6 +29,7 @@ import {
     HydratedOnly,
     LayerCard,
 } from '../components/ui';
+import { submittedFormValue } from '../form-navigation';
 import { cloudflareRequestContext } from '../platform-context';
 import type { loader as rootLoader } from '../root';
 import type { Route } from './+types/admin-jobs';
@@ -137,12 +138,14 @@ export async function action({ context, request }: Route.ActionArgs) {
 
 function TwitterReviewChoices({
     csrfToken,
+    disabled,
     jobId,
-    processing,
+    pendingIntent,
 }: {
     readonly csrfToken: string;
+    readonly disabled: boolean;
     readonly jobId: string;
-    readonly processing: boolean;
+    readonly pendingIntent: string | null;
 }) {
     return (
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
@@ -152,8 +155,9 @@ function TwitterReviewChoices({
                 <input name="intent" type="hidden" value="mark_delivered" />
                 <Button
                     className="w-full"
+                    disabled={disabled}
                     icon={CheckCircleIcon}
-                    loading={processing}
+                    loading={pendingIntent === 'mark_delivered'}
                     type="submit"
                     variant="secondary"
                 >
@@ -166,8 +170,9 @@ function TwitterReviewChoices({
                 <input name="intent" type="hidden" value="retry" />
                 <Button
                     className="w-full"
+                    disabled={disabled}
                     icon={ArrowClockwiseIcon}
-                    loading={processing}
+                    loading={pendingIntent === 'retry'}
                     type="submit"
                     variant="destructive"
                 >
@@ -180,16 +185,21 @@ function TwitterReviewChoices({
 
 function RecoveryActions({
     csrfToken,
+    disabled,
     job,
-    processing,
+    pendingIntent,
+    pendingJobId,
 }: {
     readonly csrfToken: string;
+    readonly disabled: boolean;
     readonly job: {
         readonly id: string;
         readonly state: string;
     };
-    readonly processing: boolean;
+    readonly pendingIntent: string | null;
+    readonly pendingJobId: string | null;
 }) {
+    const processingIntent = pendingJobId === job.id ? pendingIntent : null;
     if (job.state === 'needs_review') {
         return (
             <>
@@ -198,6 +208,7 @@ function RecoveryActions({
                         <Dialog.Trigger
                             render={
                                 <Button
+                                    disabled={disabled}
                                     icon={WarningIcon}
                                     size="sm"
                                     variant="secondary"
@@ -219,8 +230,9 @@ function RecoveryActions({
                             </div>
                             <TwitterReviewChoices
                                 csrfToken={csrfToken}
+                                disabled={disabled}
                                 jobId={job.id}
-                                processing={processing}
+                                pendingIntent={processingIntent}
                             />
                         </Dialog>
                     </Dialog.Root>
@@ -234,8 +246,9 @@ function RecoveryActions({
                         </p>
                         <TwitterReviewChoices
                             csrfToken={csrfToken}
+                            disabled={false}
                             jobId={job.id}
-                            processing={false}
+                            pendingIntent={null}
                         />
                     </div>
                 </noscript>
@@ -248,8 +261,9 @@ function RecoveryActions({
             <input name="job_id" type="hidden" value={job.id} />
             <input name="intent" type="hidden" value="retry" />
             <Button
+                disabled={disabled}
                 icon={ArrowClockwiseIcon}
-                loading={processing}
+                loading={processingIntent === 'retry'}
                 size="sm"
                 type="submit"
                 variant="secondary"
@@ -266,7 +280,17 @@ export default function AdminJobs({
 }: Route.ComponentProps) {
     const rootData = useRouteLoaderData<typeof rootLoader>('root');
     const csrfToken = rootData?.csrfToken ?? '';
-    const processing = useNavigation().state !== 'idle';
+    const navigation = useNavigation();
+    const pendingJobId = submittedFormValue(
+        navigation,
+        { action: '/admin/jobs', method: 'POST' },
+        'job_id',
+    );
+    const pendingIntent = submittedFormValue(
+        navigation,
+        { action: '/admin/jobs', method: 'POST' },
+        'intent',
+    );
     return (
         <AdminPage
             description="Review metadata, thumbnail, and social sharing jobs."
@@ -392,8 +416,12 @@ export default function AdminJobs({
                                         ) ? (
                                             <RecoveryActions
                                                 csrfToken={csrfToken}
+                                                disabled={
+                                                    pendingJobId === job.id
+                                                }
                                                 job={job}
-                                                processing={processing}
+                                                pendingIntent={pendingIntent}
+                                                pendingJobId={pendingJobId}
                                             />
                                         ) : (
                                             <span className="text-xs text-gongyu-subtle">
@@ -430,8 +458,10 @@ export default function AdminJobs({
                                     ) ? (
                                         <RecoveryActions
                                             csrfToken={csrfToken}
+                                            disabled={pendingJobId === job.id}
                                             job={job}
-                                            processing={processing}
+                                            pendingIntent={pendingIntent}
+                                            pendingJobId={pendingJobId}
                                         />
                                     ) : null}
                                 </li>

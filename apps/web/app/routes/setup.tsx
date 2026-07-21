@@ -6,7 +6,7 @@ import { hasPasskey } from '@gongyu/auth/service';
 import { FingerprintSimpleIcon, KeyIcon } from '@phosphor-icons/react';
 import { startRegistration } from '@simplewebauthn/browser';
 import { Schema } from 'effect';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { redirect } from 'react-router';
 import { Banner, Button, Input, LayerCard } from '../components/ui';
 import { cloudflareRequestContext } from '../platform-context';
@@ -54,8 +54,13 @@ export default function Setup() {
     const [bootstrapToken, setBootstrapToken] = useState('');
     const [message, setMessage] = useState<string | null>(null);
     const [processing, setProcessing] = useState(false);
+    const registrationInFlight = useRef(false);
 
     async function register() {
+        if (registrationInFlight.current) {
+            return;
+        }
+        registrationInFlight.current = true;
         setProcessing(true);
         setMessage('Waiting for passkey registration…');
         try {
@@ -78,13 +83,13 @@ export default function Setup() {
             );
             window.location.assign('/admin/bookmarks');
         } catch (error) {
+            registrationInFlight.current = false;
+            setProcessing(false);
             setMessage(
                 error instanceof Error
                     ? error.message
                     : 'Passkey registration failed.',
             );
-        } finally {
-            setProcessing(false);
         }
     }
 
