@@ -6,6 +6,7 @@ import {
     decodeBookmarkInput,
 } from '@gongyu/domain/bookmarks';
 import { configuredProviders } from '@gongyu/domain/social';
+import { cleanMetadataTitle } from '@gongyu/integrations/metadata-client';
 import {
     BookmarkSimpleIcon,
     CheckCircleIcon,
@@ -83,7 +84,7 @@ export async function loader({ context, request }: Route.LoaderArgs) {
         prefill: {
             description: location.searchParams.get('description') ?? '',
             source: location.searchParams.get('source') ?? '',
-            title: location.searchParams.get('title') ?? '',
+            title: cleanMetadataTitle(location.searchParams.get('title') ?? ''),
             url,
         },
         providers,
