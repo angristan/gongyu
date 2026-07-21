@@ -845,22 +845,11 @@ test('serves public list, search, detail, and feed without JavaScript', async ({
     expect(
         await page.locator('meta[property="og:url"]').getAttribute('content'),
     ).toBe(canonical);
-    const openGraphImageElement = page.locator('meta[property="og:image"]');
-    const openGraphImage =
-        (await openGraphImageElement.count()) === 0
-            ? null
-            : await openGraphImageElement.getAttribute('content');
-    const twitterCard = await page
-        .locator('meta[name="twitter:card"]')
-        .getAttribute('content');
-    if (openGraphImage === null) {
-        expect(twitterCard).toBe('summary');
-    } else {
-        expect(openGraphImage).toMatch(
-            /\/thumbnails\/[A-Za-z0-9]{8}\/[a-f0-9]{64}$/u,
-        );
-        expect(twitterCard).toBe('summary_large_image');
-    }
+    await expect(page.locator('meta[property="og:image"]')).toHaveCount(0);
+    await expect(page.locator('meta[name="twitter:image"]')).toHaveCount(0);
+    expect(
+        await page.locator('meta[name="twitter:card"]').getAttribute('content'),
+    ).toBe('summary');
     await page.setViewportSize({ height: 800, width: 320 });
     expect(
         await page.evaluate(

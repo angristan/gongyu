@@ -35,10 +35,6 @@ export function meta({ loaderData }: Route.MetaArgs): Route.MetaDescriptors {
     }
     const description =
         loaderData.bookmark.description ?? loaderData.bookmark.url;
-    const imageUrl =
-        loaderData.bookmark.thumbnailSha256 === null
-            ? null
-            : `${new URL(loaderData.canonicalUrl).origin}/thumbnails/${loaderData.bookmark.shortUrl}/${loaderData.bookmark.thumbnailSha256}`;
     return [
         { title: `${loaderData.bookmark.title} · Gongyu` },
         { name: 'description', content: description },
@@ -46,18 +42,9 @@ export function meta({ loaderData }: Route.MetaArgs): Route.MetaDescriptors {
         { property: 'og:description', content: description },
         { property: 'og:url', content: loaderData.canonicalUrl },
         { property: 'og:type', content: 'article' },
-        ...(imageUrl === null
-            ? []
-            : [{ property: 'og:image', content: imageUrl }]),
-        {
-            name: 'twitter:card',
-            content: imageUrl === null ? 'summary' : 'summary_large_image',
-        },
+        { name: 'twitter:card', content: 'summary' },
         { name: 'twitter:title', content: loaderData.bookmark.title },
         { name: 'twitter:description', content: description },
-        ...(imageUrl === null
-            ? []
-            : [{ name: 'twitter:image', content: imageUrl }]),
         { tagName: 'link', rel: 'canonical', href: loaderData.canonicalUrl },
     ];
 }
@@ -115,7 +102,7 @@ export default function BookmarkDetail({ loaderData }: Route.ComponentProps) {
             width="wide"
         >
             <LayerCard className="overflow-hidden">
-                <article className="grid lg:grid-cols-[minmax(0,1.35fr)_minmax(18rem,0.65fr)]">
+                <article className="grid lg:grid-cols-[minmax(18rem,32rem)_minmax(18rem,1fr)]">
                     <div className="min-h-64 bg-gongyu-tint lg:min-h-[30rem]">
                         {bookmark.thumbnailSha256 === null ? (
                             <div className="flex size-full min-h-64 items-center justify-center lg:min-h-[30rem]">

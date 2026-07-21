@@ -36,6 +36,7 @@ import {
 import {
     makeThumbnailClient,
     ThumbnailClient,
+    type ThumbnailImagesBinding,
 } from '@gongyu/integrations/thumbnail-client';
 import { Context, Effect, Logger, ManagedRuntime } from 'effect';
 
@@ -75,6 +76,7 @@ const runtime = ManagedRuntime.make(Logger.layer([Logger.consoleStructured]));
 export function makeJobsEffectRunner(options: {
     readonly database: D1Database;
     readonly encryptionKeyring: string;
+    readonly images: ThumbnailImagesBinding;
     readonly invocationId: string;
     readonly objectStorage: R2Bucket;
     readonly trigger: JobsInvocationInfoShape['trigger'];
@@ -99,7 +101,9 @@ export function makeJobsEffectRunner(options: {
     );
     const socialClients = SocialClients.of(makeSocialClients());
     const socialRepository = SocialRepository.of(makeSocialRepository(d1Store));
-    const thumbnailClient = ThumbnailClient.of(makeThumbnailClient());
+    const thumbnailClient = ThumbnailClient.of(
+        makeThumbnailClient(options.images),
+    );
     const workRepository = WorkRepository.of(makeWorkRepository(d1Store));
 
     const runPromise = <A, E>(

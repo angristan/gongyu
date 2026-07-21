@@ -16,6 +16,7 @@ function runner(env: Env, trigger: 'queue' | 'scheduled' | 'workflow') {
     return makeJobsEffectRunner({
         database: env.DB,
         encryptionKeyring: env.ENCRYPTION_KEYS,
+        images: env.IMAGES,
         invocationId: crypto.randomUUID(),
         objectStorage: env.UPLOADS,
         trigger,

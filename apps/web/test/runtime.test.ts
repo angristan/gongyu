@@ -1,6 +1,7 @@
 import { env } from 'cloudflare:workers';
 import { assert, it } from '@effect/vitest';
 import { D1Store } from '@gongyu/data/d1-store';
+import type { ThumbnailImagesBinding } from '@gongyu/integrations/thumbnail-client';
 import { JobsInvocationInfo, makeJobsEffectRunner } from '@gongyu/jobs/runtime';
 import { Effect, Schema } from 'effect';
 import { makeRequestEffectRunner, RequestInfo } from '../app/effect/runtime';
@@ -8,6 +9,12 @@ import { makeRequestEffectRunner, RequestInfo } from '../app/effect/runtime';
 class SessionProbeRow extends Schema.Class<SessionProbeRow>('SessionProbeRow')({
     ok: Schema.Number,
 }) {}
+
+const unusedImagesBinding: ThumbnailImagesBinding = {
+    input() {
+        throw new Error('Thumbnail transformation is not used by this test.');
+    },
+};
 
 function sessionProbe(constraint: D1SessionConstraint) {
     const runner = makeRequestEffectRunner({
@@ -66,6 +73,7 @@ it.effect(
                 database: env.DB,
                 encryptionKeyring:
                     '{"currentVersion":1,"keys":{"1":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="}}',
+                images: unusedImagesBinding,
                 invocationId: 'workflow-test',
                 objectStorage: env.UPLOADS,
                 trigger: 'workflow',

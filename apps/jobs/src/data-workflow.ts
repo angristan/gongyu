@@ -29,8 +29,16 @@ import {
 } from '@gongyu/integrations/encryption';
 import { R2Store } from '@gongyu/integrations/r2-store';
 import { parseShaarliDatastore } from '@gongyu/integrations/shaarli-datastore';
+import type { ThumbnailImagesBinding } from '@gongyu/integrations/thumbnail-client';
 import { Effect, Schema } from 'effect';
 import { type JobsServices, makeJobsEffectRunner } from './runtime';
+
+interface JobsWorkflowEnv {
+    readonly DB: D1Database;
+    readonly ENCRYPTION_KEYS?: string;
+    readonly IMAGES: ThumbnailImagesBinding;
+    readonly UPLOADS: R2Bucket;
+}
 
 const SOURCE_LIMIT_BYTES = 10 * 1_024 * 1_024;
 const BACKUP_LIMIT_BYTES = 16 * 1_024 * 1_024;
@@ -577,7 +585,10 @@ const restoreObjects = Effect.fn('DataWorkflow.restoreObjects')(function* (
     return createdKeys;
 });
 
-export class DataWorkflow extends WorkflowEntrypoint<Env, DataWorkflowPayload> {
+export class DataWorkflow extends WorkflowEntrypoint<
+    JobsWorkflowEnv,
+    DataWorkflowPayload
+> {
     async run(
         event: Readonly<WorkflowEvent<DataWorkflowPayload>>,
         step: WorkflowStep,
@@ -610,6 +621,7 @@ export class DataWorkflow extends WorkflowEntrypoint<Env, DataWorkflowPayload> {
         const effect = makeJobsEffectRunner({
             database: this.env.DB,
             encryptionKeyring: serializedKeyring,
+            images: this.env.IMAGES,
             invocationId: event.instanceId,
             objectStorage: this.env.UPLOADS,
             trigger: 'workflow',

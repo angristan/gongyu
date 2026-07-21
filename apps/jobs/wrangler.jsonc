@@ -30,6 +30,9 @@
       "bucket_name": "gongyu-phase0-uploads"
     }
   ],
+  "images": {
+    "binding": "IMAGES"
+  },
   "queues": {
     "producers": [
       {
@@ -89,6 +92,9 @@
           "bucket_name": "gongyu-phase0-staging-uploads"
         }
       ],
+      "images": {
+        "binding": "IMAGES"
+      },
       "queues": {
         "producers": [
           {
@@ -147,6 +153,9 @@
           "bucket_name": "gongyu-production-uploads"
         }
       ],
+      "images": {
+        "binding": "IMAGES"
+      },
       "queues": {
         "producers": [
           {

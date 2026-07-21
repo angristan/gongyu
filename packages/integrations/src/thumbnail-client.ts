@@ -7,6 +7,8 @@ const IMAGE_TIMEOUT_MS = 10_000;
 const REDIRECT_LIMIT = 5;
 const MAX_DIMENSION = 4_096;
 const MAX_PIXELS = 16_777_216;
+const NORMALIZED_DIMENSION = 640;
+const NORMALIZED_QUALITY = 78;
 
 export class ThumbnailError extends Schema.TaggedErrorClass<ThumbnailError>()(
     'ThumbnailError',
@@ -33,6 +35,29 @@ export interface ThumbnailClientShape {
     readonly fetch: (
         url: string,
     ) => Effect.Effect<ValidatedThumbnail, ThumbnailError>;
+}
+
+interface ThumbnailImageTransformationResult {
+    readonly response: () => Response;
+}
+
+interface ThumbnailImageTransformer {
+    readonly transform: (options: {
+        readonly fit: 'scale-down';
+        readonly height: number;
+        readonly width: number;
+    }) => ThumbnailImageTransformer;
+    readonly output: (options: {
+        readonly anim: false;
+        readonly format: 'image/webp';
+        readonly quality: number;
+    }) => Promise<ThumbnailImageTransformationResult>;
+}
+
+export interface ThumbnailImagesBinding {
+    readonly input: (
+        stream: ReadableStream<Uint8Array>,
+    ) => ThumbnailImageTransformer;
 }
 
 export class ThumbnailClient extends Context.Service<
@@ -274,7 +299,97 @@ const readBytes = Effect.fn('ThumbnailClient.readBytes')(function* (
     return bytes;
 });
 
+function streamBytes(bytes: Uint8Array): ReadableStream<Uint8Array> {
+    return new ReadableStream({
+        start(controller) {
+            controller.enqueue(bytes);
+            controller.close();
+        },
+    });
+}
+
+const normalizeImage = Effect.fn('ThumbnailClient.normalizeImage')(function* (
+    images: ThumbnailImagesBinding,
+    bytes: Uint8Array,
+) {
+    const transformation = yield* Effect.tryPromise({
+        try: async () => {
+            let timeout: ReturnType<typeof setTimeout> | undefined;
+            try {
+                return await Promise.race([
+                    images
+                        .input(streamBytes(bytes))
+                        .transform({
+                            fit: 'scale-down',
+                            height: NORMALIZED_DIMENSION,
+                            width: NORMALIZED_DIMENSION,
+                        })
+                        .output({
+                            anim: false,
+                            format: 'image/webp',
+                            quality: NORMALIZED_QUALITY,
+                        }),
+                    new Promise<never>((_, reject) => {
+                        timeout = setTimeout(
+                            () =>
+                                reject(
+                                    new Error(
+                                        'Thumbnail transformation timed out.',
+                                    ),
+                                ),
+                            IMAGE_TIMEOUT_MS,
+                        );
+                    }),
+                ]);
+            } finally {
+                if (timeout !== undefined) {
+                    clearTimeout(timeout);
+                }
+            }
+        },
+        catch: () =>
+            failure(
+                'image_transform_failed',
+                'Thumbnail could not be optimized.',
+                true,
+            ),
+    });
+    const response = transformation.response();
+    if (!response.ok) {
+        return yield* failure(
+            'image_transform_failed',
+            'Thumbnail could not be optimized.',
+            response.status === 429 || response.status >= 500,
+        );
+    }
+    const normalizedBytes = yield* readBytes(
+        response,
+        Date.now() + IMAGE_TIMEOUT_MS,
+    );
+    const contentType = (response.headers.get('Content-Type') ?? '')
+        .split(';')[0]
+        .trim()
+        .toLowerCase();
+    const dimensions = validateImage(normalizedBytes, contentType);
+    if (dimensions instanceof ThumbnailError) {
+        return yield* dimensions;
+    }
+    if (
+        contentType !== 'image/webp' ||
+        dimensions.width > NORMALIZED_DIMENSION ||
+        dimensions.height > NORMALIZED_DIMENSION
+    ) {
+        return yield* failure(
+            'invalid_transformed_image',
+            'Optimized thumbnail output is invalid.',
+            false,
+        );
+    }
+    return { bytes: normalizedBytes, contentType, dimensions };
+});
+
 export function makeThumbnailClient(
+    images: ThumbnailImagesBinding,
     configuredFetch?: MetadataFetch,
 ): ThumbnailClientShape {
     const fetchImplementation = configuredFetch ?? fetch;
@@ -382,20 +497,21 @@ export function makeThumbnailClient(
             if (dimensions instanceof ThumbnailError) {
                 return yield* dimensions;
             }
+            const normalized = yield* normalizeImage(images, bytes);
             const digest = yield* Effect.promise(() =>
-                crypto.subtle.digest('SHA-256', bytes),
+                crypto.subtle.digest('SHA-256', normalized.bytes),
             );
             const sha256 = Array.from(new Uint8Array(digest), (byte) =>
                 byte.toString(16).padStart(2, '0'),
             ).join('');
             return ValidatedThumbnail.make({
-                bytes,
-                contentType,
-                extension: dimensions.extension,
-                height: dimensions.height,
+                bytes: normalized.bytes,
+                contentType: normalized.contentType,
+                extension: normalized.dimensions.extension,
+                height: normalized.dimensions.height,
                 sha256,
                 sourceUrl: current.href,
-                width: dimensions.width,
+                width: normalized.dimensions.width,
             });
         }
         return yield* failure(
