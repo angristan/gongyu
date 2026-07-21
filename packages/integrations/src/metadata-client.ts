@@ -11,6 +11,16 @@ const TITLE_SUFFIX_PATTERNS = [
     /\s*·\s*[^·]+$/u,
 ];
 const REGEXP_SPECIAL_CHARACTERS = /[.*+?^${}()|[\]\\]/gu;
+const HTML_CHARACTER_REFERENCE =
+    /&(#x[0-9a-f]+|#[0-9]+|amp|apos|gt|lt|nbsp|quot);/giu;
+const HTML_NAMED_CHARACTERS: Readonly<Record<string, string>> = {
+    amp: '&',
+    apos: "'",
+    gt: '>',
+    lt: '<',
+    nbsp: '\u00a0',
+    quot: '"',
+};
 const KNOWN_TITLE_SUFFIX_PATTERNS = [
     'YouTube',
     'Wikipedia',
@@ -62,6 +72,31 @@ function failure(
     retryable: boolean,
 ): MetadataError {
     return MetadataError.make({ code, message, retryable });
+}
+
+function decodeHtmlAttribute(value: string): string {
+    return value.replace(
+        HTML_CHARACTER_REFERENCE,
+        (reference, entity: string) => {
+            const normalized = entity.toLowerCase();
+            const named = HTML_NAMED_CHARACTERS[normalized];
+            if (named !== undefined) {
+                return named;
+            }
+            const codePoint = normalized.startsWith('#x')
+                ? Number.parseInt(normalized.slice(2), 16)
+                : Number.parseInt(normalized.slice(1), 10);
+            if (
+                !Number.isInteger(codePoint) ||
+                codePoint < 1 ||
+                codePoint > 0x10ffff ||
+                (codePoint >= 0xd800 && codePoint <= 0xdfff)
+            ) {
+                return reference;
+            }
+            return String.fromCodePoint(codePoint);
+        },
+    );
 }
 
 export function cleanMetadataTitle(title: string): string {
@@ -202,7 +237,9 @@ const extractMetadata = Effect.fn('MetadataClient.extract')(function* (
                     element.getAttribute('name') ??
                     ''
                 ).toLowerCase();
-                const content = element.getAttribute('content')?.trim() ?? '';
+                const content = decodeHtmlAttribute(
+                    element.getAttribute('content') ?? '',
+                ).trim();
                 if (property === 'og:title' && content !== '') {
                     openGraphTitle = content;
                 }

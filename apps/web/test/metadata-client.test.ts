@@ -23,9 +23,10 @@ it.effect('extracts bounded candidates and resolves HTTPS images', () =>
                 `
                     <html>
                         <head>
-                            <title>  Cloudflare   metadata | Example  </title>
-                            <meta name="description" content="Bounded description">
-                            <meta property="og:image" content="/image.webp">
+                            <title>Fallback metadata title</title>
+                            <meta property="og:title" content="Cloudflare &amp; metadata | Example">
+                            <meta name="description" content="Bounded &amp; useful description">
+                            <meta property="og:image" content="/image.webp?width=1200&amp;quality=75">
                         </head>
                     </html>
                 `,
@@ -35,9 +36,12 @@ it.effect('extracts bounded candidates and resolves HTTPS images', () =>
         const client = makeMetadataClient(fetchImplementation);
         const result = yield* client.fetch('https://example.com/start');
 
-        assert.strictEqual(result.title, 'Cloudflare metadata');
-        assert.strictEqual(result.description, 'Bounded description');
-        assert.strictEqual(result.imageUrl, 'https://example.com/image.webp');
+        assert.strictEqual(result.title, 'Cloudflare & metadata');
+        assert.strictEqual(result.description, 'Bounded & useful description');
+        assert.strictEqual(
+            result.imageUrl,
+            'https://example.com/image.webp?width=1200&quality=75',
+        );
         assert.deepEqual(
             requests.map((url) => url.href),
             ['https://example.com/start', 'https://example.com/article'],
