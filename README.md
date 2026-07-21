@@ -1,10 +1,12 @@
-<p align="center">
-  <img src="apps/web/public/images/logo.png" alt="Gongyu" width="120" height="120">
-</p>
-
 # Gongyu
 
 Gongyu is a single-tenant bookmark manager inspired by [Shaarli](https://github.com/shaarli/Shaarli). It runs on Cloudflare Workers with a server-rendered React Router application and an Effect-based TypeScript backend.
+
+<p align="center">
+  <a href="https://bookmarks.stanislas.blog/">
+    <img src="apps/web/public/og-image.png" alt="Gongyu — links worth returning to" width="1200">
+  </a>
+</p>
 
 ## Features
 

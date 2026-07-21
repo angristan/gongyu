@@ -828,6 +828,22 @@ test('serves public list, search, detail, and feed without JavaScript', async ({
         });
     });
     await page.goto('/');
+    await expect(page.locator('meta[property="og:image"]')).toHaveAttribute(
+        'content',
+        'https://bookmarks.stanislas.blog/og-image.png',
+    );
+    await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute(
+        'content',
+        'summary_large_image',
+    );
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+        'href',
+        'https://bookmarks.stanislas.blog/',
+    );
+    const socialImage = await context.request.get('/og-image.png');
+    expect(socialImage.status()).toBe(200);
+    expect(socialImage.headers()['content-type']).toBe('image/png');
+    expect((await socialImage.body()).byteLength).toBeGreaterThan(10_000);
     await page.getByRole('searchbox', { name: 'Search bookmarks' }).fill(query);
     await page.getByRole('button', { name: 'Search bookmarks' }).click();
     await expect(page).toHaveURL(/\/search\?.*q=Captured/u);
