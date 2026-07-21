@@ -784,7 +784,7 @@ export default function AdminData({ loaderData }: Route.ComponentProps) {
                         {loaderData.operations.map(({ errors, run }) => (
                             <LayerCard key={run.id}>
                                 <article className="space-y-4 p-4">
-                                    <div className="flex items-start justify-between gap-4">
+                                    <div className="flex flex-col items-start gap-3 sm:flex-row sm:justify-between sm:gap-4">
                                         <div className="min-w-0">
                                             <div className="flex flex-wrap items-center gap-2">
                                                 <h3 className="font-semibold capitalize text-gongyu-default">
