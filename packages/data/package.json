@@ -16,6 +16,6 @@
   "dependencies": {
     "@gongyu/domain": "workspace:*",
     "@gongyu/integrations": "workspace:*",
-    "effect": "4.0.0-beta.97"
+    "effect": "4.0.0-beta.100"
   }
 }

@@ -15,7 +15,7 @@
         "@gongyu/data": "workspace:*",
         "@gongyu/domain": "workspace:*",
         "@gongyu/integrations": "workspace:*",
-        "effect": "4.0.0-beta.97",
+        "effect": "4.0.0-beta.100",
       },
       "devDependencies": {
         "typescript": "6.0.3",
@@ -35,7 +35,7 @@
         "@phosphor-icons/react": "2.1.10",
         "@simplewebauthn/browser": "13.3.0",
         "@simplewebauthn/server": "13.3.2",
-        "effect": "4.0.0-beta.97",
+        "effect": "4.0.0-beta.100",
         "isbot": "5.2.0",
         "react": "19.2.7",
         "react-dom": "19.2.7",
@@ -63,7 +63,7 @@
       "dependencies": {
         "@gongyu/data": "workspace:*",
         "@simplewebauthn/server": "13.3.2",
-        "effect": "4.0.0-beta.97",
+        "effect": "4.0.0-beta.100",
       },
     },
     "packages/data": {
@@ -71,20 +71,20 @@
       "dependencies": {
         "@gongyu/domain": "workspace:*",
         "@gongyu/integrations": "workspace:*",
-        "effect": "4.0.0-beta.97",
+        "effect": "4.0.0-beta.100",
       },
     },
     "packages/domain": {
       "name": "@gongyu/domain",
       "dependencies": {
-        "effect": "4.0.0-beta.97",
+        "effect": "4.0.0-beta.100",
       },
     },
     "packages/integrations": {
       "name": "@gongyu/integrations",
       "dependencies": {
         "@gongyu/domain": "workspace:*",
-        "effect": "4.0.0-beta.97",
+        "effect": "4.0.0-beta.100",
       },
     },
     "packages/ui": {
@@ -542,7 +542,7 @@
 
     "detect-node-es": ["detect-node-es@1.1.0", "", {}, "sha512-ypdmJU/TbBby2Dxibuv7ZLW3Bs1QEmM7nHjEANfohJLvE0XVujisn1qPJcZxg+qDucsr+bP6fLD1rPS3AhJ7EQ=="],
 
-    "effect": ["effect@4.0.0-beta.97", "", { "dependencies": { "@standard-schema/spec": "^1.1.0", "fast-check": "^4.9.0", "find-my-way-ts": "^0.1.6", "ini": "^7.0.0", "kubernetes-types": "^1.30.0", "msgpackr": "^2.0.4", "multipasta": "^0.2.8", "toml": "^4.1.2", "uuid": "^14.0.1", "yaml": "^2.9.0" } }, "sha512-pK03HpQVxGZOWdwDAy/iwvV8u3KYcUf2mOWyWqaut2zau8V2u6ejWP7b4BELjyUIiZWW1fl/s/VJpgZUcTjThg=="],
+    "effect": ["effect@4.0.0-beta.100", "", { "dependencies": { "@standard-schema/spec": "^1.1.0", "fast-check": "^4.9.0", "find-my-way-ts": "^0.1.6", "ini": "^7.0.0", "kubernetes-types": "^1.30.0", "msgpackr": "^2.0.4", "multipasta": "^0.2.8", "toml": "^4.1.2", "uuid": "^14.0.1", "yaml": "^2.9.0" } }, "sha512-K4ed+BS3HyE+NoAZ8pJss2DpuK41mb856IO7ZlPfnwBXbq8oTtAAurrsVnwe2hzPamIuaZp/Pq4/xp9qORYv8Q=="],
 
     "electron-to-chromium": ["electron-to-chromium@1.5.389", "", {}, "sha512-cEto7aeOqBfU1D+c5py5pE+ooscKE75JifxLBdFUZsqAxRS6y7kebtxAZvICszSl05gPjYHDTjY+lXpyGvpJbg=="],
 
