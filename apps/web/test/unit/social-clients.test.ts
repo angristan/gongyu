@@ -1,6 +1,6 @@
 import { assert, it } from '@effect/vitest';
 import { Settings } from '@gongyu/domain/settings';
-import { SocialPayloadSnapshot } from '@gongyu/domain/social';
+import { blueskyRecordKey, SocialPayloadSnapshot } from '@gongyu/domain/social';
 import {
     makeSocialClients,
     ProviderError,
@@ -33,6 +33,10 @@ const payload = SocialPayloadSnapshot.make({
     schemaVersion: 1,
     shortUrl: 'AbCd1234',
     title: 'Title',
+});
+const blueskyRkey = blueskyRecordKey({
+    finalizedAt: payload.finalizedAt,
+    shortUrl: payload.shortUrl,
 });
 
 it.effect('uses deterministic Mastodon idempotency keys', () =>
@@ -78,7 +82,7 @@ it.effect('uses deterministic Bluesky rkeys and immutable facets', () =>
                     });
                 }
                 return Response.json({
-                    uri: 'at://did:plc:person/app.bsky.feed.post/gongyu-abcd1234-v1',
+                    uri: `at://did:plc:person/app.bsky.feed.post/${blueskyRkey}`,
                 });
             },
         });
@@ -89,7 +93,10 @@ it.effect('uses deterministic Bluesky rkeys and immutable facets', () =>
             settings,
             thumbnail: null,
         });
-        assert.match(receipt.remoteId, /gongyu-abcd1234-v1$/u);
+        assert.strictEqual(
+            receipt.remoteId,
+            `at://did:plc:person/app.bsky.feed.post/${blueskyRkey}`,
+        );
         const create = requests.find((request) =>
             request.url.endsWith('createRecord'),
         );
@@ -102,7 +109,11 @@ it.effect('uses deterministic Bluesky rkeys and immutable facets', () =>
                 }>;
             };
         };
-        assert.strictEqual(body.rkey, 'gongyu-AbCd1234-v1');
+        assert.strictEqual(body.rkey, blueskyRkey);
+        assert.match(
+            body.rkey,
+            /^[234567abcdefghij][234567abcdefghijklmnopqrstuvwxyz]{12}$/u,
+        );
         assert.deepEqual(body.record.facets[0].index, {
             byteEnd: 37,
             byteStart: 6,
@@ -112,6 +123,7 @@ it.effect('uses deterministic Bluesky rkeys and immutable facets', () =>
 
 it.effect('reconciles an existing deterministic Bluesky record', () =>
     Effect.gen(function* () {
+        let reconciledRkey: string | null = null;
         const clients = makeSocialClients({
             fetchImplementation: async (input) => {
                 const url = input.toString();
@@ -128,6 +140,7 @@ it.effect('reconciles an existing deterministic Bluesky record', () =>
                     );
                 }
                 if (url.includes('getRecord')) {
+                    reconciledRkey = new URL(url).searchParams.get('rkey');
                     return Response.json({
                         value: {
                             embed: {
@@ -151,8 +164,9 @@ it.effect('reconciles an existing deterministic Bluesky record', () =>
         });
         assert.strictEqual(
             receipt.remoteId,
-            'at://did:plc:person/app.bsky.feed.post/gongyu-AbCd1234-v1',
+            `at://did:plc:person/app.bsky.feed.post/${blueskyRkey}`,
         );
+        assert.strictEqual(reconciledRkey, blueskyRkey);
     }),
 );
 

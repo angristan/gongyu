@@ -1,7 +1,8 @@
 import type { Settings } from '@gongyu/domain/settings';
-import type {
-    SocialPayloadSnapshot,
-    SocialProvider,
+import {
+    blueskyRecordKey,
+    type SocialPayloadSnapshot,
+    type SocialProvider,
 } from '@gongyu/domain/social';
 import { Context, Effect, Schema } from 'effect';
 import type { MetadataFetch } from './metadata-client';
@@ -396,7 +397,10 @@ export function makeSocialClients(options?: {
                 thumb = (upload as Record<string, unknown>).blob;
             }
 
-            const rkey = `gongyu-${input.payload.shortUrl}-v1`;
+            const rkey = blueskyRecordKey({
+                finalizedAt: input.payload.finalizedAt,
+                shortUrl: input.payload.shortUrl,
+            });
             const external: Record<string, unknown> = {
                 description: input.payload.description,
                 title: input.payload.title,

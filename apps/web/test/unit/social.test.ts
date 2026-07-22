@@ -1,6 +1,7 @@
 import { assert, it } from '@effect/vitest';
 import { Settings } from '@gongyu/domain/settings';
 import {
+    blueskyRecordKey,
     configuredProviders,
     formatSocialPayload,
     twitterWebIntentUrl,
@@ -105,6 +106,31 @@ it.effect('formats Twitter with its fixed URL weight and code points', () =>
         assert.strictEqual(Array.from(title).length, 256);
         assert.strictEqual(Array.from(title).at(-1), '…');
         assert.match(payload.formattedText, / https:\/\/example\.com/u);
+    }),
+);
+
+it.effect('generates stable TID record keys for Bluesky', () =>
+    Effect.sync(() => {
+        const first = blueskyRecordKey({
+            finalizedAt: 1_735_689_600_000_000,
+            shortUrl: 'AbCd1234',
+        });
+        const repeated = blueskyRecordKey({
+            finalizedAt: 1_735_689_600_000_000,
+            shortUrl: 'AbCd1234',
+        });
+        const otherBookmark = blueskyRecordKey({
+            finalizedAt: 1_735_689_600_000_000,
+            shortUrl: 'EfGh5678',
+        });
+
+        assert.match(
+            first,
+            /^[234567abcdefghij][234567abcdefghijklmnopqrstuvwxyz]{12}$/u,
+        );
+        assert.strictEqual(first, '3lenax2ssedsp');
+        assert.strictEqual(first, repeated);
+        assert.notStrictEqual(first, otherBookmark);
     }),
 );
 

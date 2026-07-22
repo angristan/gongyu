@@ -77,6 +77,46 @@ export function configuredProviders(settings: Settings): SocialProvider[] {
     return providers;
 }
 
+const SORTABLE_BASE32 = '234567abcdefghijklmnopqrstuvwxyz';
+
+function sortableBase32(value: number): string {
+    let remaining = value;
+    let encoded = '';
+    while (remaining > 0) {
+        encoded = SORTABLE_BASE32.charAt(remaining % 32) + encoded;
+        remaining = Math.floor(remaining / 32);
+    }
+    return encoded;
+}
+
+function blueskyIdentityHash(shortUrl: string): number {
+    let hash = 0x81_1c_9d_c5;
+    for (const byte of new TextEncoder().encode(shortUrl)) {
+        hash = Math.imul(hash ^ byte, 0x01_00_01_93);
+    }
+    return hash >>> 0;
+}
+
+export function blueskyRecordKey(input: {
+    readonly finalizedAt: number;
+    readonly shortUrl: string;
+}): string {
+    const identityHash = blueskyIdentityHash(input.shortUrl);
+    const baseTimestamp = Number.isSafeInteger(input.finalizedAt)
+        ? Math.max(
+              0,
+              Math.min(input.finalizedAt, Number.MAX_SAFE_INTEGER - 999),
+          )
+        : 0;
+    // Date.now() is padded to microseconds, so use those otherwise-empty digits
+    // plus the TID clock ID to avoid collisions while preserving stable retries.
+    const timestamp = baseTimestamp + ((identityHash >>> 10) % 1_000);
+    const clockId = identityHash & 0x03_ff;
+    return `${sortableBase32(timestamp).padStart(11, '2')}${sortableBase32(
+        clockId,
+    ).padStart(2, '2')}`;
+}
+
 function truncateTitle(title: string, budget: number): string {
     const points = Array.from(title);
     return points.length <= budget
