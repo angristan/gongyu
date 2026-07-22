@@ -20,4 +20,3 @@ Thumbs.db
 /apps/*/build
 /apps/*/playwright-report
 /apps/*/test-results
-/apps/*/worker-configuration.d.ts
