@@ -39,7 +39,7 @@
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.43.3",
     "@cloudflare/vitest-pool-workers": "0.18.4",
-    "@effect/vitest": "4.0.0-beta.97",
+    "@effect/vitest": "4.0.0-beta.100",
     "@playwright/test": "1.61.1",
     "@react-router/dev": "8.2.0",
     "@tailwindcss/vite": "4.3.2",
