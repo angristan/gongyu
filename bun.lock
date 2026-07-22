@@ -31,7 +31,7 @@
         "@gongyu/integrations": "workspace:*",
         "@gongyu/jobs": "workspace:*",
         "@gongyu/ui": "workspace:*",
-        "@mantine/core": "9.4.1",
+        "@mantine/core": "9.4.2",
         "@phosphor-icons/react": "2.1.10",
         "@simplewebauthn/browser": "13.3.0",
         "@simplewebauthn/server": "13.3.2",
@@ -340,7 +340,7 @@
 
     "@levischuck/tiny-cbor": ["@levischuck/tiny-cbor@0.2.11", "", {}, "sha512-llBRm4dT4Z89aRsm6u2oEZ8tfwL/2l6BwpZ7JcyieouniDECM5AqNgr/y08zalEIvW3RSK4upYyybDcmjXqAow=="],
 
-    "@mantine/core": ["@mantine/core@9.4.1", "", { "dependencies": { "@floating-ui/react": "^0.27.19", "clsx": "^2.1.1", "react-number-format": "^5.4.5", "react-remove-scroll": "^2.7.2", "type-fest": "^5.7.0" }, "peerDependencies": { "@mantine/hooks": "9.4.1", "react": "^19.2.0", "react-dom": "^19.2.0" } }, "sha512-lZWEICrum4+vwKxzh/mk4RB1N6BqZ0Cshdl6lhm7OYLiQzmOaxKtOgyaWz+vr65G8mqTXjalZalB+wmMVBYK2Q=="],
+    "@mantine/core": ["@mantine/core@9.4.2", "", { "dependencies": { "@floating-ui/react": "^0.27.19", "clsx": "^2.1.1", "react-number-format": "^5.4.5", "react-remove-scroll": "^2.7.2", "type-fest": "^5.7.0" }, "peerDependencies": { "@mantine/hooks": "9.4.2", "react": "^19.2.0", "react-dom": "^19.2.0" } }, "sha512-bEcFalEvbcT8x03GF0eUeWVLF8lGADdfG8jjrPfn+JdK4Sd33ZFdvTZxY/hhkzRi/JsMdhZj8GU0cGkXc0yPzg=="],
 
     "@mantine/hooks": ["@mantine/hooks@9.4.1", "", { "peerDependencies": { "react": "^19.2.0" } }, "sha512-eTI8wmzPx3r98zgKIEuvukmoGTHBhmtI6+9E6o2DbTmEU2eM1bCdjE2vFdf0op2AlRO0KEYEcZhNQi4T/SJk0A=="],
 
