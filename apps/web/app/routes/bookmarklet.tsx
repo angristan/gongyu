@@ -354,23 +354,25 @@ export default function Bookmarklet({
                                 ? 'Saved successfully. This popup will close shortly.'
                                 : 'Saved successfully. Review the prefilled post before publishing it on X.'}
                         </p>
-                        {twitterIntentUrl === null ? null : (
-                            <LinkButton
-                                external
-                                href={twitterIntentUrl}
-                                icon={ArrowSquareOutIcon}
-                                variant="primary"
+                        <div className="flex flex-wrap items-center justify-center gap-2">
+                            {twitterIntentUrl === null ? null : (
+                                <LinkButton
+                                    external
+                                    href={twitterIntentUrl}
+                                    icon={ArrowSquareOutIcon}
+                                    variant="primary"
+                                >
+                                    Open X composer
+                                </LinkButton>
+                            )}
+                            <Button
+                                onClick={() => window.close()}
+                                type="button"
+                                variant="secondary"
                             >
-                                Open X composer
-                            </LinkButton>
-                        )}
-                        <Button
-                            onClick={() => window.close()}
-                            type="button"
-                            variant="secondary"
-                        >
-                            Close now
-                        </Button>
+                                Close now
+                            </Button>
+                        </div>
                     </div>
                 ) : (
                     <Form method="post">

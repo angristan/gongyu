@@ -599,6 +599,32 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
     expect(xIntent.searchParams.get('url')).toBe(
         'https://example.com/manual-x',
     );
+
+    const manualBookmarkletPath =
+        '/bookmarklet?url=https%3A%2F%2Fexample.com%2Fmanual-x-bookmarklet&title=Manual%20bookmarklet%20X%20post&source=bookmarklet';
+    const manualPopup = await context.newPage();
+    await manualPopup.setViewportSize({ height: 720, width: 600 });
+    await manualPopup.goto(manualBookmarkletPath);
+    await manualPopup.getByRole('button', { name: 'Save bookmark' }).click();
+    const openComposer = manualPopup.getByRole('link', {
+        name: 'Open X composer',
+    });
+    const closePopup = manualPopup.getByRole('button', { name: 'Close now' });
+    await expect(openComposer).toBeVisible();
+    await expect(closePopup).toBeVisible();
+    const composerBox = await openComposer.boundingBox();
+    const closeBox = await closePopup.boundingBox();
+    expect(composerBox).not.toBeNull();
+    expect(closeBox).not.toBeNull();
+    expect(
+        Math.abs(
+            (composerBox?.y ?? 0) +
+                (composerBox?.height ?? 0) / 2 -
+                ((closeBox?.y ?? 0) + (closeBox?.height ?? 0) / 2),
+        ),
+    ).toBeLessThan(1);
+    await manualPopup.close();
+
     const { stdout: manualDeliveryOutput } = await execute(
         'bunx',
         d1Arguments(`
@@ -608,7 +634,10 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
             END AS outcome
             FROM social_deliveries AS deliveries
             JOIN bookmarks ON bookmarks.short_url = deliveries.bookmark_short_url
-            WHERE bookmarks.url = 'https://example.com/manual-x';
+            WHERE bookmarks.url IN (
+                'https://example.com/manual-x',
+                'https://example.com/manual-x-bookmarklet'
+            );
         `),
     );
     expect(manualDeliveryOutput).toContain('manual-only');
