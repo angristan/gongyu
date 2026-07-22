@@ -18,6 +18,7 @@ const settings = Settings.make({
     twitterAccessToken: 'access-token',
     twitterApiKey: 'api-key',
     twitterApiSecret: 'api-secret',
+    twitterDeliveryMode: 'api',
 });
 
 const payload = SocialPayloadSnapshot.make({

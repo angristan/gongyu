@@ -1,5 +1,5 @@
 import { SettingsRepository } from '@gongyu/data/settings-repository';
-import { Settings } from '@gongyu/domain/settings';
+import { Settings, type TwitterDeliveryMode } from '@gongyu/domain/settings';
 import {
     AtIcon,
     FloppyDiskIcon,
@@ -100,6 +100,15 @@ function stringValue(formData: FormData, name: string): string {
     return typeof value === 'string' ? value.trim() : '';
 }
 
+function twitterDeliveryModeValue(
+    formData: FormData,
+): TwitterDeliveryMode | null {
+    const value = formData.get('twitter_delivery_mode');
+    return value === 'api' || value === 'manual' || value === 'disabled'
+        ? value
+        : null;
+}
+
 export async function action({ context, request }: Route.ActionArgs) {
     const { authentication, effect, env } = context.get(
         cloudflareRequestContext,
@@ -114,6 +123,7 @@ export async function action({ context, request }: Route.ActionArgs) {
     });
     const formData = await request.formData();
     const feedCount = Number.parseInt(stringValue(formData, 'feed_count'), 10);
+    const twitterDeliveryMode = twitterDeliveryModeValue(formData);
     const values = {
         blueskyAppPassword: stringValue(formData, 'bluesky_app_password'),
         feedCount,
@@ -125,8 +135,18 @@ export async function action({ context, request }: Route.ActionArgs) {
         twitterAccessToken: stringValue(formData, 'twitter_access_token'),
         twitterApiKey: stringValue(formData, 'twitter_api_key'),
         twitterApiSecret: stringValue(formData, 'twitter_api_secret'),
+        twitterDeliveryMode: twitterDeliveryMode ?? 'disabled',
     };
     const errors: Record<string, string> = {};
+    if (twitterDeliveryMode === null) {
+        errors.twitter_delivery_mode = 'Choose a Twitter delivery mode.';
+    } else if (
+        twitterDeliveryMode === 'api' &&
+        fields.slice(0, 4).some((field) => values[field.key] === '')
+    ) {
+        errors.twitter_delivery_mode =
+            'Enter all four API credentials or choose manual or disabled.';
+    }
     if (values.libraryName === '') {
         errors.library_name = 'Enter a library name.';
     } else if (values.libraryName.length > 80) {
@@ -177,7 +197,8 @@ export default function AdminSettings({
     });
     const providerGroups = [
         {
-            description: 'OAuth 1.0a credentials for posting saved links.',
+            description:
+                'Choose API automation, a manual X composer, or no delivery.',
             fields: fields.slice(0, 4),
             icon: ShareNetworkIcon,
             name: 'Twitter',
@@ -230,10 +251,27 @@ export default function AdminSettings({
                             />
                         </section>
                         {providerGroups.map((provider) => {
-                            const configured = provider.fields.every(
+                            const credentialsConfigured = provider.fields.every(
                                 (field) =>
                                     String(values[field.key]).trim() !== '',
                             );
+                            const isTwitter = provider.name === 'Twitter';
+                            const configured = isTwitter
+                                ? values.twitterDeliveryMode === 'manual' ||
+                                  (values.twitterDeliveryMode === 'api' &&
+                                      credentialsConfigured)
+                                : credentialsConfigured;
+                            const status = isTwitter
+                                ? values.twitterDeliveryMode === 'manual'
+                                    ? 'Manual composer'
+                                    : values.twitterDeliveryMode === 'disabled'
+                                      ? 'Disabled'
+                                      : credentialsConfigured
+                                        ? 'API configured'
+                                        : 'API incomplete'
+                                : configured
+                                  ? 'Configured'
+                                  : 'Not configured';
                             const Icon = provider.icon;
                             return (
                                 <section className="p-4" key={provider.name}>
@@ -261,11 +299,86 @@ export default function AdminSettings({
                                                     : 'secondary'
                                             }
                                         >
-                                            {configured
-                                                ? 'Configured'
-                                                : 'Not configured'}
+                                            {status}
                                         </Badge>
                                     </div>
+                                    {isTwitter ? (
+                                        <fieldset
+                                            aria-describedby={
+                                                errors.twitter_delivery_mode ===
+                                                undefined
+                                                    ? undefined
+                                                    : 'twitter-delivery-mode-error'
+                                            }
+                                            className="mb-4"
+                                        >
+                                            <legend className="mb-2 text-sm font-medium text-gongyu-default">
+                                                Delivery mode
+                                            </legend>
+                                            <div className="grid gap-2 sm:grid-cols-3">
+                                                {[
+                                                    {
+                                                        description:
+                                                            'Queue posts through the paid X API.',
+                                                        label: 'API automation',
+                                                        value: 'api',
+                                                    },
+                                                    {
+                                                        description:
+                                                            'Offer a prefilled X composer after saving.',
+                                                        label: 'Manual composer',
+                                                        value: 'manual',
+                                                    },
+                                                    {
+                                                        description:
+                                                            'Do not offer or send posts to X.',
+                                                        label: 'Disabled',
+                                                        value: 'disabled',
+                                                    },
+                                                ].map((option) => (
+                                                    <label
+                                                        className="flex cursor-pointer gap-2 rounded-lg border border-gongyu-line p-3"
+                                                        key={option.value}
+                                                    >
+                                                        <input
+                                                            defaultChecked={
+                                                                values.twitterDeliveryMode ===
+                                                                option.value
+                                                            }
+                                                            name="twitter_delivery_mode"
+                                                            type="radio"
+                                                            value={option.value}
+                                                        />
+                                                        <span>
+                                                            <span className="block text-sm font-medium text-gongyu-default">
+                                                                {option.label}
+                                                            </span>
+                                                            <span className="mt-0.5 block text-xs leading-5 text-gongyu-subtle">
+                                                                {
+                                                                    option.description
+                                                                }
+                                                            </span>
+                                                        </span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                            {errors.twitter_delivery_mode ===
+                                            undefined ? null : (
+                                                <p
+                                                    className="mt-2 text-sm text-gongyu-danger"
+                                                    id="twitter-delivery-mode-error"
+                                                >
+                                                    {
+                                                        errors.twitter_delivery_mode
+                                                    }
+                                                </p>
+                                            )}
+                                            <p className="mt-3 text-xs text-gongyu-subtle">
+                                                Credentials below are used only
+                                                for API automation.
+                                            </p>
+                                        </fieldset>
+                                    ) : null}
                                     <div className="grid gap-3 sm:grid-cols-2">
                                         {provider.fields.map((field) => {
                                             const error = errors[field.name];

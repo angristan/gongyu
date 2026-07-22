@@ -1,4 +1,8 @@
-import { DEFAULT_LIBRARY_NAME, Settings } from '@gongyu/domain/settings';
+import {
+    DEFAULT_LIBRARY_NAME,
+    Settings,
+    type TwitterDeliveryMode,
+} from '@gongyu/domain/settings';
 import type {
     Encryption,
     EncryptionError,
@@ -50,7 +54,26 @@ export function makeSettingsRepository(
         });
         const feedCountValue = yield* read('feed_count');
         const libraryNameValue = yield* read('library_name');
+        const twitterAccessSecret = yield* read('twitter_access_secret');
+        const twitterAccessToken = yield* read('twitter_access_token');
+        const twitterApiKey = yield* read('twitter_api_key');
+        const twitterApiSecret = yield* read('twitter_api_secret');
+        const storedTwitterDeliveryMode = yield* read('twitter_delivery_mode');
         const feedCount = Number.parseInt(feedCountValue, 10);
+        const hasLegacyTwitterCredentials = [
+            twitterAccessSecret,
+            twitterAccessToken,
+            twitterApiKey,
+            twitterApiSecret,
+        ].every((value) => value.trim() !== '');
+        const twitterDeliveryMode: TwitterDeliveryMode =
+            storedTwitterDeliveryMode === 'api' ||
+            storedTwitterDeliveryMode === 'manual' ||
+            storedTwitterDeliveryMode === 'disabled'
+                ? storedTwitterDeliveryMode
+                : hasLegacyTwitterCredentials
+                  ? 'api'
+                  : 'disabled';
 
         return Settings.make({
             blueskyAppPassword: yield* read('bluesky_app_password'),
@@ -63,10 +86,11 @@ export function makeSettingsRepository(
                     : libraryNameValue,
             mastodonAccessToken: yield* read('mastodon_access_token'),
             mastodonInstance: yield* read('mastodon_instance'),
-            twitterAccessSecret: yield* read('twitter_access_secret'),
-            twitterAccessToken: yield* read('twitter_access_token'),
-            twitterApiKey: yield* read('twitter_api_key'),
-            twitterApiSecret: yield* read('twitter_api_secret'),
+            twitterAccessSecret,
+            twitterAccessToken,
+            twitterApiKey,
+            twitterApiSecret,
+            twitterDeliveryMode,
         });
     }).pipe(Effect.withSpan('SettingsRepository.get'));
 
@@ -91,6 +115,10 @@ export function makeSettingsRepository(
         const values = [
             { key: 'twitter_api_key', value: settings.twitterApiKey },
             { key: 'twitter_api_secret', value: settings.twitterApiSecret },
+            {
+                key: 'twitter_delivery_mode',
+                value: settings.twitterDeliveryMode,
+            },
             {
                 key: 'twitter_access_token',
                 value: settings.twitterAccessToken,

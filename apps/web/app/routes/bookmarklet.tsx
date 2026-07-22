@@ -5,10 +5,14 @@ import {
     DuplicateBookmarkError,
     decodeBookmarkInput,
 } from '@gongyu/domain/bookmarks';
-import { configuredProviders } from '@gongyu/domain/social';
+import {
+    configuredProviders,
+    twitterWebIntentUrl,
+} from '@gongyu/domain/social';
 import { cleanMetadataTitle } from '@gongyu/integrations/metadata-client';
 import { dispatchBookmarkOutboxBestEffort } from '@gongyu/jobs/outbox-dispatcher';
 import {
+    ArrowSquareOutIcon,
     BookmarkSimpleIcon,
     CheckCircleIcon,
     FloppyDiskIcon,
@@ -63,7 +67,13 @@ export async function loader({ context, request }: Route.LoaderArgs) {
     const providers = await effect.runPromise(
         Effect.gen(function* () {
             const settings = yield* SettingsRepository;
-            return configuredProviders(yield* settings.get);
+            const current = yield* settings.get;
+            return [
+                ...configuredProviders(current),
+                ...(current.twitterDeliveryMode === 'manual'
+                    ? ['X (manual)']
+                    : []),
+            ];
         }),
     );
     const existing =
@@ -117,9 +127,17 @@ export async function action({ context, request }: Route.ActionArgs) {
             const decoded = yield* decodeBookmarkInput(input);
             const bookmarks = yield* BookmarkRepository;
             const settings = yield* SettingsRepository;
+            const currentSettings = yield* settings.get;
             const socialProviders = shareSocial
-                ? configuredProviders(yield* settings.get)
+                ? configuredProviders(currentSettings)
                 : [];
+            const twitterIntentUrl =
+                shareSocial && currentSettings.twitterDeliveryMode === 'manual'
+                    ? twitterWebIntentUrl({
+                          originalUrl: decoded.url,
+                          title: decoded.title,
+                      })
+                    : null;
             const bookmark = yield* bookmarks.create({
                 ...decoded,
                 createdAt: Date.now() * 1_000,
@@ -129,11 +147,15 @@ export async function action({ context, request }: Route.ActionArgs) {
                 bookmarkShortUrl: bookmark.shortUrl,
                 kind: 'metadata',
             });
-            return bookmark;
+            return { bookmark, twitterIntentUrl };
         }).pipe(Effect.match({ onFailure: failure, onSuccess: success })),
     );
     if (result.ok) {
-        return data({ saved: true, source });
+        return data({
+            saved: true,
+            source,
+            twitterIntentUrl: result.value.twitterIntentUrl,
+        });
     }
     if (result.error instanceof DuplicateBookmarkError) {
         return data(
@@ -179,6 +201,10 @@ export default function Bookmarklet({
             ? actionData.errors
             : {};
     const saved = actionData !== undefined && 'saved' in actionData;
+    const twitterIntentUrl =
+        actionData !== undefined && 'saved' in actionData
+            ? actionData.twitterIntentUrl
+            : null;
     const urlError = 'url' in errors ? errors.url : undefined;
     const titleError = 'title' in errors ? errors.title : undefined;
     const [url, setUrl] = useState(values.url ?? '');
@@ -193,12 +219,12 @@ export default function Bookmarklet({
     }, [loaderData.installCode]);
 
     useEffect(() => {
-        if (!saved || source !== 'bookmarklet') {
+        if (!saved || source !== 'bookmarklet' || twitterIntentUrl !== null) {
             return;
         }
         const timeout = window.setTimeout(() => window.close(), 1_500);
         return () => window.clearTimeout(timeout);
-    }, [saved, source]);
+    }, [saved, source, twitterIntentUrl]);
 
     if (loaderData.prefill.url === '') {
         return (
@@ -324,8 +350,20 @@ export default function Bookmarklet({
                             weight="duotone"
                         />
                         <p aria-live="polite" className="text-gongyu-default">
-                            Saved successfully. This popup will close shortly.
+                            {twitterIntentUrl === null
+                                ? 'Saved successfully. This popup will close shortly.'
+                                : 'Saved successfully. Review the prefilled post before publishing it on X.'}
                         </p>
+                        {twitterIntentUrl === null ? null : (
+                            <LinkButton
+                                external
+                                href={twitterIntentUrl}
+                                icon={ArrowSquareOutIcon}
+                                variant="primary"
+                            >
+                                Open X composer
+                            </LinkButton>
+                        )}
                         <Button
                             onClick={() => window.close()}
                             type="button"

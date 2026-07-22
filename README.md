@@ -16,7 +16,7 @@ Gongyu is a single-tenant bookmark manager inspired by [Shaarli](https://github.
 - Bookmarklet, Atom feed, and Shaarli-compatible redirects
 - HTML, JSON, and Shaarli data portability
 - Full backups and restore workflows
-- Optional Twitter, Mastodon, and Bluesky delivery
+- Optional Mastodon and Bluesky delivery, plus API or manual X sharing
 - Queue-backed background work with retries and job visibility
 
 ## Architecture
@@ -34,7 +34,7 @@ Gongyu Worker
   `-- Cron: stranded outbox recovery and cleanup
 ```
 
-Bookmark mutations commit their Queue intent to the D1 outbox, then dispatch it immediately after the transaction. Metadata consumers stage and dispatch social deliveries only after metadata and thumbnail processing finishes, and acknowledge the metadata message after that handoff succeeds. The cron trigger recovers abandoned outbox leases; it is not part of the normal processing latency.
+Bookmark mutations commit their Queue intent to the D1 outbox, then dispatch it immediately after the transaction. Metadata consumers stage and dispatch automated social deliveries only after metadata and thumbnail processing finishes, and acknowledge the metadata message after that handoff succeeds. X sharing can instead use a manual Web Intent that requires the user to review and publish the post. The cron trigger recovers abandoned outbox leases; it is not part of the normal processing latency.
 
 The repository is a Bun workspace:
 

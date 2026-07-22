@@ -3,6 +3,7 @@ import { Settings } from '@gongyu/domain/settings';
 import {
     configuredProviders,
     formatSocialPayload,
+    twitterWebIntentUrl,
 } from '@gongyu/domain/social';
 import { Effect } from 'effect';
 
@@ -17,6 +18,7 @@ const emptySettings = Settings.make({
     twitterAccessToken: '',
     twitterApiKey: '',
     twitterApiSecret: '',
+    twitterDeliveryMode: 'disabled',
 });
 
 it.effect('requires complete trimmed provider credentials', () =>
@@ -34,6 +36,7 @@ it.effect('requires complete trimmed provider credentials', () =>
                     twitterAccessToken: 'access-token',
                     twitterApiKey: 'key',
                     twitterApiSecret: 'secret',
+                    twitterDeliveryMode: 'api',
                 }),
             ),
             ['twitter', 'mastodon', 'bluesky'],
@@ -50,6 +53,40 @@ it.effect('requires complete trimmed provider credentials', () =>
             ),
             [],
         );
+    }),
+);
+
+it.effect('keeps manual Twitter out of automated delivery', () =>
+    Effect.sync(() => {
+        const settings = Settings.make({
+            ...emptySettings,
+            twitterAccessSecret: 'access-secret',
+            twitterAccessToken: 'access-token',
+            twitterApiKey: 'key',
+            twitterApiSecret: 'secret',
+            twitterDeliveryMode: 'manual',
+        });
+        assert.deepEqual(configuredProviders(settings), []);
+    }),
+);
+
+it.effect('builds a bounded encoded X Web Intent', () =>
+    Effect.sync(() => {
+        const intent = new URL(
+            twitterWebIntentUrl({
+                originalUrl: 'https://example.com/article?a=1&b=2',
+                title: '😀'.repeat(300),
+            }),
+        );
+        assert.strictEqual(intent.origin, 'https://x.com');
+        assert.strictEqual(intent.pathname, '/intent/tweet');
+        assert.strictEqual(
+            intent.searchParams.get('url'),
+            'https://example.com/article?a=1&b=2',
+        );
+        const title = intent.searchParams.get('text') ?? '';
+        assert.strictEqual(Array.from(title).length, 256);
+        assert.strictEqual(Array.from(title).at(-1), '…');
     }),
 );
 

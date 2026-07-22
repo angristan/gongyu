@@ -46,6 +46,7 @@ export const BackupSettingKey = Schema.Union([
     Schema.Literal('twitter_access_token'),
     Schema.Literal('twitter_api_key'),
     Schema.Literal('twitter_api_secret'),
+    Schema.Literal('twitter_delivery_mode'),
 ]);
 
 export class BackupSetting extends Schema.Class<BackupSetting>('BackupSetting')(

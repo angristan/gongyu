@@ -5,9 +5,16 @@ import {
     DuplicateBookmarkError,
     decodeBookmarkInput,
 } from '@gongyu/domain/bookmarks';
-import { configuredProviders } from '@gongyu/domain/social';
+import {
+    configuredProviders,
+    twitterWebIntentUrl,
+} from '@gongyu/domain/social';
 import { dispatchBookmarkOutboxBestEffort } from '@gongyu/jobs/outbox-dispatcher';
-import { FloppyDiskIcon } from '@phosphor-icons/react';
+import {
+    ArrowSquareOutIcon,
+    CheckCircleIcon,
+    FloppyDiskIcon,
+} from '@phosphor-icons/react';
 import { Effect } from 'effect';
 import { useState } from 'react';
 import {
@@ -33,6 +40,7 @@ import {
     Input,
     InputArea,
     LayerCard,
+    LinkButton,
 } from '../components/ui';
 import { failure, success } from '../effect/result';
 import { matchesFormSubmission } from '../form-navigation';
@@ -46,19 +54,40 @@ export function meta(): Route.MetaDescriptors {
 
 export async function loader({ context, request }: Route.LoaderArgs) {
     const { authentication, effect } = context.get(cloudflareRequestContext);
+    const location = new URL(request.url);
     if (!authentication.authenticated) {
-        const location = new URL(request.url);
         return redirect(
             `/login?returnTo=${encodeURIComponent(`${location.pathname}${location.search}`)}`,
         );
     }
-    const providers = await effect.runPromise(
+    const shareShortUrl = location.searchParams.get('share');
+    return effect.runPromise(
         Effect.gen(function* () {
             const settings = yield* SettingsRepository;
-            return configuredProviders(yield* settings.get);
+            const bookmarks = yield* BookmarkRepository;
+            const current = yield* settings.get;
+            const bookmark =
+                shareShortUrl === null
+                    ? null
+                    : yield* bookmarks.findByShortUrl(shareShortUrl);
+            return {
+                providers: [
+                    ...configuredProviders(current),
+                    ...(current.twitterDeliveryMode === 'manual'
+                        ? ['X (manual)']
+                        : []),
+                ],
+                twitterIntentUrl:
+                    current.twitterDeliveryMode === 'manual' &&
+                    bookmark !== null
+                        ? twitterWebIntentUrl({
+                              originalUrl: bookmark.url,
+                              title: bookmark.title,
+                          })
+                        : null,
+            };
         }),
     );
-    return { providers };
 }
 
 export async function action({ context, request }: Route.ActionArgs) {
@@ -91,9 +120,17 @@ export async function action({ context, request }: Route.ActionArgs) {
             const decoded = yield* decodeBookmarkInput(input);
             const bookmarks = yield* BookmarkRepository;
             const settings = yield* SettingsRepository;
+            const currentSettings = yield* settings.get;
             const socialProviders = shareSocial
-                ? configuredProviders(yield* settings.get)
+                ? configuredProviders(currentSettings)
                 : [];
+            const twitterIntentUrl =
+                shareSocial && currentSettings.twitterDeliveryMode === 'manual'
+                    ? twitterWebIntentUrl({
+                          originalUrl: decoded.url,
+                          title: decoded.title,
+                      })
+                    : null;
             const bookmark = yield* bookmarks.create({
                 ...decoded,
                 createdAt: Date.now() * 1_000,
@@ -103,7 +140,7 @@ export async function action({ context, request }: Route.ActionArgs) {
                 bookmarkShortUrl: bookmark.shortUrl,
                 kind: 'metadata',
             });
-            return bookmark;
+            return { bookmark, twitterIntentUrl };
         }).pipe(
             Effect.match({
                 onFailure: failure,
@@ -112,7 +149,11 @@ export async function action({ context, request }: Route.ActionArgs) {
         ),
     );
     if (result.ok) {
-        return redirect('/admin/bookmarks');
+        return result.value.twitterIntentUrl === null
+            ? redirect('/admin/bookmarks')
+            : redirect(
+                  `/admin/bookmarks/new?share=${encodeURIComponent(result.value.bookmark.shortUrl)}`,
+              );
     }
     if (result.error instanceof DuplicateBookmarkError) {
         return data(
@@ -142,17 +183,68 @@ export default function AdminBookmarkNew({
         action: '/admin/bookmarks/new',
         method: 'POST',
     });
-    const values = actionData?.input ?? {
-        description: '',
-        title: '',
-        url: '',
-    };
-    const errors = actionData?.errors ?? {};
+    const values =
+        actionData !== undefined && 'input' in actionData
+            ? actionData.input
+            : {
+                  description: '',
+                  title: '',
+                  url: '',
+              };
+    const errors =
+        actionData !== undefined && 'errors' in actionData
+            ? actionData.errors
+            : {};
+    const twitterIntentUrl = loaderData.twitterIntentUrl;
     const titleError = 'title' in errors ? errors.title : undefined;
     const [url, setUrl] = useState(values.url);
     const [title, setTitle] = useState(values.title);
     const [description, setDescription] = useState(values.description ?? '');
     const [shareSocial, setShareSocial] = useState(true);
+    if (twitterIntentUrl !== null) {
+        return (
+            <AdminPage
+                description="Choose whether to publish the saved bookmark on X."
+                section="Bookmarks"
+                sectionHref="/admin/bookmarks"
+                title="Bookmark saved"
+            >
+                <div className="max-w-2xl">
+                    <LayerCard>
+                        <div className="space-y-4 p-5 text-center">
+                            <CheckCircleIcon
+                                aria-hidden="true"
+                                className="mx-auto text-gongyu-success"
+                                size={48}
+                                weight="duotone"
+                            />
+                            <p className="text-sm text-gongyu-subtle">
+                                X requires you to review and publish the
+                                prefilled post manually.
+                            </p>
+                            <div className="flex flex-wrap justify-center gap-2">
+                                <LinkButton
+                                    external
+                                    href={twitterIntentUrl}
+                                    icon={ArrowSquareOutIcon}
+                                    variant="primary"
+                                >
+                                    Open X composer
+                                </LinkButton>
+                                <LinkButton
+                                    href="/admin/bookmarks"
+                                    variant="secondary"
+                                >
+                                    Return to bookmarks
+                                </LinkButton>
+                            </div>
+                        </div>
+                    </LayerCard>
+                </div>
+            </AdminPage>
+        );
+    }
+
     return (
         <AdminPage
             description="Save a URL with useful notes."

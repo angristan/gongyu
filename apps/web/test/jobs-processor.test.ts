@@ -114,6 +114,7 @@ const TestLayer = Layer.mergeAll(
                 twitterAccessToken: '',
                 twitterApiKey: '',
                 twitterApiSecret: '',
+                twitterDeliveryMode: 'disabled',
             }),
         ),
         getLibraryName: Effect.succeed('Gongyu'),

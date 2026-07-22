@@ -51,6 +51,7 @@ function completeSettings(): Settings {
         twitterAccessToken: 'twitter-access-token',
         twitterApiKey: 'twitter-key',
         twitterApiSecret: 'twitter-secret',
+        twitterDeliveryMode: 'api',
     });
 }
 
@@ -66,6 +67,7 @@ it.layer(TestLayer)('encrypted settings repository', (it) => {
                 DEFAULT_LIBRARY_NAME,
             );
             assert.strictEqual(result.twitterApiKey, '');
+            assert.strictEqual(result.twitterDeliveryMode, 'disabled');
             assert.strictEqual(result.blueskyAppPassword, '');
         }),
     );
@@ -87,7 +89,7 @@ it.layer(TestLayer)('encrypted settings repository', (it) => {
                     ORDER BY key
                 `,
             );
-            assert.strictEqual(rows.rows.length, 10);
+            assert.strictEqual(rows.rows.length, 11);
             assert.strictEqual(
                 yield* settings.getLibraryName,
                 expected.libraryName,
@@ -99,6 +101,20 @@ it.layer(TestLayer)('encrypted settings repository', (it) => {
                 );
                 assert.include(row.encryptedValue ?? '', 'ciphertext');
             }
+        }),
+    );
+
+    it.effect('infers API mode for legacy complete credentials', () =>
+        Effect.gen(function* () {
+            const settings = yield* SettingsRepository;
+            const d1Store = yield* D1Store;
+            yield* settings.save(completeSettings(), 1_500);
+            yield* d1Store.run(
+                "DELETE FROM settings WHERE key = 'twitter_delivery_mode'",
+            );
+
+            const loaded = yield* settings.get;
+            assert.strictEqual(loaded.twitterDeliveryMode, 'api');
         }),
     );
 
@@ -117,10 +133,12 @@ it.layer(TestLayer)('encrypted settings repository', (it) => {
                 twitterAccessToken: '',
                 twitterApiKey: '',
                 twitterApiSecret: '',
+                twitterDeliveryMode: 'disabled',
             });
             yield* settings.save(empty, 2_000);
             const loaded = yield* settings.get;
             assert.strictEqual(loaded.twitterApiSecret, '');
+            assert.strictEqual(loaded.twitterDeliveryMode, 'disabled');
             const row = yield* d1Store.first(
                 StoredSetting,
                 `

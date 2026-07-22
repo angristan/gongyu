@@ -54,6 +54,7 @@ export class SocialPayloadError extends Schema.TaggedErrorClass<SocialPayloadErr
 export function configuredProviders(settings: Settings): SocialProvider[] {
     const providers: SocialProvider[] = [];
     if (
+        settings.twitterDeliveryMode === 'api' &&
         settings.twitterApiKey.trim() !== '' &&
         settings.twitterApiSecret.trim() !== '' &&
         settings.twitterAccessToken.trim() !== '' &&
@@ -81,6 +82,17 @@ function truncateTitle(title: string, budget: number): string {
     return points.length <= budget
         ? title
         : `${points.slice(0, Math.max(0, budget - 1)).join('')}…`;
+}
+
+export function twitterWebIntentUrl(input: {
+    readonly originalUrl: string;
+    readonly title: string;
+}): string {
+    const parameters = new URLSearchParams({
+        text: truncateTitle(input.title, 256),
+        url: input.originalUrl,
+    });
+    return `https://x.com/intent/tweet?${parameters.toString()}`;
 }
 
 export const formatSocialPayload = Effect.fn('Social.formatPayload')(

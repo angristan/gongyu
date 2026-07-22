@@ -559,12 +559,16 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
     await page.goto('/admin/settings');
     await page.getByLabel('Library name').fill('Browser test library');
     await page.getByLabel('Twitter API key').fill('browser-test-key');
+    await page.getByRole('radio', { name: /Manual composer/u }).check();
     await page.getByLabel('Feed item count').fill('250');
     await page.getByRole('button', { name: 'Save settings' }).click();
     await expect(page).toHaveURL(/\/admin\/settings\?saved=1$/u);
     await expect(page.getByLabel('Twitter API key')).toHaveValue(
         'browser-test-key',
     );
+    await expect(
+        page.getByRole('radio', { name: /Manual composer/u }),
+    ).toBeChecked();
     await expect(page.getByLabel('Feed item count')).toHaveValue('250');
     await expect(page.getByLabel('Library name')).toHaveValue(
         'Browser test library',
@@ -576,8 +580,42 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
             name: 'Browser test library',
         }),
     ).toBeVisible();
+    await page.goto('/admin/bookmarks/new');
+    await page.getByLabel('URL').fill('https://example.com/manual-x');
+    await page.getByLabel('Title').fill('Manual X post');
+    await expect(page.getByText('Share through X (manual)')).toBeVisible();
+    await page.getByRole('button', { name: 'Save bookmark' }).click();
+    await expect(
+        page.getByRole('heading', { name: 'Bookmark saved' }),
+    ).toBeVisible();
+    const xIntentHref = await page
+        .getByRole('link', { name: 'Open X composer' })
+        .getAttribute('href');
+    expect(xIntentHref).not.toBeNull();
+    const xIntent = new URL(xIntentHref ?? 'https://invalid.example');
+    expect(xIntent.origin).toBe('https://x.com');
+    expect(xIntent.pathname).toBe('/intent/tweet');
+    expect(xIntent.searchParams.get('text')).toBe('Manual X post');
+    expect(xIntent.searchParams.get('url')).toBe(
+        'https://example.com/manual-x',
+    );
+    const { stdout: manualDeliveryOutput } = await execute(
+        'bunx',
+        d1Arguments(`
+            SELECT CASE WHEN COUNT(*) = 0
+                THEN 'manual-only'
+                ELSE 'unexpected-delivery'
+            END AS outcome
+            FROM social_deliveries AS deliveries
+            JOIN bookmarks ON bookmarks.short_url = deliveries.bookmark_short_url
+            WHERE bookmarks.url = 'https://example.com/manual-x';
+        `),
+    );
+    expect(manualDeliveryOutput).toContain('manual-only');
+
     await page.goto('/admin/settings');
     await page.getByLabel('Library name').fill('Gongyu');
+    await page.getByRole('radio', { name: /Disabled/u }).check();
     await page.getByRole('button', { name: 'Save settings' }).click();
     await expect(page).toHaveURL(/\/admin\/settings\?saved=1$/u);
 
