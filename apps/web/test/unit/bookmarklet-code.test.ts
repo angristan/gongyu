@@ -10,6 +10,6 @@ it('opens a popup large enough for the capture form', () => {
     );
     assert.include(
         code,
-        "'gongyu','width=720,height=850,resizable=yes,scrollbars=yes'",
+        "'gongyu','width=600,height=720,resizable=yes,scrollbars=yes'",
     );
 });
