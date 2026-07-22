@@ -10,7 +10,6 @@ import {
     makeMetadataRepository,
 } from '@gongyu/data/metadata-repository';
 import { MetadataCandidate } from '@gongyu/domain/metadata';
-import { SocialPayloadSnapshot } from '@gongyu/domain/social';
 import { Effect, Layer, Schema } from 'effect';
 
 const D1StoreTest = Layer.effect(D1Store)(
@@ -46,31 +45,29 @@ class CountRow extends Schema.Class<CountRow>('CountRow')({
 }) {}
 
 it.layer(TestLayer)('metadata lifecycle repository', (it) => {
-    it.effect(
-        'creates social intents atomically and freezes submitted values',
-        () =>
-            Effect.gen(function* () {
-                const bookmarks = yield* BookmarkRepository;
-                const metadata = yield* MetadataRepository;
-                const d1 = yield* D1Store;
-                const bookmark = yield* bookmarks.create({
-                    createdAt: 1_000,
-                    description: null,
-                    socialProviders: ['twitter', 'mastodon', 'bluesky'],
-                    title: 'Submitted title',
-                    url: 'https://example.com/original',
-                });
-                yield* bookmarks.update({
-                    description: 'Edited later',
-                    shortUrl: bookmark.shortUrl,
-                    title: 'Edited title',
-                    updatedAt: 2_000,
-                    url: bookmark.url,
-                });
+    it.effect('finalizes metadata without mutating frozen social intents', () =>
+        Effect.gen(function* () {
+            const bookmarks = yield* BookmarkRepository;
+            const metadata = yield* MetadataRepository;
+            const d1 = yield* D1Store;
+            const bookmark = yield* bookmarks.create({
+                createdAt: 1_000,
+                description: null,
+                socialProviders: ['twitter', 'mastodon', 'bluesky'],
+                title: 'Submitted title',
+                url: 'https://example.com/original',
+            });
+            yield* bookmarks.update({
+                description: 'Edited later',
+                shortUrl: bookmark.shortUrl,
+                title: 'Edited title',
+                updatedAt: 2_000,
+                url: bookmark.url,
+            });
 
-                const waiting = yield* d1.query(
-                    DeliveryRow,
-                    `
+            const waiting = yield* d1.query(
+                DeliveryRow,
+                `
                         SELECT
                             provider,
                             state,
@@ -80,38 +77,38 @@ it.layer(TestLayer)('metadata lifecycle repository', (it) => {
                         WHERE bookmark_short_url = ?
                         ORDER BY provider
                     `,
-                    [bookmark.shortUrl],
-                );
-                assert.lengthOf(waiting.rows, 3);
-                assert.isTrue(
-                    waiting.rows.every(
-                        (delivery) => delivery.state === 'waiting_metadata',
-                    ),
-                );
-                assert.isTrue(
-                    waiting.rows.every(
-                        (delivery) =>
-                            JSON.parse(delivery.sourceJson).title ===
-                            'Submitted title',
-                    ),
-                );
+                [bookmark.shortUrl],
+            );
+            assert.lengthOf(waiting.rows, 3);
+            assert.isTrue(
+                waiting.rows.every(
+                    (delivery) => delivery.state === 'waiting_metadata',
+                ),
+            );
+            assert.isTrue(
+                waiting.rows.every(
+                    (delivery) =>
+                        JSON.parse(delivery.sourceJson).title ===
+                        'Submitted title',
+                ),
+            );
 
-                yield* metadata.finalize({
-                    candidate: MetadataCandidate.make({
-                        description: 'Extracted description',
-                        imageUrl: null,
-                        title: 'Extracted title',
-                    }),
-                    errorCode: null,
-                    expectedUpdatedAt: 2_000,
-                    now: 3_000,
-                    shortUrl: bookmark.shortUrl,
-                    thumbnail: null,
-                    thumbnailSourceUrl: null,
-                });
-                const finalized = yield* d1.query(
-                    DeliveryRow,
-                    `
+            yield* metadata.finalize({
+                candidate: MetadataCandidate.make({
+                    description: 'Extracted description',
+                    imageUrl: null,
+                    title: 'Extracted title',
+                }),
+                errorCode: null,
+                expectedUpdatedAt: 2_000,
+                now: 3_000,
+                shortUrl: bookmark.shortUrl,
+                thumbnail: null,
+                thumbnailSourceUrl: null,
+            });
+            const finalized = yield* d1.query(
+                DeliveryRow,
+                `
                         SELECT
                             provider,
                             state,
@@ -120,31 +117,26 @@ it.layer(TestLayer)('metadata lifecycle repository', (it) => {
                         FROM social_deliveries
                         WHERE bookmark_short_url = ?
                     `,
-                    [bookmark.shortUrl],
-                );
-                assert.isTrue(
-                    finalized.rows.every(
-                        (delivery) => delivery.state === 'queued',
-                    ),
-                );
-                for (const delivery of finalized.rows) {
-                    const payload = yield* Schema.decodeUnknownEffect(
-                        SocialPayloadSnapshot,
-                    )(JSON.parse(delivery.payloadJson ?? 'null'));
-                    assert.strictEqual(payload.title, 'Submitted title');
-                    assert.strictEqual(payload.description, '');
-                }
-                const socialOutbox = yield* d1.first(
-                    CountRow,
-                    `
+                [bookmark.shortUrl],
+            );
+            assert.isTrue(
+                finalized.rows.every(
+                    (delivery) =>
+                        delivery.state === 'waiting_metadata' &&
+                        delivery.payloadJson === null,
+                ),
+            );
+            const socialOutbox = yield* d1.first(
+                CountRow,
+                `
                         SELECT COUNT(*) AS count
                         FROM outbox
                         WHERE bookmark_short_url = ? AND kind = 'social'
                     `,
-                    [bookmark.shortUrl],
-                );
-                assert.strictEqual(socialOutbox?.count, 3);
-            }),
+                [bookmark.shortUrl],
+            );
+            assert.strictEqual(socialOutbox?.count, 0);
+        }),
     );
 
     it.effect('rejects stale finalization after a concurrent edit', () =>
@@ -232,11 +224,8 @@ it.layer(TestLayer)('metadata lifecycle repository', (it) => {
                 `,
                 [bookmark.shortUrl],
             );
-            assert.strictEqual(row?.state, 'queued');
-            assert.strictEqual(
-                JSON.parse(row?.payloadJson ?? 'null').title,
-                'Fallback title',
-            );
+            assert.strictEqual(row?.state, 'waiting_metadata');
+            assert.isNull(row?.payloadJson);
         }),
     );
 });

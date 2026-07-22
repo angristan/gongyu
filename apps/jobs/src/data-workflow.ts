@@ -37,6 +37,7 @@ interface JobsWorkflowEnv {
     readonly DB: D1Database;
     readonly ENCRYPTION_KEYS?: string;
     readonly IMAGES: ThumbnailImagesBinding;
+    readonly JOBS_QUEUE: Queue;
     readonly UPLOADS: R2Bucket;
 }
 
@@ -624,6 +625,7 @@ export class DataWorkflow extends WorkflowEntrypoint<
             images: this.env.IMAGES,
             invocationId: event.instanceId,
             objectStorage: this.env.UPLOADS,
+            queue: this.env.JOBS_QUEUE,
             trigger: 'workflow',
         });
         const run = <A, E>(operation: Effect.Effect<A, E, JobsServices>) =>

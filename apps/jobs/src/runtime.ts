@@ -28,6 +28,10 @@ import {
     MetadataClient,
     makeMetadataClient,
 } from '@gongyu/integrations/metadata-client';
+import {
+    makeQueueProducer,
+    QueueProducer,
+} from '@gongyu/integrations/queue-producer';
 import { makeR2Store, R2Store } from '@gongyu/integrations/r2-store';
 import {
     makeSocialClients,
@@ -58,6 +62,7 @@ export type JobsServices =
     | JobsInvocationInfo
     | MetadataClient
     | MetadataRepository
+    | QueueProducer
     | R2Store
     | SettingsRepository
     | SocialClients
@@ -79,6 +84,7 @@ export function makeJobsEffectRunner(options: {
     readonly images: ThumbnailImagesBinding;
     readonly invocationId: string;
     readonly objectStorage: R2Bucket;
+    readonly queue: Queue;
     readonly trigger: JobsInvocationInfoShape['trigger'];
 }): JobsEffectRunner {
     const d1Store = makeD1Store(options.database.withSession('first-primary'));
@@ -95,6 +101,7 @@ export function makeJobsEffectRunner(options: {
     const metadataRepository = MetadataRepository.of(
         makeMetadataRepository(d1Store),
     );
+    const queueProducer = QueueProducer.of(makeQueueProducer(options.queue));
     const r2Store = makeR2Store(options.objectStorage);
     const settingsRepository = SettingsRepository.of(
         makeSettingsRepository(d1Store, encryption),
@@ -122,6 +129,7 @@ export function makeJobsEffectRunner(options: {
                 Effect.provideService(JobsInvocationInfo, invocationInfo),
                 Effect.provideService(MetadataClient, metadataClient),
                 Effect.provideService(MetadataRepository, metadataRepository),
+                Effect.provideService(QueueProducer, queueProducer),
                 Effect.provideService(R2Store, r2Store),
                 Effect.provideService(SettingsRepository, settingsRepository),
                 Effect.provideService(SocialClients, socialClients),

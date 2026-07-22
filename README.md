@@ -31,8 +31,10 @@ Gongyu Worker
   |-- R2: thumbnails, import sources, exports, backups
   |-- Queues: metadata, thumbnails, social delivery
   |-- Workflows: imports, exports, backups, restores
-  `-- Cron: outbox dispatch and cleanup
+  `-- Cron: stranded outbox recovery and cleanup
 ```
+
+Bookmark mutations commit their Queue intent to the D1 outbox, then dispatch it immediately after the transaction. Metadata consumers stage and dispatch social deliveries only after metadata and thumbnail processing finishes, and acknowledge the metadata message after that handoff succeeds. The cron trigger recovers abandoned outbox leases; it is not part of the normal processing latency.
 
 The repository is a Bun workspace:
 

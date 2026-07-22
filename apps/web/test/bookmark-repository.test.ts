@@ -188,57 +188,6 @@ it.layer(TestLayer)('production bookmark repository', (it) => {
             }),
     );
 
-    it.effect(
-        'fences concurrent outbox claims and reclaims expired leases',
-        () =>
-            Effect.gen(function* () {
-                const bookmarks = yield* BookmarkRepository;
-                const bookmark = yield* bookmarks.create({
-                    createdAt: 8_000,
-                    description: null,
-                    title: 'Lease target',
-                    url: 'https://example.com/lease-target',
-                });
-                const id = `metadata:${bookmark.shortUrl}:1`;
-                const first = yield* bookmarks.claimOutbox({
-                    id,
-                    leaseDurationMicros: 100,
-                    now: 100,
-                    token: 'first',
-                });
-                const concurrent = yield* bookmarks.claimOutbox({
-                    id,
-                    leaseDurationMicros: 100,
-                    now: 150,
-                    token: 'second',
-                });
-                const reclaimed = yield* bookmarks.claimOutbox({
-                    id,
-                    leaseDurationMicros: 100,
-                    now: 201,
-                    token: 'second',
-                });
-
-                assert.strictEqual(first?.attempts, 1);
-                assert.isNull(concurrent);
-                assert.strictEqual(reclaimed?.attempts, 2);
-                assert.isFalse(
-                    yield* bookmarks.completeOutbox({
-                        completedAt: 202,
-                        id,
-                        token: 'first',
-                    }),
-                );
-                assert.isTrue(
-                    yield* bookmarks.completeOutbox({
-                        completedAt: 203,
-                        id,
-                        token: 'second',
-                    }),
-                );
-            }),
-    );
-
     it.effect('retains mirrored thumbnail state across edits', () =>
         Effect.gen(function* () {
             const bookmarks = yield* BookmarkRepository;

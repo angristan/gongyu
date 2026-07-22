@@ -25,6 +25,7 @@ import {
 import { QueueJobMessage } from '@gongyu/domain/jobs';
 import { MetadataCandidate } from '@gongyu/domain/metadata';
 import { Settings } from '@gongyu/domain/settings';
+import { SocialPayloadSnapshot } from '@gongyu/domain/social';
 import { MetadataClient } from '@gongyu/integrations/metadata-client';
 import { makeR2Store, R2Store } from '@gongyu/integrations/r2-store';
 import {
@@ -128,6 +129,13 @@ class StateRow extends Schema.Class<StateRow>('StateRow')({
     state: Schema.String,
 }) {}
 
+class SocialPayloadRow extends Schema.Class<SocialPayloadRow>(
+    'SocialPayloadRow',
+)({
+    payloadJson: Schema.String,
+    state: Schema.String,
+}) {}
+
 it.effect('processes metadata then one immutable social delivery', () =>
     Effect.gen(function* () {
         const bookmarks = yield* BookmarkRepository;
@@ -156,11 +164,20 @@ it.effect('processes metadata then one immutable social delivery', () =>
 
         const deliveryId = `social:${bookmark.shortUrl}:mastodon:v1`;
         const delivery = yield* d1.first(
-            StateRow,
-            'SELECT state FROM social_deliveries WHERE id = ?',
+            SocialPayloadRow,
+            `
+                SELECT state, payload_json AS "payloadJson"
+                FROM social_deliveries
+                WHERE id = ?
+            `,
             [deliveryId],
         );
         assert.strictEqual(delivery?.state, 'queued');
+        const payload = yield* Schema.decodeUnknownEffect(
+            SocialPayloadSnapshot,
+        )(JSON.parse(delivery?.payloadJson ?? 'null'));
+        assert.strictEqual(payload.title, 'Submitted title');
+        assert.strictEqual(payload.description, '');
 
         const socialOutcome = yield* processQueueJob(
             QueueJobMessage.make({
@@ -178,6 +195,55 @@ it.effect('processes metadata then one immutable social delivery', () =>
         );
         assert.strictEqual(delivered?.state, 'delivered');
     }).pipe(Effect.provide(TestLayer)),
+);
+
+it.effect(
+    'resumes social staging after metadata committed before a crash',
+    () =>
+        Effect.gen(function* () {
+            const bookmarks = yield* BookmarkRepository;
+            const metadata = yield* MetadataRepository;
+            const d1 = yield* D1Store;
+            const now = Date.now() * 1_000;
+            const bookmark = yield* bookmarks.create({
+                createdAt: now,
+                description: 'Crash-safe source',
+                socialProviders: ['mastodon'],
+                title: 'Crash-safe title',
+                url: `https://example.com/crash-safe-${crypto.randomUUID()}`,
+            });
+            const finalized = yield* metadata.finalize({
+                candidate: MetadataCandidate.make({
+                    description: null,
+                    imageUrl: null,
+                    title: 'Fetched title',
+                }),
+                errorCode: null,
+                expectedUpdatedAt: bookmark.updatedAt,
+                now: now + 1_000,
+                shortUrl: bookmark.shortUrl,
+                thumbnail: null,
+                thumbnailSourceUrl: null,
+            });
+            assert.isTrue(finalized);
+
+            const outcome = yield* processQueueJob(
+                QueueJobMessage.make({
+                    bookmarkShortUrl: bookmark.shortUrl,
+                    jobId: `metadata:${bookmark.shortUrl}:1`,
+                    kind: 'metadata',
+                    version: 1,
+                }),
+            );
+            const delivery = yield* d1.first(
+                StateRow,
+                'SELECT state FROM social_deliveries WHERE bookmark_short_url = ?',
+                [bookmark.shortUrl],
+            );
+
+            assert.isNull(outcome.retryDelaySeconds);
+            assert.strictEqual(delivery?.state, 'queued');
+        }).pipe(Effect.provide(TestLayer)),
 );
 
 it.effect('retries queued work while portability maintenance is active', () =>

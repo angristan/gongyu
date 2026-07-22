@@ -1,13 +1,6 @@
-import { QueueJobMessage } from '@gongyu/domain/jobs';
 import type { MetadataCandidate } from '@gongyu/domain/metadata';
-import {
-    formatSocialPayload,
-    SocialPayloadError,
-    SocialProvider,
-    SocialSourceSnapshot,
-} from '@gongyu/domain/social';
 import { Context, Effect, Schema } from 'effect';
-import type { D1Statement, D1Store, D1StoreFailure } from './d1-store';
+import type { D1Store, D1StoreFailure } from './d1-store';
 
 export class MetadataTarget extends Schema.Class<MetadataTarget>(
     'MetadataTarget',
@@ -40,12 +33,12 @@ export class MirroredThumbnail extends Schema.Class<MirroredThumbnail>(
     sha256: Schema.String,
 }) {}
 
-class WaitingSocialDelivery extends Schema.Class<WaitingSocialDelivery>(
-    'WaitingSocialDelivery',
+export class FinalizedMetadata extends Schema.Class<FinalizedMetadata>(
+    'FinalizedMetadata',
 )({
-    id: Schema.String,
-    provider: SocialProvider,
-    sourceJson: Schema.String,
+    errorCode: Schema.NullOr(Schema.String),
+    finalizedAt: Schema.Number,
+    thumbnailKey: Schema.NullOr(Schema.String),
 }) {}
 
 export interface MetadataRepositoryShape {
@@ -56,6 +49,9 @@ export interface MetadataRepositoryShape {
     readonly finalizeDeletion: (
         shortUrl: string,
     ) => Effect.Effect<boolean, D1StoreFailure>;
+    readonly findFinalized: (
+        shortUrl: string,
+    ) => Effect.Effect<FinalizedMetadata | null, D1StoreFailure>;
     readonly findPendingDeletion: (
         shortUrl: string,
     ) => Effect.Effect<PendingThumbnailDeletion | null, D1StoreFailure>;
@@ -85,7 +81,7 @@ export interface MetadataRepositoryShape {
             readonly width: number;
         } | null;
         readonly thumbnailSourceUrl: string | null;
-    }) => Effect.Effect<boolean, D1StoreFailure | SocialPayloadError>;
+    }) => Effect.Effect<boolean, D1StoreFailure>;
 }
 
 export class MetadataRepository extends Context.Service<
@@ -113,6 +109,25 @@ export function makeMetadataRepository(
                     WHERE short_url = ?
                       AND deletion_state = 'active'
                       AND metadata_state IN ('pending', 'failed')
+                `,
+                [shortUrl],
+            ),
+    );
+
+    const findFinalized = Effect.fn('MetadataRepository.findFinalized')(
+        (shortUrl: string) =>
+            d1Store.first(
+                FinalizedMetadata,
+                `
+                    SELECT
+                        metadata_error_code AS "errorCode",
+                        metadata_attempted_at AS "finalizedAt",
+                        thumbnail_key AS "thumbnailKey"
+                    FROM bookmarks
+                    WHERE short_url = ?
+                      AND deletion_state = 'active'
+                      AND metadata_state IN ('completed', 'failed')
+                      AND metadata_attempted_at IS NOT NULL
                 `,
                 [shortUrl],
             ),
@@ -215,193 +230,48 @@ export function makeMetadataRepository(
             } | null;
             readonly thumbnailSourceUrl: string | null;
         }) {
-            const deliveries = yield* d1Store.query(
-                WaitingSocialDelivery,
+            const result = yield* d1Store.run(
                 `
-                    SELECT
-                        id,
-                        provider,
-                        source_json AS "sourceJson"
-                    FROM social_deliveries
-                    WHERE bookmark_short_url = ?
-                      AND state = 'waiting_metadata'
-                    ORDER BY id
+                    UPDATE bookmarks
+                    SET
+                        metadata_state = ?,
+                        metadata_error_code = ?,
+                        metadata_attempted_at = ?,
+                        thumbnail_cleanup_key = CASE
+                            WHEN thumbnail_key IS NOT NULL
+                              AND thumbnail_key <> COALESCE(?, '')
+                            THEN thumbnail_key
+                            ELSE thumbnail_cleanup_key
+                        END,
+                        thumbnail_url = ?,
+                        thumbnail_key = ?,
+                        thumbnail_content_type = ?,
+                        thumbnail_size = ?,
+                        thumbnail_width = ?,
+                        thumbnail_height = ?,
+                        thumbnail_sha256 = ?
+                    WHERE short_url = ?
+                      AND deletion_state = 'active'
+                      AND metadata_state IN ('pending', 'failed')
+                      AND updated_at = ?
                 `,
-                [input.shortUrl],
+                [
+                    input.errorCode === null ? 'completed' : 'failed',
+                    input.errorCode,
+                    input.now,
+                    input.thumbnail?.key ?? null,
+                    input.thumbnail?.sourceUrl ?? input.thumbnailSourceUrl,
+                    input.thumbnail?.key ?? null,
+                    input.thumbnail?.contentType ?? null,
+                    input.thumbnail?.size ?? null,
+                    input.thumbnail?.width ?? null,
+                    input.thumbnail?.height ?? null,
+                    input.thumbnail?.sha256 ?? null,
+                    input.shortUrl,
+                    input.expectedUpdatedAt,
+                ],
             );
-            const statements: D1Statement[] = [
-                {
-                    sql: `
-                        UPDATE bookmarks
-                        SET
-                            metadata_state = ?,
-                            metadata_error_code = ?,
-                            metadata_attempted_at = ?,
-                            thumbnail_cleanup_key = CASE
-                                WHEN thumbnail_key IS NOT NULL
-                                  AND thumbnail_key <> COALESCE(?, '')
-                                THEN thumbnail_key
-                                ELSE thumbnail_cleanup_key
-                            END,
-                            thumbnail_url = ?,
-                            thumbnail_key = ?,
-                            thumbnail_content_type = ?,
-                            thumbnail_size = ?,
-                            thumbnail_width = ?,
-                            thumbnail_height = ?,
-                            thumbnail_sha256 = ?
-                        WHERE short_url = ?
-                          AND deletion_state = 'active'
-                          AND metadata_state IN ('pending', 'failed')
-                          AND updated_at = ?
-                    `,
-                    parameters: [
-                        input.errorCode === null ? 'completed' : 'failed',
-                        input.errorCode,
-                        input.now,
-                        input.thumbnail?.key ?? null,
-                        input.thumbnail?.sourceUrl ?? input.thumbnailSourceUrl,
-                        input.thumbnail?.key ?? null,
-                        input.thumbnail?.contentType ?? null,
-                        input.thumbnail?.size ?? null,
-                        input.thumbnail?.width ?? null,
-                        input.thumbnail?.height ?? null,
-                        input.thumbnail?.sha256 ?? null,
-                        input.shortUrl,
-                        input.expectedUpdatedAt,
-                    ],
-                },
-            ];
-
-            for (const delivery of deliveries.rows) {
-                const sourceUnknown = yield* Effect.try({
-                    try: () => JSON.parse(delivery.sourceJson),
-                    catch: () =>
-                        SocialPayloadError.make({
-                            code: 'invalid_source_snapshot',
-                            provider: delivery.provider,
-                        }),
-                });
-                const source = yield* Schema.decodeUnknownEffect(
-                    SocialSourceSnapshot,
-                )(sourceUnknown).pipe(
-                    Effect.mapError(() =>
-                        SocialPayloadError.make({
-                            code: 'invalid_source_snapshot',
-                            provider: delivery.provider,
-                        }),
-                    ),
-                );
-                const payload = yield* formatSocialPayload({
-                    description: source.description ?? '',
-                    finalizedAt: input.now,
-                    originalUrl: source.originalUrl,
-                    provider: delivery.provider,
-                    r2ThumbnailKey: input.thumbnail?.key ?? null,
-                    shortUrl: source.shortUrl,
-                    title: source.title,
-                }).pipe(
-                    Effect.match({
-                        onFailure: (error) => ({ ok: false as const, error }),
-                        onSuccess: (value) => ({ ok: true as const, value }),
-                    }),
-                );
-                if (!payload.ok) {
-                    statements.push({
-                        sql: `
-                            UPDATE social_deliveries
-                            SET
-                                state = 'failed',
-                                last_error_code = ?,
-                                completed_at = ?,
-                                updated_at = ?
-                            WHERE id = ?
-                              AND state = 'waiting_metadata'
-                              AND EXISTS (
-                                SELECT 1 FROM bookmarks
-                                WHERE short_url = ?
-                                  AND deletion_state = 'active'
-                                  AND updated_at = ?
-                              )
-                        `,
-                        parameters: [
-                            payload.error.code,
-                            input.now,
-                            input.now,
-                            delivery.id,
-                            input.shortUrl,
-                            input.expectedUpdatedAt,
-                        ],
-                    });
-                    continue;
-                }
-                const message = QueueJobMessage.make({
-                    bookmarkShortUrl: input.shortUrl,
-                    jobId: delivery.id,
-                    kind: 'social',
-                    version: 1,
-                });
-                statements.push(
-                    {
-                        sql: `
-                            UPDATE social_deliveries
-                            SET
-                                state = 'queued',
-                                payload_json = ?,
-                                updated_at = ?
-                            WHERE id = ?
-                              AND state = 'waiting_metadata'
-                              AND EXISTS (
-                                SELECT 1 FROM bookmarks
-                                WHERE short_url = ?
-                                  AND deletion_state = 'active'
-                                  AND updated_at = ?
-                              )
-                        `,
-                        parameters: [
-                            JSON.stringify(payload.value),
-                            input.now,
-                            delivery.id,
-                            input.shortUrl,
-                            input.expectedUpdatedAt,
-                        ],
-                    },
-                    {
-                        sql: `
-                            INSERT OR IGNORE INTO outbox (
-                                id,
-                                bookmark_short_url,
-                                kind,
-                                state,
-                                payload_version,
-                                payload_json,
-                                available_at,
-                                created_at,
-                                updated_at
-                            )
-                            SELECT ?, ?, 'social', 'pending', 1, ?, ?, ?, ?
-                            WHERE EXISTS (
-                                SELECT 1 FROM bookmarks
-                                WHERE short_url = ?
-                                  AND deletion_state = 'active'
-                                  AND updated_at = ?
-                            )
-                        `,
-                        parameters: [
-                            delivery.id,
-                            input.shortUrl,
-                            JSON.stringify(message),
-                            input.now,
-                            input.now,
-                            input.now,
-                            input.shortUrl,
-                            input.expectedUpdatedAt,
-                        ],
-                    },
-                );
-            }
-            const results = yield* d1Store.batch(statements);
-            return (results[0]?.changes ?? 0) === 1;
+            return result.changes === 1;
         },
     );
 
@@ -409,6 +279,7 @@ export function makeMetadataRepository(
         completeThumbnailCleanup,
         finalize,
         finalizeDeletion,
+        findFinalized,
         findPendingDeletion,
         findTarget,
         findThumbnail,

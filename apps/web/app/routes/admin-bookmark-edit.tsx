@@ -7,6 +7,7 @@ import {
     decodeBookmarkInput,
 } from '@gongyu/domain/bookmarks';
 import { R2Store } from '@gongyu/integrations/r2-store';
+import { dispatchBookmarkOutboxBestEffort } from '@gongyu/jobs/outbox-dispatcher';
 import {
     ArrowSquareOutIcon,
     FloppyDiskIcon,
@@ -143,11 +144,16 @@ export async function action({ context, params, request }: Route.ActionArgs) {
         Effect.gen(function* () {
             const decoded = yield* decodeBookmarkInput(input);
             const bookmarks = yield* BookmarkRepository;
-            return yield* bookmarks.update({
+            const bookmark = yield* bookmarks.update({
                 ...decoded,
                 shortUrl,
                 updatedAt: Date.now() * 1_000,
             });
+            yield* dispatchBookmarkOutboxBestEffort({
+                bookmarkShortUrl: bookmark.shortUrl,
+                kind: 'metadata',
+            });
+            return bookmark;
         }).pipe(
             Effect.match({
                 onFailure: failure,

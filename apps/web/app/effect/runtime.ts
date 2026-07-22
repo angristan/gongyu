@@ -32,6 +32,10 @@ import {
     MetadataClient,
     makeMetadataClient,
 } from '@gongyu/integrations/metadata-client';
+import {
+    makeQueueProducer,
+    QueueProducer,
+} from '@gongyu/integrations/queue-producer';
 import { makeR2Store, R2Store } from '@gongyu/integrations/r2-store';
 import { Context, Effect, Logger, ManagedRuntime } from 'effect';
 
@@ -53,6 +57,7 @@ export type RequestServices =
     | Encryption
     | MetadataClient
     | MetadataRepository
+    | QueueProducer
     | R2Store
     | RequestInfo
     | SessionService
@@ -71,6 +76,7 @@ export function makeRequestEffectRunner(options: {
     readonly bucket: R2Bucket;
     readonly database: D1Database;
     readonly encryptionKeyring: string;
+    readonly queue: Queue;
     readonly requestId: string;
     readonly sessionConstraint: D1SessionConstraint;
 }): RequestEffectRunner {
@@ -90,6 +96,7 @@ export function makeRequestEffectRunner(options: {
     const metadataRepository = MetadataRepository.of(
         makeMetadataRepository(d1Store),
     );
+    const queueProducer = QueueProducer.of(makeQueueProducer(options.queue));
     const r2Store = makeR2Store(options.bucket);
     const sessionService = SessionService.of(makeSessionService(d1Store));
     const settingsRepository = SettingsRepository.of(
@@ -117,6 +124,7 @@ export function makeRequestEffectRunner(options: {
                 Effect.provideService(Encryption, encryption),
                 Effect.provideService(MetadataClient, metadataClient),
                 Effect.provideService(MetadataRepository, metadataRepository),
+                Effect.provideService(QueueProducer, queueProducer),
                 Effect.provideService(R2Store, r2Store),
                 Effect.provideService(SessionService, sessionService),
                 Effect.provideService(SettingsRepository, settingsRepository),

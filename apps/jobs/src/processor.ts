@@ -1,11 +1,17 @@
 import { DataRunRepository } from '@gongyu/data/data-run-repository';
 import { MetadataRepository } from '@gongyu/data/metadata-repository';
 import { SettingsRepository } from '@gongyu/data/settings-repository';
-import { SocialRepository } from '@gongyu/data/social-repository';
+import {
+    SocialRepository,
+    type SocialStagingOutcome,
+} from '@gongyu/data/social-repository';
 import { WorkRepository } from '@gongyu/data/work-repository';
 import type { QueueJobMessage } from '@gongyu/domain/jobs';
 import { MetadataError } from '@gongyu/domain/metadata';
-import { configuredProviders } from '@gongyu/domain/social';
+import {
+    configuredProviders,
+    formatSocialPayload,
+} from '@gongyu/domain/social';
 import { MetadataClient } from '@gongyu/integrations/metadata-client';
 import { R2Store } from '@gongyu/integrations/r2-store';
 import {
@@ -50,6 +56,55 @@ function retryDelay(attempts: number): number {
     );
 }
 
+const stageWaitingSocial = Effect.fn('Jobs.stageWaitingSocial')(function* (
+    bookmarkShortUrl: string,
+) {
+    const metadataRepository = yield* MetadataRepository;
+    const finalized = yield* metadataRepository.findFinalized(bookmarkShortUrl);
+    if (finalized === null) {
+        return null;
+    }
+    const socialRepository = yield* SocialRepository;
+    const deliveries = yield* socialRepository.listWaiting(bookmarkShortUrl);
+    const outcomes: SocialStagingOutcome[] = [];
+    for (const delivery of deliveries) {
+        const formatted = yield* formatSocialPayload({
+            description: delivery.source.description ?? '',
+            finalizedAt: finalized.finalizedAt,
+            originalUrl: delivery.source.originalUrl,
+            provider: delivery.provider,
+            r2ThumbnailKey: finalized.thumbnailKey,
+            shortUrl: delivery.source.shortUrl,
+            title: delivery.source.title,
+        }).pipe(
+            Effect.match({
+                onFailure: (error) => ({ error, ok: false as const }),
+                onSuccess: (payload) => ({ ok: true as const, payload }),
+            }),
+        );
+        outcomes.push(
+            formatted.ok
+                ? {
+                      errorCode: null,
+                      id: delivery.id,
+                      payload: formatted.payload,
+                  }
+                : {
+                      errorCode: formatted.error.code,
+                      id: delivery.id,
+                      payload: null,
+                  },
+        );
+    }
+    yield* socialRepository.stage({
+        bookmarkShortUrl,
+        finalizedAt: finalized.finalizedAt,
+        now: finalized.finalizedAt,
+        outcomes,
+    });
+    return finalized;
+});
+
 const processMetadata = Effect.fn('Jobs.processMetadata')(function* (input: {
     readonly attempts: number;
     readonly message: QueueJobMessage;
@@ -63,11 +118,24 @@ const processMetadata = Effect.fn('Jobs.processMetadata')(function* (input: {
     );
     if (target === null) {
         yield* cleanupReplacedThumbnail(input.message.bookmarkShortUrl);
-        yield* workRepository.completeJob({
-            id: input.message.jobId,
-            now: input.now,
-            token: input.token,
-        });
+        const finalized = yield* stageWaitingSocial(
+            input.message.bookmarkShortUrl,
+        );
+        if (finalized !== null && finalized.errorCode !== null) {
+            yield* workRepository.failJob({
+                errorCode: finalized.errorCode,
+                id: input.message.jobId,
+                needsReview: false,
+                now: input.now,
+                token: input.token,
+            });
+        } else {
+            yield* workRepository.completeJob({
+                id: input.message.jobId,
+                now: input.now,
+                token: input.token,
+            });
+        }
         return { retryDelaySeconds: null } satisfies ProcessOutcome;
     }
 
@@ -107,6 +175,7 @@ const processMetadata = Effect.fn('Jobs.processMetadata')(function* (input: {
             thumbnailSourceUrl: target.thumbnailUrl,
         });
         if (finalized) {
+            yield* stageWaitingSocial(input.message.bookmarkShortUrl);
             yield* cleanupReplacedThumbnail(input.message.bookmarkShortUrl);
             yield* workRepository.failJob({
                 errorCode:
@@ -226,6 +295,7 @@ const processMetadata = Effect.fn('Jobs.processMetadata')(function* (input: {
         yield* r2.delete(uploadedKey);
     }
     if (finalized) {
+        yield* stageWaitingSocial(input.message.bookmarkShortUrl);
         yield* cleanupReplacedThumbnail(input.message.bookmarkShortUrl);
     }
     yield* workRepository.completeJob({

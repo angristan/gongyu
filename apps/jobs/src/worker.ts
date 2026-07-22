@@ -3,6 +3,10 @@ import { WorkRepository } from '@gongyu/data/work-repository';
 import { QueueJobMessage } from '@gongyu/domain/jobs';
 import type { ThumbnailImagesBinding } from '@gongyu/integrations/thumbnail-client';
 import { Effect, Schema } from 'effect';
+import {
+    dispatchBookmarkOutbox,
+    dispatchPendingOutbox,
+} from './outbox-dispatcher';
 import { failDeadLetterJob, processQueueJob } from './processor';
 import { makeJobsEffectRunner } from './runtime';
 
@@ -14,7 +18,6 @@ export interface BackgroundEnv {
     readonly UPLOADS: R2Bucket;
 }
 
-const OUTBOX_LEASE_MICROS = 60 * 1_000_000;
 const TERMINAL_HISTORY_RETENTION_MICROS = 7 * 24 * 60 * 60 * 1_000_000;
 const TERMINAL_HISTORY_PRUNE_LIMIT = 100;
 
@@ -31,6 +34,7 @@ function runner(
         images: env.IMAGES,
         invocationId: crypto.randomUUID(),
         objectStorage: env.UPLOADS,
+        queue: env.JOBS_QUEUE,
         trigger,
     });
 }
@@ -54,13 +58,25 @@ export const backgroundHandlers = {
                 const outcome = await effect.runPromise(
                     processQueueJob(payload),
                 );
-                if (outcome.retryDelaySeconds === null) {
-                    message.ack();
-                } else {
+                if (outcome.retryDelaySeconds !== null) {
                     message.retry({
                         delaySeconds: outcome.retryDelaySeconds,
                     });
+                    continue;
                 }
+                if (payload.kind === 'metadata') {
+                    const dispatch = await effect.runPromise(
+                        dispatchBookmarkOutbox({
+                            bookmarkShortUrl: payload.bookmarkShortUrl,
+                            kind: 'social',
+                        }),
+                    );
+                    if (dispatch.remaining > 0) {
+                        message.retry({ delaySeconds: 30 });
+                        continue;
+                    }
+                }
+                message.ack();
             } catch (error) {
                 console.error(
                     JSON.stringify({
@@ -111,7 +127,6 @@ export const backgroundHandlers = {
                 `DELETE FROM data_runs WHERE state IN ('expired', 'failed') AND updated_at < ?`,
             ).bind(ninetyDaysAgo),
         ]);
-        const token = crypto.randomUUID();
         const maintenance = await effect.runPromise(
             Effect.gen(function* () {
                 const repository = yield* WorkRepository;
@@ -120,13 +135,7 @@ export const backgroundHandlers = {
                     limit: TERMINAL_HISTORY_PRUNE_LIMIT,
                 });
                 yield* repository.reconcilePendingDeletions(now);
-                const leases = yield* repository.claimOutbox({
-                    leaseDurationMicros: OUTBOX_LEASE_MICROS,
-                    limit: 25,
-                    now,
-                    token,
-                });
-                return { leases, prunedHistory };
+                return { prunedHistory };
             }),
         );
         if (maintenance.prunedHistory > 0) {
@@ -137,55 +146,7 @@ export const backgroundHandlers = {
                 }),
             );
         }
-        for (const lease of maintenance.leases) {
-            try {
-                const payload =
-                    lease.payloadJson === null
-                        ? QueueJobMessage.make({
-                              bookmarkShortUrl: lease.bookmarkShortUrl,
-                              jobId: lease.id,
-                              kind: lease.kind,
-                              version: 1,
-                          })
-                        : await decodeQueueMessage(
-                              JSON.parse(lease.payloadJson),
-                          );
-                await env.JOBS_QUEUE.send(payload);
-                await effect.runPromise(
-                    Effect.gen(function* () {
-                        const repository = yield* WorkRepository;
-                        yield* repository.completeOutbox({
-                            id: lease.id,
-                            now: Date.now() * 1_000,
-                            token: lease.token,
-                        });
-                    }),
-                );
-            } catch (error) {
-                await effect.runPromise(
-                    Effect.gen(function* () {
-                        const repository = yield* WorkRepository;
-                        yield* repository.releaseOutbox({
-                            availableAt: Date.now() * 1_000 + 30 * 1_000_000,
-                            errorCode: 'queue_dispatch_failed',
-                            id: lease.id,
-                            now: Date.now() * 1_000,
-                            token: lease.token,
-                        });
-                    }),
-                );
-                console.error(
-                    JSON.stringify({
-                        errorClass:
-                            error instanceof Error
-                                ? error.constructor.name
-                                : 'UnknownError',
-                        event: 'outbox.dispatch.failed',
-                        outboxId: lease.id,
-                    }),
-                );
-            }
-        }
+        await effect.runPromise(dispatchPendingOutbox({ limit: 25 }));
 
         const expired = await effect.runPromise(
             Effect.gen(function* () {

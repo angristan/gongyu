@@ -30,6 +30,7 @@ export default {
                     bucket: env.UPLOADS,
                     database: env.DB,
                     encryptionKeyring: env.ENCRYPTION_KEYS,
+                    queue: env.JOBS_QUEUE,
                     requestId,
                     sessionConstraint,
                 });

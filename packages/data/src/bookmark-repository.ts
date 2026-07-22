@@ -20,15 +20,6 @@ class CountRow extends Schema.Class<CountRow>('BookmarkCountRow')({
     count: Schema.Number,
 }) {}
 
-export class OutboxLease extends Schema.Class<OutboxLease>('OutboxLease')({
-    attempts: Schema.Number,
-    bookmarkShortUrl: Schema.String,
-    id: Schema.String,
-    kind: Schema.String,
-    leaseExpiresAt: Schema.Number,
-    payloadVersion: Schema.Number,
-}) {}
-
 export interface CreateBookmarkInput extends BookmarkInput {
     readonly createdAt: number;
     readonly socialProviders?: ReadonlyArray<SocialProvider>;
@@ -40,17 +31,6 @@ export interface UpdateBookmarkInput extends BookmarkInput {
 }
 
 export interface BookmarkRepositoryShape {
-    readonly claimOutbox: (input: {
-        readonly id: string;
-        readonly leaseDurationMicros: number;
-        readonly now: number;
-        readonly token: string;
-    }) => Effect.Effect<OutboxLease | null, D1StoreFailure>;
-    readonly completeOutbox: (input: {
-        readonly completedAt: number;
-        readonly id: string;
-        readonly token: string;
-    }) => Effect.Effect<boolean, D1StoreFailure>;
     readonly create: (
         input: CreateBookmarkInput,
     ) => Effect.Effect<Bookmark, DuplicateBookmarkError | D1StoreFailure>;
@@ -576,73 +556,7 @@ export function makeBookmarkRepository(
         return true;
     });
 
-    const claimOutbox = Effect.fn('BookmarkRepository.claimOutbox')(
-        (input: {
-            readonly id: string;
-            readonly leaseDurationMicros: number;
-            readonly now: number;
-            readonly token: string;
-        }) =>
-            d1Store.first(
-                OutboxLease,
-                `
-                    UPDATE outbox
-                    SET
-                        state = 'claimed',
-                        claim_token = ?,
-                        lease_expires_at = ?,
-                        attempts = attempts + 1,
-                        updated_at = ?
-                    WHERE id = ?
-                      AND (
-                        state = 'pending'
-                        OR (state = 'claimed' AND lease_expires_at <= ?)
-                      )
-                    RETURNING
-                        id,
-                        bookmark_short_url AS "bookmarkShortUrl",
-                        kind,
-                        lease_expires_at AS "leaseExpiresAt",
-                        attempts,
-                        payload_version AS "payloadVersion"
-                `,
-                [
-                    input.token,
-                    input.now + input.leaseDurationMicros,
-                    input.now,
-                    input.id,
-                    input.now,
-                ],
-            ),
-    );
-
-    const completeOutbox = Effect.fn('BookmarkRepository.completeOutbox')(
-        function* (input: {
-            readonly completedAt: number;
-            readonly id: string;
-            readonly token: string;
-        }) {
-            const result = yield* d1Store.run(
-                `
-                    UPDATE outbox
-                    SET
-                        state = 'completed',
-                        claim_token = NULL,
-                        lease_expires_at = NULL,
-                        updated_at = ?
-                    WHERE id = ?
-                      AND state = 'claimed'
-                      AND claim_token = ?
-                `,
-                [input.completedAt, input.id, input.token],
-            );
-            return result.changes === 1;
-        },
-    );
-
     return {
-        claimOutbox,
-        completeOutbox,
         create,
         findByShaarliHash,
         findByShortUrl,

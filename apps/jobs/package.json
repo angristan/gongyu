@@ -5,6 +5,7 @@
   "exports": {
     "./data-workflow": "./src/data-workflow.ts",
     "./legacy-migration": "./src/legacy-migration.ts",
+    "./outbox-dispatcher": "./src/outbox-dispatcher.ts",
     "./processor": "./src/processor.ts",
     "./runtime": "./src/runtime.ts",
     "./worker": "./src/worker.ts"

@@ -1,6 +1,15 @@
-import { SocialPayloadSnapshot, SocialProvider } from '@gongyu/domain/social';
+import {
+    SocialPayloadSnapshot,
+    SocialProvider,
+    SocialSourceSnapshot,
+} from '@gongyu/domain/social';
 import { Context, Effect, Schema } from 'effect';
-import { D1DecodeError, type D1Store, type D1StoreFailure } from './d1-store';
+import {
+    D1DecodeError,
+    type D1Statement,
+    type D1Store,
+    type D1StoreFailure,
+} from './d1-store';
 
 class ClaimedSocialRow extends Schema.Class<ClaimedSocialRow>(
     'ClaimedSocialRow',
@@ -12,6 +21,14 @@ class ClaimedSocialRow extends Schema.Class<ClaimedSocialRow>(
     provider: SocialProvider,
 }) {}
 
+class WaitingSocialRow extends Schema.Class<WaitingSocialRow>(
+    'WaitingSocialRow',
+)({
+    id: Schema.String,
+    provider: SocialProvider,
+    sourceJson: Schema.String,
+}) {}
+
 export class SocialDeliveryStatus extends Schema.Class<SocialDeliveryStatus>(
     'SocialDeliveryStatus',
 )({
@@ -19,6 +36,24 @@ export class SocialDeliveryStatus extends Schema.Class<SocialDeliveryStatus>(
     leaseExpiresAt: Schema.NullOr(Schema.Number),
     state: Schema.String,
 }) {}
+
+export interface WaitingSocialDelivery {
+    readonly id: string;
+    readonly provider: SocialProvider;
+    readonly source: SocialSourceSnapshot;
+}
+
+export type SocialStagingOutcome =
+    | {
+          readonly errorCode: null;
+          readonly id: string;
+          readonly payload: SocialPayloadSnapshot;
+      }
+    | {
+          readonly errorCode: string;
+          readonly id: string;
+          readonly payload: null;
+      };
 
 export interface SocialDeliveryLease {
     readonly attempts: number;
@@ -51,6 +86,9 @@ export interface SocialRepositoryShape {
     readonly getStatus: (
         id: string,
     ) => Effect.Effect<SocialDeliveryStatus | null, D1StoreFailure>;
+    readonly listWaiting: (
+        bookmarkShortUrl: string,
+    ) => Effect.Effect<ReadonlyArray<WaitingSocialDelivery>, D1StoreFailure>;
     readonly release: (input: {
         readonly availableAt: number;
         readonly errorCode: string;
@@ -58,6 +96,12 @@ export interface SocialRepositoryShape {
         readonly now: number;
         readonly token: string;
     }) => Effect.Effect<boolean, D1StoreFailure>;
+    readonly stage: (input: {
+        readonly bookmarkShortUrl: string;
+        readonly finalizedAt: number;
+        readonly now: number;
+        readonly outcomes: ReadonlyArray<SocialStagingOutcome>;
+    }) => Effect.Effect<number, D1StoreFailure>;
 }
 
 export class SocialRepository extends Context.Service<
@@ -68,6 +112,152 @@ export class SocialRepository extends Context.Service<
 export function makeSocialRepository(
     d1Store: D1Store['Service'],
 ): SocialRepositoryShape {
+    const listWaiting = Effect.fn('SocialRepository.listWaiting')(function* (
+        bookmarkShortUrl: string,
+    ) {
+        const rows = yield* d1Store.query(
+            WaitingSocialRow,
+            `
+                    SELECT
+                        id,
+                        provider,
+                        source_json AS "sourceJson"
+                    FROM social_deliveries
+                    WHERE bookmark_short_url = ?
+                      AND state = 'waiting_metadata'
+                    ORDER BY id
+                `,
+            [bookmarkShortUrl],
+        );
+        const deliveries: WaitingSocialDelivery[] = [];
+        for (const row of rows.rows) {
+            const unknownSource = yield* Effect.try({
+                try: () => JSON.parse(row.sourceJson),
+                catch: (cause) =>
+                    D1DecodeError.make({ cause, operation: 'decode' }),
+            });
+            const source = yield* Schema.decodeUnknownEffect(
+                SocialSourceSnapshot,
+            )(unknownSource).pipe(
+                Effect.mapError((cause) =>
+                    D1DecodeError.make({ cause, operation: 'decode' }),
+                ),
+            );
+            deliveries.push({ id: row.id, provider: row.provider, source });
+        }
+        return deliveries;
+    });
+
+    const stage = Effect.fn('SocialRepository.stage')(function* (input: {
+        readonly bookmarkShortUrl: string;
+        readonly finalizedAt: number;
+        readonly now: number;
+        readonly outcomes: ReadonlyArray<SocialStagingOutcome>;
+    }) {
+        if (input.outcomes.length === 0) {
+            return 0;
+        }
+        const statements: D1Statement[] = [];
+        const updateIndexes: number[] = [];
+        for (const outcome of input.outcomes) {
+            updateIndexes.push(statements.length);
+            if (outcome.payload === null) {
+                statements.push({
+                    sql: `
+                        UPDATE social_deliveries
+                        SET
+                            state = 'failed',
+                            last_error_code = ?,
+                            completed_at = ?,
+                            updated_at = ?
+                        WHERE id = ?
+                          AND state = 'waiting_metadata'
+                          AND EXISTS (
+                            SELECT 1 FROM bookmarks
+                            WHERE short_url = ?
+                              AND deletion_state = 'active'
+                              AND metadata_state IN ('completed', 'failed')
+                              AND metadata_attempted_at = ?
+                          )
+                    `,
+                    parameters: [
+                        outcome.errorCode,
+                        input.now,
+                        input.now,
+                        outcome.id,
+                        input.bookmarkShortUrl,
+                        input.finalizedAt,
+                    ],
+                });
+                continue;
+            }
+            statements.push(
+                {
+                    sql: `
+                        UPDATE social_deliveries
+                        SET
+                            state = 'queued',
+                            payload_json = ?,
+                            updated_at = ?
+                        WHERE id = ?
+                          AND state = 'waiting_metadata'
+                          AND EXISTS (
+                            SELECT 1 FROM bookmarks
+                            WHERE short_url = ?
+                              AND deletion_state = 'active'
+                              AND metadata_state IN ('completed', 'failed')
+                              AND metadata_attempted_at = ?
+                          )
+                    `,
+                    parameters: [
+                        JSON.stringify(outcome.payload),
+                        input.now,
+                        outcome.id,
+                        input.bookmarkShortUrl,
+                        input.finalizedAt,
+                    ],
+                },
+                {
+                    sql: `
+                        INSERT OR IGNORE INTO outbox (
+                            id,
+                            bookmark_short_url,
+                            kind,
+                            state,
+                            payload_version,
+                            available_at,
+                            created_at,
+                            updated_at
+                        )
+                        SELECT ?, ?, 'social', 'pending', 1, ?, ?, ?
+                        WHERE EXISTS (
+                            SELECT 1 FROM social_deliveries
+                            WHERE id = ?
+                              AND bookmark_short_url = ?
+                              AND state = 'queued'
+                              AND updated_at = ?
+                        )
+                    `,
+                    parameters: [
+                        outcome.id,
+                        input.bookmarkShortUrl,
+                        input.now,
+                        input.now,
+                        input.now,
+                        outcome.id,
+                        input.bookmarkShortUrl,
+                        input.now,
+                    ],
+                },
+            );
+        }
+        const results = yield* d1Store.batch(statements);
+        return updateIndexes.reduce(
+            (count, index) => count + (results[index]?.changes ?? 0),
+            0,
+        );
+    });
+
     const claim = Effect.fn('SocialRepository.claim')(function* (input: {
         readonly id: string;
         readonly leaseDurationMicros: number;
@@ -299,5 +489,13 @@ export function makeSocialRepository(
         return results.every((result) => result.changes === 1);
     });
 
-    return { claim, complete, fail, getStatus, release };
+    return {
+        claim,
+        complete,
+        fail,
+        getStatus,
+        listWaiting,
+        release,
+        stage,
+    };
 }

@@ -7,6 +7,7 @@ import {
 } from '@gongyu/domain/bookmarks';
 import { configuredProviders } from '@gongyu/domain/social';
 import { cleanMetadataTitle } from '@gongyu/integrations/metadata-client';
+import { dispatchBookmarkOutboxBestEffort } from '@gongyu/jobs/outbox-dispatcher';
 import {
     BookmarkSimpleIcon,
     CheckCircleIcon,
@@ -119,11 +120,16 @@ export async function action({ context, request }: Route.ActionArgs) {
             const socialProviders = shareSocial
                 ? configuredProviders(yield* settings.get)
                 : [];
-            return yield* bookmarks.create({
+            const bookmark = yield* bookmarks.create({
                 ...decoded,
                 createdAt: Date.now() * 1_000,
                 socialProviders,
             });
+            yield* dispatchBookmarkOutboxBestEffort({
+                bookmarkShortUrl: bookmark.shortUrl,
+                kind: 'metadata',
+            });
+            return bookmark;
         }).pipe(Effect.match({ onFailure: failure, onSuccess: success })),
     );
     if (result.ok) {

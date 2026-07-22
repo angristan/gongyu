@@ -31,6 +31,10 @@ export class JobStatus extends Schema.Class<JobStatus>('JobStatus')({
     state: Schema.String,
 }) {}
 
+class OutboxCount extends Schema.Class<OutboxCount>('OutboxCount')({
+    count: Schema.Number,
+}) {}
+
 class PrunedOutbox extends Schema.Class<PrunedOutbox>('PrunedOutbox')({
     id: Schema.String,
 }) {}
@@ -59,6 +63,14 @@ export interface WorkRepositoryShape {
         readonly now: number;
         readonly token: string;
     }) => Effect.Effect<ReadonlyArray<OutboxDispatchLease>, D1StoreFailure>;
+    readonly claimOutboxForBookmark: (input: {
+        readonly bookmarkShortUrl: string;
+        readonly kind: OutboxDispatchLease['kind'];
+        readonly leaseDurationMicros: number;
+        readonly limit: number;
+        readonly now: number;
+        readonly token: string;
+    }) => Effect.Effect<ReadonlyArray<OutboxDispatchLease>, D1StoreFailure>;
     readonly completeJob: (input: {
         readonly id: string;
         readonly now: number;
@@ -69,6 +81,10 @@ export interface WorkRepositoryShape {
         readonly now: number;
         readonly token: string;
     }) => Effect.Effect<boolean, D1StoreFailure>;
+    readonly countOutstandingOutbox: (input: {
+        readonly bookmarkShortUrl: string;
+        readonly kind: OutboxDispatchLease['kind'];
+    }) => Effect.Effect<number, D1StoreFailure>;
     readonly ensureJob: (
         message: QueueJobMessage,
         now: number,
@@ -183,6 +199,87 @@ export function makeWorkRepository(
             return result.rows;
         },
     );
+
+    const claimOutboxForBookmark = Effect.fn(
+        'WorkRepository.claimOutboxForBookmark',
+    )(function* (input: {
+        readonly bookmarkShortUrl: string;
+        readonly kind: OutboxDispatchLease['kind'];
+        readonly leaseDurationMicros: number;
+        readonly limit: number;
+        readonly now: number;
+        readonly token: string;
+    }) {
+        const result = yield* d1Store.query(
+            OutboxDispatchLease,
+            `
+                UPDATE outbox
+                SET
+                    state = 'claimed',
+                    claim_token = ?,
+                    lease_expires_at = ?,
+                    attempts = attempts + 1,
+                    updated_at = ?
+                WHERE id IN (
+                    SELECT id
+                    FROM outbox
+                    WHERE bookmark_short_url = ?
+                      AND kind = ?
+                      AND available_at <= ?
+                      AND NOT EXISTS (
+                        SELECT 1 FROM app_state WHERE read_only = 1
+                      )
+                      AND (
+                        state = 'pending'
+                        OR (
+                            state = 'claimed'
+                            AND lease_expires_at <= ?
+                        )
+                      )
+                    ORDER BY created_at, id
+                    LIMIT ?
+                )
+                RETURNING
+                    id,
+                    bookmark_short_url AS "bookmarkShortUrl",
+                    kind,
+                    attempts,
+                    payload_json AS "payloadJson",
+                    claim_token AS token
+            `,
+            [
+                input.token,
+                input.now + input.leaseDurationMicros,
+                input.now,
+                input.bookmarkShortUrl,
+                input.kind,
+                input.now,
+                input.now,
+                input.limit,
+            ],
+        );
+        return result.rows;
+    });
+
+    const countOutstandingOutbox = Effect.fn(
+        'WorkRepository.countOutstandingOutbox',
+    )(function* (input: {
+        readonly bookmarkShortUrl: string;
+        readonly kind: OutboxDispatchLease['kind'];
+    }) {
+        const row = yield* d1Store.first(
+            OutboxCount,
+            `
+                SELECT COUNT(*) AS count
+                FROM outbox
+                WHERE bookmark_short_url = ?
+                  AND kind = ?
+                  AND state IN ('pending', 'claimed')
+            `,
+            [input.bookmarkShortUrl, input.kind],
+        );
+        return row?.count ?? 0;
+    });
 
     const completeOutbox = Effect.fn('WorkRepository.completeOutbox')(
         function* (input: {
@@ -729,8 +826,10 @@ export function makeWorkRepository(
     return {
         claimJob,
         claimOutbox,
+        claimOutboxForBookmark,
         completeJob,
         completeOutbox,
+        countOutstandingOutbox,
         ensureJob,
         failJob,
         getJobStatus,
