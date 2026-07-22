@@ -95,6 +95,12 @@ bun run deploy:production
 
 Never edit an applied migration. Add a new numbered SQL migration under `migrations/` and apply it before code that depends on it.
 
+### Rollback
+
+Keep the previous Worker compatible with every newly applied migration; rolling back a Worker does not roll back D1, Queue payloads, Workflow state, or R2 data. For an application-only regression, use the project-pinned Wrangler to list deployments and roll back the production Worker, then verify `/health`, sign-in, one public bookmark, and the Admin Jobs page. Recover corrupted data through a tested application backup or the current D1 Time Travel procedure, never by reversing an applied migration in place.
+
+Record the Worker version, migration state, in-flight Queue and Workflow versions, recovery point, and smoke-test results before reopening writes.
+
 ## Operations
 
 Health check:
@@ -109,7 +115,9 @@ Tail the Worker:
 bunx wrangler tail --env production --config apps/web/wrangler.jsonc
 ```
 
-The Worker's background entrypoints consume queue messages, run Workflow classes, dispatch the D1 outbox every minute, and clean expired sessions, jobs, audit events, and generated artifacts. Inspect Cloudflare Queues for dead-letter messages when background work repeatedly fails.
+The Worker's background entrypoints consume queue messages, run Workflow classes, dispatch the D1 outbox every minute, and clean expired sessions, jobs, audit events, and generated artifacts. Inspect Cloudflare Queues and **Admin → Jobs** when background work repeatedly fails.
+
+A primary-queue message reaches the DLQ only after bounded redelivery. The DLQ consumer records the corresponding job as failed before acknowledging it. If that persistence attempt fails, leave the message for its configured retry; after the retry cap, use the job and outbox state in D1 to identify work that still lacks a terminal result. Correct the underlying configuration or provider failure, then use the Admin Jobs retry action rather than copying or editing Queue payloads manually. Keep old payload decoders deployed until both the primary queue and DLQ no longer contain that version.
 
 Imports, exports, backups, restores, and job status are available under **Admin → Data** and **Admin → Jobs**. Generated data artifacts are private and expire; download anything you need to retain.
 

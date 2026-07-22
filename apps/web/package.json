@@ -6,6 +6,7 @@
     "build": "react-router build",
     "build:production": "CLOUDFLARE_ENV=production react-router build",
     "cf-typegen": "wrangler types worker-configuration.d.ts",
+    "cf-typegen:check": "wrangler types worker-configuration.d.ts --check",
     "check": "bun run typecheck && bun run build:production && wrangler deploy --config build/server/wrangler.json --dry-run",
     "deploy:production": "bun run build:production && wrangler deploy --config build/server/wrangler.json",
     "dev": "react-router dev",
@@ -16,7 +17,7 @@
     "test:unit": "vitest run --project unit",
     "test:watch": "vitest",
     "test:workerd": "vitest run --project workerd",
-    "typecheck": "bun run cf-typegen && react-router typegen && tsc -b"
+    "typecheck": "bun run cf-typegen:check && react-router typegen && tsc -b"
   },
   "dependencies": {
     "@gongyu/auth": "workspace:*",

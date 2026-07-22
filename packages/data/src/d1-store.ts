@@ -122,12 +122,7 @@ function annotateMeta(meta: D1QueryMeta) {
             : { 'd1.total_attempts': meta.totalAttempts }),
     };
 
-    return Effect.gen(function* () {
-        yield* Effect.annotateCurrentSpan(attributes);
-        yield* Effect.logInfo('d1.operation.completed').pipe(
-            Effect.annotateLogs(attributes),
-        );
-    });
+    return Effect.annotateCurrentSpan(attributes);
 }
 
 function prepareStatement(
@@ -224,9 +219,6 @@ export function makeD1Store(session: D1DatabaseSession): D1Store['Service'] {
             ),
         };
         yield* Effect.annotateCurrentSpan(attributes);
-        yield* Effect.logInfo('d1.batch.completed').pipe(
-            Effect.annotateLogs(attributes),
-        );
         return metadata;
     });
 

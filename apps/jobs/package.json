@@ -11,9 +11,10 @@
   },
   "scripts": {
     "cf-typegen": "wrangler types worker-configuration.d.ts --config ../web/wrangler.jsonc --include-env false",
+    "cf-typegen:check": "wrangler types worker-configuration.d.ts --config ../web/wrangler.jsonc --include-env false --check",
     "check": "bun run typecheck",
     "migrate:legacy": "bun scripts/migrate-legacy.ts",
-    "typecheck": "bun run cf-typegen && tsc -p tsconfig.json"
+    "typecheck": "bun run cf-typegen:check && tsc -p tsconfig.json"
   },
   "dependencies": {
     "@gongyu/data": "workspace:*",

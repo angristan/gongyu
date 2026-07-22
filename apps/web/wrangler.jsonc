@@ -4,15 +4,17 @@
   "main": "./workers/app.ts",
   "compatibility_date": "2026-07-15",
   "compatibility_flags": ["global_fetch_strictly_public"],
+  "workers_dev": false,
+  "preview_urls": false,
   "limits": {
     "cpu_ms": 300000
   },
   "observability": {
     "enabled": true,
-    "head_sampling_rate": 0.1,
+    "head_sampling_rate": 1,
     "traces": {
       "enabled": true,
-      "head_sampling_rate": 0.1
+      "head_sampling_rate": 1
     }
   },
   "upload_source_maps": true,
