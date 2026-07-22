@@ -37,6 +37,9 @@ class RetentionCounts extends Schema.Class<RetentionCounts>('RetentionCounts')({
     recent: Schema.Number,
     review: Schema.Number,
     social: Schema.Number,
+    socialDelivery: Schema.Number,
+    socialJob: Schema.Number,
+    socialReview: Schema.Number,
 }) {}
 
 const TestLayer = Layer.mergeAll(
@@ -202,7 +205,7 @@ it.layer(TestLayer)('durable work repository', (it) => {
     );
 
     it.effect(
-        'prunes bounded terminal metadata history without touching protected work',
+        'prunes bounded terminal history without touching protected work',
         () =>
             Effect.gen(function* () {
                 const bookmarks = yield* BookmarkRepository;
@@ -240,6 +243,12 @@ it.layer(TestLayer)('durable work repository', (it) => {
                         updatedAt: 1_000,
                     },
                     {
+                        id: 'retention:social-review',
+                        kind: 'social',
+                        state: 'completed',
+                        updatedAt: 1_000,
+                    },
+                    {
                         id: 'retention:review',
                         kind: 'metadata',
                         state: 'completed',
@@ -272,6 +281,12 @@ it.layer(TestLayer)('durable work repository', (it) => {
                         updatedAt: 1_000,
                     },
                     {
+                        id: 'retention:social-review',
+                        kind: 'social',
+                        state: 'needs_review',
+                        updatedAt: 1_000,
+                    },
+                    {
                         id: 'retention:review',
                         kind: 'metadata',
                         state: 'needs_review',
@@ -282,6 +297,18 @@ it.layer(TestLayer)('durable work repository', (it) => {
                         kind: 'metadata',
                         state: 'retrying',
                         updatedAt: 1_000,
+                    },
+                ];
+                const socialDeliveryRows = [
+                    {
+                        id: 'retention:social',
+                        provider: 'mastodon',
+                        state: 'delivered',
+                    },
+                    {
+                        id: 'retention:social-review',
+                        provider: 'bluesky',
+                        state: 'needs_review',
                     },
                 ];
                 yield* d1.batch([
@@ -320,6 +347,22 @@ it.layer(TestLayer)('durable work repository', (it) => {
                             row.updatedAt,
                         ],
                     })),
+                    ...socialDeliveryRows.map((row) => ({
+                        sql: `
+                            INSERT INTO social_deliveries (
+                                id, bookmark_short_url, provider, state,
+                                formatting_version, source_json, created_at,
+                                updated_at
+                            )
+                            VALUES (?, ?, ?, ?, 1, '{}', 1000, 1000)
+                        `,
+                        parameters: [
+                            row.id,
+                            bookmark.shortUrl,
+                            row.provider,
+                            row.state,
+                        ],
+                    })),
                 ]);
 
                 assert.strictEqual(
@@ -334,7 +377,7 @@ it.layer(TestLayer)('durable work repository', (it) => {
                         before: 1_500,
                         limit: 100,
                     }),
-                    1,
+                    2,
                 );
                 const counts = yield* d1.first(
                     RetentionCounts,
@@ -346,7 +389,10 @@ it.layer(TestLayer)('durable work repository', (it) => {
                             (SELECT COUNT(*) FROM outbox WHERE id = 'retention:orphan') AS orphan,
                             (SELECT COUNT(*) FROM outbox WHERE id = 'retention:recent') AS recent,
                             (SELECT COUNT(*) FROM outbox WHERE id = 'retention:review') AS review,
-                            (SELECT COUNT(*) FROM outbox WHERE id = 'retention:social') AS social
+                            (SELECT COUNT(*) FROM outbox WHERE id = 'retention:social') AS social,
+                            (SELECT COUNT(*) FROM social_deliveries WHERE id = 'retention:social') AS "socialDelivery",
+                            (SELECT COUNT(*) FROM jobs WHERE id = 'retention:social') AS "socialJob",
+                            (SELECT COUNT(*) FROM outbox WHERE id = 'retention:social-review') AS "socialReview"
                     `,
                 );
 
@@ -356,7 +402,10 @@ it.layer(TestLayer)('durable work repository', (it) => {
                 assert.strictEqual(counts?.orphan, 0);
                 assert.strictEqual(counts?.recent, 1);
                 assert.strictEqual(counts?.review, 1);
-                assert.strictEqual(counts?.social, 1);
+                assert.strictEqual(counts?.social, 0);
+                assert.strictEqual(counts?.socialDelivery, 1);
+                assert.strictEqual(counts?.socialJob, 0);
+                assert.strictEqual(counts?.socialReview, 1);
             }),
     );
 

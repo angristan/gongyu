@@ -524,7 +524,11 @@ export function makeWorkRepository(
                     SELECT outbox.id
                     FROM outbox
                     LEFT JOIN jobs ON jobs.outbox_id = outbox.id
-                    WHERE outbox.kind IN ('metadata', 'thumbnail_delete')
+                    WHERE outbox.kind IN (
+                        'metadata',
+                        'social',
+                        'thumbnail_delete'
+                    )
                       AND outbox.state IN ('completed', 'failed')
                       AND outbox.updated_at < ?
                       AND (
