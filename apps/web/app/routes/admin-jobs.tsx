@@ -387,12 +387,15 @@ export default function AdminJobs({
                                     key={job.id}
                                 >
                                     <div className="min-w-0">
-                                        <p className="truncate text-xs font-medium text-gongyu-subtle">
-                                            {job.kind.replace(':', ' · ')} ·{' '}
-                                            {job.bookmarkShortUrl}
+                                        <p className="truncate text-sm font-medium text-gongyu-default">
+                                            {job.kind.replace(':', ' · ')}
+                                            <span className="text-xs font-normal text-gongyu-subtle">
+                                                {' '}
+                                                · {job.bookmarkShortUrl}
+                                            </span>
                                         </p>
                                         <Link
-                                            className="block truncate text-sm font-medium text-gongyu-link"
+                                            className="block truncate text-xs text-gongyu-link"
                                             title={job.bookmarkUrl}
                                             to={`/b/${job.bookmarkShortUrl}`}
                                         >
@@ -439,12 +442,15 @@ export default function AdminJobs({
                                 <li className="space-y-3 p-3" key={job.id}>
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="min-w-0">
-                                            <p className="truncate text-xs font-medium text-gongyu-subtle">
-                                                {job.kind.replace(':', ' · ')} ·{' '}
-                                                {job.bookmarkShortUrl}
+                                            <p className="truncate font-medium text-gongyu-default">
+                                                {job.kind.replace(':', ' · ')}
+                                                <span className="text-xs font-normal text-gongyu-subtle">
+                                                    {' '}
+                                                    · {job.bookmarkShortUrl}
+                                                </span>
                                             </p>
                                             <Link
-                                                className="block truncate font-medium text-gongyu-link"
+                                                className="block truncate text-xs text-gongyu-link"
                                                 title={job.bookmarkUrl}
                                                 to={`/b/${job.bookmarkShortUrl}`}
                                             >
