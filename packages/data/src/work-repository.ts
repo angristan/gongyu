@@ -35,6 +35,12 @@ class OutboxCount extends Schema.Class<OutboxCount>('OutboxCount')({
     count: Schema.Number,
 }) {}
 
+class RetryableJob extends Schema.Class<RetryableJob>('RetryableJob')({
+    bookmarkShortUrl: Schema.String,
+    id: Schema.String,
+    kind: Schema.String,
+}) {}
+
 class PrunedOutbox extends Schema.Class<PrunedOutbox>('PrunedOutbox')({
     id: Schema.String,
 }) {}
@@ -48,6 +54,8 @@ export interface OutboxSettlement {
 export class JobSummary extends Schema.Class<JobSummary>('JobSummary')({
     attempts: Schema.Number,
     bookmarkShortUrl: Schema.String,
+    bookmarkTitle: Schema.String,
+    bookmarkUrl: Schema.String,
     id: Schema.String,
     kind: Schema.String,
     lastErrorCode: Schema.NullOr(Schema.String),
@@ -698,7 +706,10 @@ export function makeWorkRepository(
         const result = yield* d1Store.query(
             JobSummary,
             `
-                SELECT *
+                SELECT
+                    activity.*,
+                    bookmarks.title AS "bookmarkTitle",
+                    bookmarks.url AS "bookmarkUrl"
                 FROM (
                     SELECT
                         id,
@@ -726,8 +737,10 @@ export function makeWorkRepository(
                         ) THEN 1 ELSE 0 END AS recoverable,
                         updated_at AS "updatedAt"
                     FROM social_deliveries
-                )
-                ORDER BY "updatedAt" DESC
+                ) AS activity
+                INNER JOIN bookmarks
+                    ON bookmarks.short_url = activity."bookmarkShortUrl"
+                ORDER BY activity."updatedAt" DESC
                 LIMIT ?
             `,
             [limit],
@@ -897,17 +910,12 @@ export function makeWorkRepository(
         now: number,
     ) {
         const job = yield* d1Store.first(
-            JobSummary,
+            RetryableJob,
             `
                 SELECT
                     id,
                     bookmark_short_url AS "bookmarkShortUrl",
-                    kind,
-                    state,
-                    attempts,
-                    last_error_code AS "lastErrorCode",
-                    1 AS recoverable,
-                    updated_at AS "updatedAt"
+                    kind
                 FROM jobs
                 WHERE id = ? AND state IN ('failed', 'needs_review')
             `,

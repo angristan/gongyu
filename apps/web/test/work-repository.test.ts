@@ -151,6 +151,15 @@ it.layer(TestLayer)('durable work repository', (it) => {
                     ],
                 },
             ]);
+            const summary = (yield* work.listJobs(10)).find(
+                (job) => job.id === id,
+            );
+            assert.strictEqual(summary?.bookmarkTitle, 'Social retry');
+            assert.strictEqual(
+                summary?.bookmarkUrl,
+                'https://example.com/social-retry',
+            );
+
             assert.isTrue(yield* work.retryJob(id, 4_000));
             const delivery = yield* d1.first(
                 StateRow,

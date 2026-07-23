@@ -741,6 +741,22 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
             }
             if (path === '/admin/jobs') {
                 await expect(
+                    noJavaScriptAdmin
+                        .getByRole('link', {
+                            exact: true,
+                            name: 'Captured page',
+                        })
+                        .first(),
+                ).toBeVisible();
+                await expect(
+                    noJavaScriptAdmin
+                        .getByText('https://example.com/captured', {
+                            exact: true,
+                        })
+                        .filter({ visible: true })
+                        .first(),
+                ).toBeVisible();
+                await expect(
                     noJavaScriptAdmin.getByRole('button', {
                         name: 'Review',
                     }),

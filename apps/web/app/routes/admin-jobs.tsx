@@ -387,15 +387,23 @@ export default function AdminJobs({
                                     key={job.id}
                                 >
                                     <div className="min-w-0">
-                                        <p className="truncate text-sm font-medium text-gongyu-default">
-                                            {job.kind.replace(':', ' · ')}
+                                        <p className="truncate text-xs font-medium text-gongyu-subtle">
+                                            {job.kind.replace(':', ' · ')} ·{' '}
+                                            {job.bookmarkShortUrl}
                                         </p>
                                         <Link
-                                            className="text-xs text-gongyu-link"
+                                            className="block truncate text-sm font-medium text-gongyu-link"
+                                            title={job.bookmarkTitle}
                                             to={`/b/${job.bookmarkShortUrl}`}
                                         >
-                                            {job.bookmarkShortUrl}
+                                            {job.bookmarkTitle}
                                         </Link>
+                                        <p
+                                            className="truncate text-xs text-gongyu-subtle"
+                                            title={job.bookmarkUrl}
+                                        >
+                                            {job.bookmarkUrl}
+                                        </p>
                                         {job.lastErrorCode === null ? null : (
                                             <p className="mt-0.5 truncate font-mono text-xs text-gongyu-danger">
                                                 {job.lastErrorCode}
@@ -436,9 +444,23 @@ export default function AdminJobs({
                             {loaderData.jobs.map((job) => (
                                 <li className="space-y-3 p-3" key={job.id}>
                                     <div className="flex items-start justify-between gap-3">
-                                        <div>
-                                            <p className="font-medium text-gongyu-default">
-                                                {job.kind.replace(':', ' · ')}
+                                        <div className="min-w-0">
+                                            <p className="truncate text-xs font-medium text-gongyu-subtle">
+                                                {job.kind.replace(':', ' · ')} ·{' '}
+                                                {job.bookmarkShortUrl}
+                                            </p>
+                                            <Link
+                                                className="block truncate font-medium text-gongyu-link"
+                                                title={job.bookmarkTitle}
+                                                to={`/b/${job.bookmarkShortUrl}`}
+                                            >
+                                                {job.bookmarkTitle}
+                                            </Link>
+                                            <p
+                                                className="truncate text-xs text-gongyu-subtle"
+                                                title={job.bookmarkUrl}
+                                            >
+                                                {job.bookmarkUrl}
                                             </p>
                                             <p className="mt-1 text-xs text-gongyu-subtle">
                                                 {formatDate(job.updatedAt)} ·
