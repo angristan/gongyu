@@ -53,57 +53,85 @@ const dispatchLeases = Effect.fn('OutboxDispatcher.dispatchLeases')(function* (
 ) {
     const producer = yield* QueueProducer;
     const repository = yield* WorkRepository;
-    let dispatched = 0;
-    let failed = 0;
+    const decoded: Array<{
+        readonly lease: OutboxDispatchLease;
+        readonly message: QueueJobMessage;
+    }> = [];
+    const rejected: Array<{
+        readonly error: unknown;
+        readonly lease: OutboxDispatchLease;
+    }> = [];
 
     for (const lease of leases) {
-        const attempt = yield* Effect.gen(function* () {
-            const message = yield* decodeLease(lease);
-            yield* producer.send(message);
-        }).pipe(
+        const result = yield* decodeLease(lease).pipe(
+            Effect.match({
+                onFailure: (error) => ({ error, ok: false as const }),
+                onSuccess: (message) => ({ message, ok: true as const }),
+            }),
+        );
+        if (result.ok) {
+            decoded.push({ lease, message: result.message });
+        } else {
+            rejected.push({ error: result.error, lease });
+        }
+    }
+
+    const sendResult = yield* producer
+        .sendBatch(decoded.map(({ message }) => message))
+        .pipe(
             Effect.match({
                 onFailure: (error) => ({ error, ok: false as const }),
                 onSuccess: () => ({ ok: true as const }),
             }),
         );
+    const completed = sendResult.ok ? decoded.map(({ lease }) => lease) : [];
+    const released = [
+        ...rejected.map(({ lease }) => lease),
+        ...(sendResult.ok ? [] : decoded.map(({ lease }) => lease)),
+    ];
+    const now = Date.now() * 1_000;
+    const settlements = yield* repository.settleOutbox({
+        completed,
+        errorCode: 'queue_dispatch_failed',
+        now,
+        releaseAt: now + OUTBOX_RETRY_DELAY_MICROS,
+        released,
+    });
 
-        if (!attempt.ok) {
-            failed += 1;
-            const now = Date.now() * 1_000;
-            yield* repository.releaseOutbox({
-                availableAt: now + OUTBOX_RETRY_DELAY_MICROS,
-                errorCode: 'queue_dispatch_failed',
-                id: lease.id,
-                now,
-                token: lease.token,
-            });
-            console.error(
-                JSON.stringify({
-                    errorClass: errorClass(attempt.error),
-                    event: 'outbox.dispatch.failed',
-                    outboxId: lease.id,
-                }),
-            );
-            continue;
-        }
-
-        dispatched += 1;
-        const completed = yield* repository.completeOutbox({
-            id: lease.id,
-            now: Date.now() * 1_000,
-            token: lease.token,
-        });
-        if (!completed) {
+    for (const rejection of rejected) {
+        console.error(
+            JSON.stringify({
+                errorClass: errorClass(rejection.error),
+                event: 'outbox.dispatch.failed',
+                outboxId: rejection.lease.id,
+            }),
+        );
+    }
+    if (!sendResult.ok) {
+        console.error(
+            JSON.stringify({
+                errorClass: errorClass(sendResult.error),
+                event: 'outbox.dispatch.batch_failed',
+                outboxCount: decoded.length,
+            }),
+        );
+    }
+    for (const settlement of settlements) {
+        if (!settlement.settled) {
             console.warn(
                 JSON.stringify({
-                    event: 'outbox.dispatch.completion_fence_lost',
-                    outboxId: lease.id,
+                    event: 'outbox.dispatch.settlement_fence_lost',
+                    outboxId: settlement.id,
+                    state: settlement.state,
                 }),
             );
         }
     }
 
-    return { dispatched, failed };
+    return {
+        dispatched: completed.length,
+        failed: released.length,
+    };
 });
 
 export const dispatchPendingOutbox = Effect.fn(

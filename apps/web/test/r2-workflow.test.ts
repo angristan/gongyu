@@ -57,15 +57,22 @@ it.layer(R2StoreTest)('native R2 stream adapter', (it) => {
                 contentType: 'text/plain',
                 key: 'tests/immutable-object',
             });
+            const existing = yield* r2Store.putStreamIfAbsent({
+                body: streamChunks(['second']),
+                contentLength: 6,
+                contentType: 'text/plain',
+                key: 'tests/immutable-object',
+            });
             const failure = yield* r2Store
                 .putStream({
-                    body: streamChunks(['second']),
-                    contentLength: 6,
+                    body: streamChunks(['third']),
+                    contentLength: 5,
                     contentType: 'text/plain',
                     key: 'tests/immutable-object',
                 })
                 .pipe(Effect.flip);
 
+            assert.isNull(existing);
             assert.instanceOf(failure, R2StoreError);
         }),
     );

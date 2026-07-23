@@ -22,6 +22,14 @@ export interface R2StoredObject extends R2ObjectMetadata {
     readonly body: ReadableStream<Uint8Array>;
 }
 
+export interface R2PutStreamInput {
+    readonly body: ReadableStream<Uint8Array>;
+    readonly contentLength: number;
+    readonly contentType: string;
+    readonly customMetadata?: Readonly<Record<string, string>>;
+    readonly key: string;
+}
+
 export interface R2StoreShape {
     readonly delete: (key: string) => Effect.Effect<void, R2StoreError>;
     readonly get: (
@@ -30,13 +38,12 @@ export interface R2StoreShape {
     readonly head: (
         key: string,
     ) => Effect.Effect<R2ObjectMetadata | null, R2StoreError>;
-    readonly putStream: (input: {
-        readonly body: ReadableStream<Uint8Array>;
-        readonly contentLength: number;
-        readonly contentType: string;
-        readonly customMetadata?: Readonly<Record<string, string>>;
-        readonly key: string;
-    }) => Effect.Effect<R2ObjectMetadata, R2StoreError>;
+    readonly putStream: (
+        input: R2PutStreamInput,
+    ) => Effect.Effect<R2ObjectMetadata, R2StoreError>;
+    readonly putStreamIfAbsent: (
+        input: R2PutStreamInput,
+    ) => Effect.Effect<R2ObjectMetadata | null, R2StoreError>;
 }
 
 export class R2Store extends Context.Service<R2Store, R2StoreShape>()(
@@ -118,13 +125,9 @@ export function makeR2Store(bucket: R2Bucket): R2StoreShape {
         };
     });
 
-    const putStream = Effect.fn('R2Store.putStream')(function* (input: {
-        readonly body: ReadableStream<Uint8Array>;
-        readonly contentLength: number;
-        readonly contentType: string;
-        readonly customMetadata?: Readonly<Record<string, string>>;
-        readonly key: string;
-    }) {
+    const putStreamIfAbsent = Effect.fn('R2Store.putStreamIfAbsent')(function* (
+        input: R2PutStreamInput,
+    ) {
         yield* annotateR2Span(input.key, 'put');
         const object = yield* Effect.tryPromise({
             try: async () => {
@@ -148,13 +151,7 @@ export function makeR2Store(bucket: R2Bucket): R2StoreShape {
         });
 
         if (object === null) {
-            return yield* Effect.fail(
-                R2StoreError.make({
-                    key: input.key,
-                    message: 'The immutable R2 object key already exists.',
-                    operation: 'put',
-                }),
-            );
+            return null;
         }
 
         return {
@@ -166,5 +163,27 @@ export function makeR2Store(bucket: R2Bucket): R2StoreShape {
         };
     });
 
-    return { delete: deleteObject, get, head, putStream };
+    const putStream = Effect.fn('R2Store.putStream')(function* (
+        input: R2PutStreamInput,
+    ) {
+        const object = yield* putStreamIfAbsent(input);
+        if (object !== null) {
+            return object;
+        }
+        return yield* Effect.fail(
+            R2StoreError.make({
+                key: input.key,
+                message: 'The immutable R2 object key already exists.',
+                operation: 'put',
+            }),
+        );
+    });
+
+    return {
+        delete: deleteObject,
+        get,
+        head,
+        putStream,
+        putStreamIfAbsent,
+    };
 }

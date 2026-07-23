@@ -171,7 +171,7 @@ it.layer(TestLayer)('metadata lifecycle repository', (it) => {
                 thumbnail: null,
                 thumbnailSourceUrl: 'https://example.com/stale.png',
             });
-            assert.isFalse(finalized);
+            assert.isNull(finalized);
             const delivery = yield* d1.first(
                 DeliveryRow,
                 `

@@ -226,7 +226,7 @@ it.effect(
                 thumbnail: null,
                 thumbnailSourceUrl: null,
             });
-            assert.isTrue(finalized);
+            assert.isNotNull(finalized);
 
             const outcome = yield* processQueueJob(
                 QueueJobMessage.make({

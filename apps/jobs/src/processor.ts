@@ -1,5 +1,8 @@
 import { DataRunRepository } from '@gongyu/data/data-run-repository';
-import { MetadataRepository } from '@gongyu/data/metadata-repository';
+import {
+    type FinalizedMetadata,
+    MetadataRepository,
+} from '@gongyu/data/metadata-repository';
 import { SettingsRepository } from '@gongyu/data/settings-repository';
 import {
     SocialRepository,
@@ -31,20 +34,24 @@ export interface ProcessOutcome {
     readonly retryDelaySeconds: number | null;
 }
 
+const cleanupThumbnail = Effect.fn('Jobs.cleanupThumbnail')(function* (
+    shortUrl: string,
+    key: string,
+) {
+    const r2 = yield* R2Store;
+    yield* r2.delete(key);
+    const metadataRepository = yield* MetadataRepository;
+    yield* metadataRepository.completeThumbnailCleanup(shortUrl, key);
+});
+
 const cleanupReplacedThumbnail = Effect.fn('Jobs.cleanupReplacedThumbnail')(
     function* (shortUrl: string) {
         const metadataRepository = yield* MetadataRepository;
         const cleanup =
             yield* metadataRepository.findThumbnailCleanup(shortUrl);
-        if (cleanup === null) {
-            return;
+        if (cleanup !== null) {
+            yield* cleanupThumbnail(shortUrl, cleanup.key);
         }
-        const r2 = yield* R2Store;
-        yield* r2.delete(cleanup.key);
-        yield* metadataRepository.completeThumbnailCleanup(
-            shortUrl,
-            cleanup.key,
-        );
     },
 );
 
@@ -58,9 +65,12 @@ function retryDelay(attempts: number): number {
 
 const stageWaitingSocial = Effect.fn('Jobs.stageWaitingSocial')(function* (
     bookmarkShortUrl: string,
+    knownFinalized?: FinalizedMetadata,
 ) {
     const metadataRepository = yield* MetadataRepository;
-    const finalized = yield* metadataRepository.findFinalized(bookmarkShortUrl);
+    const finalized =
+        knownFinalized ??
+        (yield* metadataRepository.findFinalized(bookmarkShortUrl));
     if (finalized === null) {
         return null;
     }
@@ -139,7 +149,12 @@ const processMetadata = Effect.fn('Jobs.processMetadata')(function* (input: {
         return { retryDelaySeconds: null } satisfies ProcessOutcome;
     }
 
-    yield* cleanupReplacedThumbnail(input.message.bookmarkShortUrl);
+    if (target.cleanupKey !== null) {
+        yield* cleanupThumbnail(
+            input.message.bookmarkShortUrl,
+            target.cleanupKey,
+        );
+    }
     const metadataClient = yield* MetadataClient;
     const metadataResult = yield* metadataClient.fetch(target.url).pipe(
         Effect.match({
@@ -174,9 +189,17 @@ const processMetadata = Effect.fn('Jobs.processMetadata')(function* (input: {
             thumbnail: null,
             thumbnailSourceUrl: target.thumbnailUrl,
         });
-        if (finalized) {
-            yield* stageWaitingSocial(input.message.bookmarkShortUrl);
-            yield* cleanupReplacedThumbnail(input.message.bookmarkShortUrl);
+        if (finalized !== null) {
+            yield* stageWaitingSocial(
+                input.message.bookmarkShortUrl,
+                finalized,
+            );
+            if (finalized.cleanupKey !== null) {
+                yield* cleanupThumbnail(
+                    input.message.bookmarkShortUrl,
+                    finalized.cleanupKey,
+                );
+            }
             yield* workRepository.failJob({
                 errorCode:
                     error instanceof MetadataError
@@ -239,34 +262,35 @@ const processMetadata = Effect.fn('Jobs.processMetadata')(function* (input: {
         } else {
             const validated = thumbnailResult.value;
             const key = `thumbnails/${target.shortUrl}/${validated.sha256}.${validated.extension}`;
-            const r2 = yield* R2Store;
-            const existing = yield* r2.head(key);
-            if (
-                existing !== null &&
-                (existing.size !== validated.bytes.byteLength ||
-                    existing.contentType !== validated.contentType)
-            ) {
+            const body = new Response(
+                validated.bytes.slice().buffer as ArrayBuffer,
+            ).body;
+            if (body === null) {
                 return yield* Effect.die(
-                    new Error(
-                        'Immutable thumbnail key has incompatible metadata.',
-                    ),
+                    new Error('Unable to stream validated thumbnail.'),
                 );
             }
-            if (existing === null) {
-                const body = new Response(
-                    validated.bytes.slice().buffer as ArrayBuffer,
-                ).body;
-                if (body === null) {
+            const r2 = yield* R2Store;
+            const uploaded = yield* r2.putStreamIfAbsent({
+                body,
+                contentLength: validated.bytes.byteLength,
+                contentType: validated.contentType,
+                key,
+            });
+            if (uploaded === null) {
+                const existing = yield* r2.head(key);
+                if (
+                    existing === null ||
+                    existing.size !== validated.bytes.byteLength ||
+                    existing.contentType !== validated.contentType
+                ) {
                     return yield* Effect.die(
-                        new Error('Unable to stream validated thumbnail.'),
+                        new Error(
+                            'Immutable thumbnail key has incompatible metadata.',
+                        ),
                     );
                 }
-                yield* r2.putStream({
-                    body,
-                    contentLength: validated.bytes.byteLength,
-                    contentType: validated.contentType,
-                    key,
-                });
+            } else {
                 uploadedKey = key;
             }
             thumbnail = {
@@ -290,13 +314,18 @@ const processMetadata = Effect.fn('Jobs.processMetadata')(function* (input: {
         thumbnail,
         thumbnailSourceUrl: imageUrl,
     });
-    if (!finalized && uploadedKey !== null) {
+    if (finalized === null && uploadedKey !== null) {
         const r2 = yield* R2Store;
         yield* r2.delete(uploadedKey);
     }
-    if (finalized) {
-        yield* stageWaitingSocial(input.message.bookmarkShortUrl);
-        yield* cleanupReplacedThumbnail(input.message.bookmarkShortUrl);
+    if (finalized !== null) {
+        yield* stageWaitingSocial(input.message.bookmarkShortUrl, finalized);
+        if (finalized.cleanupKey !== null) {
+            yield* cleanupThumbnail(
+                input.message.bookmarkShortUrl,
+                finalized.cleanupKey,
+            );
+        }
     }
     yield* workRepository.completeJob({
         id: input.message.jobId,
@@ -469,19 +498,15 @@ export const processQueueJob = Effect.fn('Jobs.processQueueJob')(function* (
 ) {
     const now = Date.now() * 1_000;
     const token = crypto.randomUUID();
-    const dataRuns = yield* DataRunRepository;
-    if ((yield* dataRuns.getAppState).readOnly === 1) {
-        return { retryDelaySeconds: 30 } satisfies ProcessOutcome;
-    }
     const workRepository = yield* WorkRepository;
-    yield* workRepository.ensureJob(message, now);
-    const lease = yield* workRepository.claimJob({
-        id: message.jobId,
+    const lease = yield* workRepository.acquireJob({
         leaseDurationMicros: JOB_LEASE_MICROS,
+        message,
         now,
         token,
     });
     if (lease === null) {
+        const dataRuns = yield* DataRunRepository;
         if ((yield* dataRuns.getAppState).readOnly === 1) {
             return { retryDelaySeconds: 30 } satisfies ProcessOutcome;
         }

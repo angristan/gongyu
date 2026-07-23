@@ -5,6 +5,7 @@ import type { D1Store, D1StoreFailure } from './d1-store';
 export class MetadataTarget extends Schema.Class<MetadataTarget>(
     'MetadataTarget',
 )({
+    cleanupKey: Schema.NullOr(Schema.String),
     description: Schema.NullOr(Schema.String),
     shortUrl: Schema.String,
     thumbnailKey: Schema.NullOr(Schema.String),
@@ -36,6 +37,7 @@ export class MirroredThumbnail extends Schema.Class<MirroredThumbnail>(
 export class FinalizedMetadata extends Schema.Class<FinalizedMetadata>(
     'FinalizedMetadata',
 )({
+    cleanupKey: Schema.NullOr(Schema.String),
     errorCode: Schema.NullOr(Schema.String),
     finalizedAt: Schema.Number,
     thumbnailKey: Schema.NullOr(Schema.String),
@@ -81,7 +83,7 @@ export interface MetadataRepositoryShape {
             readonly width: number;
         } | null;
         readonly thumbnailSourceUrl: string | null;
-    }) => Effect.Effect<boolean, D1StoreFailure>;
+    }) => Effect.Effect<FinalizedMetadata | null, D1StoreFailure>;
 }
 
 export class MetadataRepository extends Context.Service<
@@ -99,6 +101,7 @@ export function makeMetadataRepository(
                 `
                     SELECT
                         short_url AS "shortUrl",
+                        thumbnail_cleanup_key AS "cleanupKey",
                         url,
                         title,
                         description,
@@ -120,6 +123,7 @@ export function makeMetadataRepository(
                 FinalizedMetadata,
                 `
                     SELECT
+                        thumbnail_cleanup_key AS "cleanupKey",
                         metadata_error_code AS "errorCode",
                         metadata_attempted_at AS "finalizedAt",
                         thumbnail_key AS "thumbnailKey"
@@ -230,7 +234,8 @@ export function makeMetadataRepository(
             } | null;
             readonly thumbnailSourceUrl: string | null;
         }) {
-            const result = yield* d1Store.run(
+            return yield* d1Store.first(
+                FinalizedMetadata,
                 `
                     UPDATE bookmarks
                     SET
@@ -254,6 +259,11 @@ export function makeMetadataRepository(
                       AND deletion_state = 'active'
                       AND metadata_state IN ('pending', 'failed')
                       AND updated_at = ?
+                    RETURNING
+                        thumbnail_cleanup_key AS "cleanupKey",
+                        metadata_error_code AS "errorCode",
+                        metadata_attempted_at AS "finalizedAt",
+                        thumbnail_key AS "thumbnailKey"
                 `,
                 [
                     input.errorCode === null ? 'completed' : 'failed',
@@ -271,7 +281,6 @@ export function makeMetadataRepository(
                     input.expectedUpdatedAt,
                 ],
             );
-            return result.changes === 1;
         },
     );
 

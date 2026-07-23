@@ -425,11 +425,9 @@ it.layer(TestLayer)('durable work repository', (it) => {
                 kind: 'metadata',
                 version: 1,
             });
-            yield* work.ensureJob(message, 6_000);
-            yield* work.ensureJob(message, 6_000);
-            const lease = yield* work.claimJob({
-                id: message.jobId,
+            const lease = yield* work.acquireJob({
                 leaseDurationMicros: 100,
+                message,
                 now: 6_000,
                 token: 'job-token',
             });
@@ -442,9 +440,9 @@ it.layer(TestLayer)('durable work repository', (it) => {
                 }),
             );
             assert.isNull(
-                yield* work.claimJob({
-                    id: message.jobId,
+                yield* work.acquireJob({
                     leaseDurationMicros: 100,
+                    message,
                     now: 6_200,
                     token: 'duplicate-token',
                 }),

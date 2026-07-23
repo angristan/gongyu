@@ -39,6 +39,12 @@ class PrunedOutbox extends Schema.Class<PrunedOutbox>('PrunedOutbox')({
     id: Schema.String,
 }) {}
 
+export interface OutboxSettlement {
+    readonly id: string;
+    readonly settled: boolean;
+    readonly state: 'completed' | 'pending';
+}
+
 export class JobSummary extends Schema.Class<JobSummary>('JobSummary')({
     attempts: Schema.Number,
     bookmarkShortUrl: Schema.String,
@@ -51,6 +57,12 @@ export class JobSummary extends Schema.Class<JobSummary>('JobSummary')({
 }) {}
 
 export interface WorkRepositoryShape {
+    readonly acquireJob: (input: {
+        readonly leaseDurationMicros: number;
+        readonly message: QueueJobMessage;
+        readonly now: number;
+        readonly token: string;
+    }) => Effect.Effect<JobLease | null, D1StoreFailure>;
     readonly claimJob: (input: {
         readonly id: string;
         readonly leaseDurationMicros: number;
@@ -120,6 +132,13 @@ export interface WorkRepositoryShape {
         id: string,
         now: number,
     ) => Effect.Effect<boolean, D1StoreFailure>;
+    readonly settleOutbox: (input: {
+        readonly completed: ReadonlyArray<OutboxDispatchLease>;
+        readonly errorCode: string;
+        readonly now: number;
+        readonly releaseAt: number;
+        readonly released: ReadonlyArray<OutboxDispatchLease>;
+    }) => Effect.Effect<ReadonlyArray<OutboxSettlement>, D1StoreFailure>;
     readonly releaseOutbox: (input: {
         readonly availableAt: number;
         readonly errorCode: string;
@@ -336,6 +355,70 @@ export function makeWorkRepository(
         },
     );
 
+    const settleOutbox = Effect.fn('WorkRepository.settleOutbox')(
+        function* (input: {
+            readonly completed: ReadonlyArray<OutboxDispatchLease>;
+            readonly errorCode: string;
+            readonly now: number;
+            readonly releaseAt: number;
+            readonly released: ReadonlyArray<OutboxDispatchLease>;
+        }) {
+            const statements = [
+                ...input.completed.map((lease) => ({
+                    sql: `
+                        UPDATE outbox
+                        SET
+                            state = 'completed',
+                            claim_token = NULL,
+                            lease_expires_at = NULL,
+                            completed_at = ?,
+                            updated_at = ?
+                        WHERE id = ?
+                          AND state = 'claimed'
+                          AND claim_token = ?
+                    `,
+                    parameters: [input.now, input.now, lease.id, lease.token],
+                })),
+                ...input.released.map((lease) => ({
+                    sql: `
+                        UPDATE outbox
+                        SET
+                            state = 'pending',
+                            claim_token = NULL,
+                            lease_expires_at = NULL,
+                            available_at = ?,
+                            last_error_code = ?,
+                            updated_at = ?
+                        WHERE id = ?
+                          AND state = 'claimed'
+                          AND claim_token = ?
+                    `,
+                    parameters: [
+                        input.releaseAt,
+                        input.errorCode,
+                        input.now,
+                        lease.id,
+                        lease.token,
+                    ],
+                })),
+            ];
+            const results = yield* d1Store.batch(statements);
+            return [
+                ...input.completed.map((lease, index) => ({
+                    id: lease.id,
+                    settled: results[index]?.changes === 1,
+                    state: 'completed' as const,
+                })),
+                ...input.released.map((lease, index) => ({
+                    id: lease.id,
+                    settled:
+                        results[input.completed.length + index]?.changes === 1,
+                    state: 'pending' as const,
+                })),
+            ];
+        },
+    );
+
     const ensureJob = Effect.fn('WorkRepository.ensureJob')(function* (
         message: QueueJobMessage,
         now: number,
@@ -380,6 +463,85 @@ export function makeWorkRepository(
             ],
         );
     });
+
+    const acquireJob = Effect.fn('WorkRepository.acquireJob')(
+        (input: {
+            readonly leaseDurationMicros: number;
+            readonly message: QueueJobMessage;
+            readonly now: number;
+            readonly token: string;
+        }) =>
+            d1Store.first(
+                JobLease,
+                `
+                    INSERT INTO jobs (
+                        id,
+                        outbox_id,
+                        bookmark_short_url,
+                        kind,
+                        state,
+                        lease_token,
+                        lease_expires_at,
+                        attempts,
+                        payload_version,
+                        created_at,
+                        updated_at,
+                        payload_json,
+                        available_at
+                    )
+                    SELECT
+                        ?, ?, ?, ?, 'processing', ?, ?, 1, ?, ?, ?, ?, ?
+                    WHERE NOT EXISTS (
+                        SELECT 1 FROM app_state WHERE read_only = 1
+                    )
+                      AND EXISTS (
+                        SELECT 1 FROM outbox
+                        WHERE id = ? AND bookmark_short_url = ?
+                      )
+                      AND EXISTS (
+                        SELECT 1 FROM bookmarks WHERE short_url = ?
+                      )
+                    ON CONFLICT(id) DO UPDATE SET
+                        state = 'processing',
+                        lease_token = excluded.lease_token,
+                        lease_expires_at = excluded.lease_expires_at,
+                        attempts = jobs.attempts + 1,
+                        updated_at = excluded.updated_at
+                    WHERE jobs.bookmark_short_url = excluded.bookmark_short_url
+                      AND jobs.kind = excluded.kind
+                      AND jobs.available_at <= excluded.available_at
+                      AND (
+                        jobs.state IN ('queued', 'retrying')
+                        OR (
+                            jobs.state = 'processing'
+                            AND jobs.lease_expires_at <= excluded.updated_at
+                        )
+                      )
+                    RETURNING
+                        id,
+                        bookmark_short_url AS "bookmarkShortUrl",
+                        kind,
+                        lease_token AS "leaseToken",
+                        attempts
+                `,
+                [
+                    input.message.jobId,
+                    input.message.jobId,
+                    input.message.bookmarkShortUrl,
+                    input.message.kind,
+                    input.token,
+                    input.now + input.leaseDurationMicros,
+                    input.message.version,
+                    input.now,
+                    input.now,
+                    JSON.stringify(input.message),
+                    input.now,
+                    input.message.jobId,
+                    input.message.bookmarkShortUrl,
+                    input.message.bookmarkShortUrl,
+                ],
+            ),
+    );
 
     const claimJob = Effect.fn('WorkRepository.claimJob')(
         (input: {
@@ -824,6 +986,7 @@ export function makeWorkRepository(
     });
 
     return {
+        acquireJob,
         claimJob,
         claimOutbox,
         claimOutboxForBookmark,
@@ -839,6 +1002,7 @@ export function makeWorkRepository(
         releaseJob,
         releaseOutbox,
         resolveReviewedTwitter,
+        settleOutbox,
         retryJob,
         terminalizeDeadLetter,
     };

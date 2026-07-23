@@ -50,6 +50,19 @@ const QueueProducerTest = Layer.succeed(QueueProducer, {
             sentMessages.push(message);
             return Effect.void;
         }),
+    sendBatch: (messages) =>
+        Effect.suspend(() => {
+            if (failedSends > 0) {
+                failedSends -= 1;
+                return Effect.fail(
+                    QueueProducerError.make({
+                        message: 'Injected Queue failure.',
+                    }),
+                );
+            }
+            sentMessages.push(...messages);
+            return Effect.void;
+        }),
 });
 const TestLayer = Layer.mergeAll(
     D1StoreTest,

@@ -32,6 +32,7 @@ function queueBatchResponse(): QueueSendBatchResponse {
 }
 
 function makeRecordingQueue(input: {
+    batchCalls: number;
     readonly sent: unknown[];
     remainingFailures: number;
 }): Queue {
@@ -46,6 +47,11 @@ function makeRecordingQueue(input: {
             return queueResponse();
         },
         async sendBatch(messages) {
+            input.batchCalls += 1;
+            if (input.remainingFailures > 0) {
+                input.remainingFailures -= 1;
+                throw new Error('Injected Queue batch failure.');
+            }
             for (const message of messages) {
                 input.sent.push(message.body);
             }
@@ -179,7 +185,7 @@ it('routes invalid Queue messages through the background retry boundary', async 
 
 it('chains social work before acknowledging metadata and recovers send failure', async () => {
     const sent: unknown[] = [];
-    const queueControl = { remainingFailures: 1, sent };
+    const queueControl = { batchCalls: 0, remainingFailures: 1, sent };
     const queue = makeRecordingQueue(queueControl);
     const keyring =
         '{"currentVersion":1,"keys":{"1":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="}}';
@@ -199,7 +205,7 @@ it('chains social work before acknowledging metadata and recovers send failure',
             const bookmark = yield* bookmarks.create({
                 createdAt,
                 description: null,
-                socialProviders: ['mastodon'],
+                socialProviders: ['mastodon', 'bluesky'],
                 title: 'Queue chain',
                 url: `https://example.com/queue-chain-${crypto.randomUUID()}`,
             });
@@ -242,18 +248,30 @@ it('chains social work before acknowledging metadata and recovers send failure',
         backgroundEnv,
     );
     const released = await env.DB.prepare(
-        `SELECT state FROM outbox WHERE id = ?`,
+        `SELECT state FROM outbox WHERE id IN (?, ?) ORDER BY id`,
     )
-        .bind(`social:${bookmark.shortUrl}:mastodon:v1`)
-        .first<QueueStateRow>();
+        .bind(
+            `social:${bookmark.shortUrl}:bluesky:v1`,
+            `social:${bookmark.shortUrl}:mastodon:v1`,
+        )
+        .all<QueueStateRow>();
 
     assert.isFalse(firstState.acknowledged);
     assert.strictEqual(firstState.retryDelaySeconds, 30);
-    assert.strictEqual(released?.state, 'pending');
+    assert.strictEqual(queueControl.batchCalls, 1);
+    assert.deepEqual(
+        released.results.map(({ state }) => state),
+        ['pending', 'pending'],
+    );
     assert.lengthOf(sent, 0);
 
-    await env.DB.prepare(`UPDATE outbox SET available_at = 0 WHERE id = ?`)
-        .bind(`social:${bookmark.shortUrl}:mastodon:v1`)
+    await env.DB.prepare(
+        `UPDATE outbox SET available_at = 0 WHERE id IN (?, ?)`,
+    )
+        .bind(
+            `social:${bookmark.shortUrl}:bluesky:v1`,
+            `social:${bookmark.shortUrl}:mastodon:v1`,
+        )
         .run();
     const secondState = {
         acknowledged: false,
@@ -264,16 +282,28 @@ it('chains social work before acknowledging metadata and recovers send failure',
         backgroundEnv,
     );
     const completed = await env.DB.prepare(
-        `SELECT state FROM outbox WHERE id = ?`,
+        `SELECT state FROM outbox WHERE id IN (?, ?) ORDER BY id`,
     )
-        .bind(`social:${bookmark.shortUrl}:mastodon:v1`)
-        .first<QueueStateRow>();
-    const child = await Schema.decodeUnknownPromise(QueueJobMessage)(sent[0]);
+        .bind(
+            `social:${bookmark.shortUrl}:bluesky:v1`,
+            `social:${bookmark.shortUrl}:mastodon:v1`,
+        )
+        .all<QueueStateRow>();
+    const children = await Promise.all(
+        sent.map((message) =>
+            Schema.decodeUnknownPromise(QueueJobMessage)(message),
+        ),
+    );
 
     assert.isTrue(secondState.acknowledged);
     assert.isNull(secondState.retryDelaySeconds);
-    assert.strictEqual(child.kind, 'social');
-    assert.strictEqual(completed?.state, 'completed');
+    assert.strictEqual(queueControl.batchCalls, 2);
+    assert.lengthOf(children, 2);
+    assert.isTrue(children.every(({ kind }) => kind === 'social'));
+    assert.deepEqual(
+        completed.results.map(({ state }) => state),
+        ['completed', 'completed'],
+    );
 });
 
 it('runs scheduled maintenance through the merged Worker handler', async () => {
