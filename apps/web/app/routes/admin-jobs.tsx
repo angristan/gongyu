@@ -393,17 +393,11 @@ export default function AdminJobs({
                                         </p>
                                         <Link
                                             className="block truncate text-sm font-medium text-gongyu-link"
-                                            title={job.bookmarkTitle}
+                                            title={job.bookmarkUrl}
                                             to={`/b/${job.bookmarkShortUrl}`}
                                         >
-                                            {job.bookmarkTitle}
-                                        </Link>
-                                        <p
-                                            className="truncate text-xs text-gongyu-subtle"
-                                            title={job.bookmarkUrl}
-                                        >
                                             {job.bookmarkUrl}
-                                        </p>
+                                        </Link>
                                         {job.lastErrorCode === null ? null : (
                                             <p className="mt-0.5 truncate font-mono text-xs text-gongyu-danger">
                                                 {job.lastErrorCode}
@@ -451,17 +445,11 @@ export default function AdminJobs({
                                             </p>
                                             <Link
                                                 className="block truncate font-medium text-gongyu-link"
-                                                title={job.bookmarkTitle}
+                                                title={job.bookmarkUrl}
                                                 to={`/b/${job.bookmarkShortUrl}`}
                                             >
-                                                {job.bookmarkTitle}
-                                            </Link>
-                                            <p
-                                                className="truncate text-xs text-gongyu-subtle"
-                                                title={job.bookmarkUrl}
-                                            >
                                                 {job.bookmarkUrl}
-                                            </p>
+                                            </Link>
                                             <p className="mt-1 text-xs text-gongyu-subtle">
                                                 {formatDate(job.updatedAt)} ·
                                                 attempt {job.attempts}

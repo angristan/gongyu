@@ -54,7 +54,6 @@ export interface OutboxSettlement {
 export class JobSummary extends Schema.Class<JobSummary>('JobSummary')({
     attempts: Schema.Number,
     bookmarkShortUrl: Schema.String,
-    bookmarkTitle: Schema.String,
     bookmarkUrl: Schema.String,
     id: Schema.String,
     kind: Schema.String,
@@ -708,7 +707,6 @@ export function makeWorkRepository(
             `
                 SELECT
                     activity.*,
-                    bookmarks.title AS "bookmarkTitle",
                     bookmarks.url AS "bookmarkUrl"
                 FROM (
                     SELECT
