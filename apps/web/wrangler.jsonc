@@ -80,6 +80,9 @@
   "env": {
     "production": {
       "name": "gongyu",
+      "placement": {
+        "mode": "smart"
+      },
       "limits": {
         "cpu_ms": 300000
       },
