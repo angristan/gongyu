@@ -351,7 +351,7 @@ export default function Bookmarklet({
                         />
                         <p aria-live="polite" className="text-gongyu-default">
                             {twitterIntentUrl === null
-                                ? 'Saved successfully. This popup will close shortly.'
+                                ? 'Saved successfully. This tab will close shortly.'
                                 : 'Saved successfully. Review the prefilled post before publishing it on X.'}
                         </p>
                         <div className="flex flex-wrap items-center justify-center gap-2">

@@ -458,7 +458,7 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
 
     const popupPromise = context.waitForEvent('page');
     await page.evaluate((path) => {
-        window.open(path, 'gongyu', 'width=600,height=500');
+        window.open(path, 'gongyu');
     }, bookmarkletReturn);
     const popup = await popupPromise;
     await popup.waitForURL(/\/bookmarklet\?/u);
@@ -468,7 +468,7 @@ test('sets up one passkey, rotates sessions, and logs in', async ({
 
     const duplicatePopupPromise = context.waitForEvent('page');
     await page.evaluate((path) => {
-        window.open(path, 'gongyu', 'width=600,height=500');
+        window.open(path, 'gongyu');
     }, bookmarkletReturn);
     const duplicatePopup = await duplicatePopupPromise;
     await expect(
