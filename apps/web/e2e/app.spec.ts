@@ -94,7 +94,13 @@ test('renders the SSR shell and persists hydrated theme changes', async ({
     const response = await request.get('/');
     expect(response.status()).toBe(200);
     expect(response.headers()['x-request-id']).toBeTruthy();
-    expect(response.headers()['cache-control']).toBe('private, no-store');
+    expect(response.headers()['cache-control']).toBe(
+        'public, max-age=0, must-revalidate',
+    );
+    expect(response.headers()['cloudflare-cdn-cache-control']).toBe(
+        'public, max-age=86400',
+    );
+    expect(response.headers().vary).toContain('Cookie');
     expect(response.headers()['x-content-type-options']).toBe('nosniff');
     expect(response.headers()['x-frame-options']).toBe('DENY');
     expect(response.headers()['referrer-policy']).toBe(

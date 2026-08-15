@@ -1,3 +1,4 @@
+import { purgePublicWorkerCache } from '@gongyu/integrations/workers-cache';
 import { backgroundHandlers } from '@gongyu/jobs/worker';
 import { createRequestHandler, RouterContextProvider } from 'react-router';
 import {
@@ -7,6 +8,10 @@ import {
 } from '../app/auth/session.server';
 import { makeRequestEffectRunner } from '../app/effect/runtime';
 import { cloudflareRequestContext } from '../app/platform-context';
+import {
+    applyResponseCachePolicy,
+    shouldPurgePublicCache,
+} from './cache-policy';
 import { traceHttpRequest } from './observability';
 
 export { DataWorkflow } from '@gongyu/jobs/data-workflow';
@@ -80,9 +85,6 @@ export default {
                     }
                 }
                 const headers = new Headers(response.headers);
-                if (!headers.has('Cache-Control')) {
-                    headers.set('Cache-Control', 'private, no-store');
-                }
                 headers.set(
                     'Content-Security-Policy',
                     "default-src 'self'; base-uri 'none'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; img-src 'self' data:; object-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'",
@@ -108,6 +110,21 @@ export default {
                     authentication.clearInvalidCookies
                 ) {
                     appendClearedSessionCookies(headers);
+                }
+                applyResponseCachePolicy({
+                    authenticated: authentication.authenticated,
+                    headers,
+                    request,
+                    status: response.status,
+                });
+                if (
+                    shouldPurgePublicCache({
+                        authenticated: authentication.authenticated,
+                        method: request.method,
+                        status: response.status,
+                    })
+                ) {
+                    await purgePublicWorkerCache(executionContext.cache);
                 }
                 return new Response(response.body, {
                     headers,

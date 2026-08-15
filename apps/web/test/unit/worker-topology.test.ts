@@ -15,6 +15,7 @@ const WorkflowBinding = Schema.Struct({
     script_name: Schema.optional(Schema.String),
 });
 const WranglerConfig = Schema.Struct({
+    cache: Schema.Struct({ enabled: Schema.Boolean }),
     env: Schema.Struct({
         production: Schema.Struct({
             images: Schema.Struct({ binding: Schema.String }),
@@ -40,6 +41,7 @@ it('exports queue and scheduled handlers for the web entrypoint', () => {
 it('deploys HTTP and background triggers through one production Worker', () => {
     const production = config.env.production;
 
+    assert.isTrue(config.cache.enabled);
     assert.strictEqual(production.name, 'gongyu');
     assert.strictEqual(production.images.binding, 'IMAGES');
     assert.deepEqual(production.triggers.crons, ['* * * * *']);

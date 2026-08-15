@@ -2,6 +2,7 @@ import { DataRunRepository } from '@gongyu/data/data-run-repository';
 import { WorkRepository } from '@gongyu/data/work-repository';
 import { QueueJobMessage } from '@gongyu/domain/jobs';
 import type { ThumbnailImagesBinding } from '@gongyu/integrations/thumbnail-client';
+import { purgePublicWorkerCache } from '@gongyu/integrations/workers-cache';
 import { Effect, Schema } from 'effect';
 import {
     dispatchBookmarkOutbox,
@@ -44,9 +45,10 @@ async function decodeQueueMessage(value: unknown): Promise<QueueJobMessage> {
 }
 
 export const backgroundHandlers = {
-    async queue(batch, env) {
+    async queue(batch, env, executionContext?: ExecutionContext) {
         const effect = runner(env, 'queue');
         const isDeadLetter = batch.queue.endsWith('-dlq');
+        let publicDataChanged = false;
         for (const message of batch.messages) {
             try {
                 const payload = await decodeQueueMessage(message.body);
@@ -65,6 +67,7 @@ export const backgroundHandlers = {
                     continue;
                 }
                 if (payload.kind === 'metadata') {
+                    publicDataChanged = true;
                     const dispatch = await effect.runPromise(
                         dispatchBookmarkOutbox({
                             bookmarkShortUrl: payload.bookmarkShortUrl,
@@ -90,6 +93,9 @@ export const backgroundHandlers = {
                 );
                 message.retry({ delaySeconds: 30 });
             }
+        }
+        if (publicDataChanged) {
+            await purgePublicWorkerCache(executionContext?.cache);
         }
     },
 
