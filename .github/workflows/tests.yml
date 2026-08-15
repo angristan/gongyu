@@ -28,6 +28,7 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
       - name: Install Playwright Chromium
+        working-directory: apps/web
         run: bunx playwright install --with-deps --only-shell chromium
       - name: Run browser integration tests
         run: bun run --cwd apps/web test:e2e
