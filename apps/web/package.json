@@ -32,8 +32,8 @@
     "@simplewebauthn/server": "13.3.2",
     "effect": "4.0.0-beta.97",
     "isbot": "5.2.0",
-    "react": "19.2.7",
-    "react-dom": "19.2.7",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
     "react-router": "8.2.0"
   },
   "devDependencies": {
